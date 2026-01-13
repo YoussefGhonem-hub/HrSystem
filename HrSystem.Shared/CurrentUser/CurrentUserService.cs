@@ -20,6 +20,7 @@ public static class CurrentUser
     private const string RolesArrayClaim = "roles";
     private const string RoleClaim = ClaimTypes.Role;
     private const string AudienceClaim = "aud";
+    private const string OrganizationIdClaim = "organization_id"; // Custom claim for multi-tenancy
 
     // Read guest id from request header "X-Guest-UserId" and cache per-request
     public static string? GuestId
@@ -68,6 +69,15 @@ public static class CurrentUser
                    ?? GetClaimValue(NameIdClaim)
                    ?? GetClaimValue("Id");
             return Guid.TryParse(raw, out var id) ? id : null;
+        }
+    }
+    
+    public static Guid? OrganizationId
+    {
+        get
+        {
+            var raw = GetClaimValue(OrganizationIdClaim) ?? GetClaimValue("OrganizationId");
+            return Guid.TryParse(raw, out var orgId) ? orgId : null;
         }
     }
 

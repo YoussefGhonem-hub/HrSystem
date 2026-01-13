@@ -59,6 +59,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<HrSystem.Domain.Entities.Lifecycle.OffboardingTask> OffboardingTasks => Set<HrSystem.Domain.Entities.Lifecycle.OffboardingTask>();
     public DbSet<HrSystem.Domain.Entities.Lifecycle.EmployeeAsset> EmployeeAssets => Set<HrSystem.Domain.Entities.Lifecycle.EmployeeAsset>();
     public DbSet<HrSystem.Domain.Entities.Lifecycle.PolicyAcknowledgment> PolicyAcknowledgments => Set<HrSystem.Domain.Entities.Lifecycle.PolicyAcknowledgment>();
+    
+    // Organization & Multi-Tenancy
+    public DbSet<HrSystem.Domain.Entities.Organization.Organization> Organizations => Set<HrSystem.Domain.Entities.Organization.Organization>();
+    public DbSet<HrSystem.Domain.Entities.Organization.SubscriptionPlan> SubscriptionPlans => Set<HrSystem.Domain.Entities.Organization.SubscriptionPlan>();
+    public DbSet<HrSystem.Domain.Entities.Organization.OrganizationSettings> OrganizationSettings => Set<HrSystem.Domain.Entities.Organization.OrganizationSettings>();
+    public DbSet<HrSystem.Domain.Entities.Organization.OrganizationModule> OrganizationModules => Set<HrSystem.Domain.Entities.Organization.OrganizationModule>();
+    public DbSet<HrSystem.Domain.Entities.Organization.OrganizationInvoice> OrganizationInvoices => Set<HrSystem.Domain.Entities.Organization.OrganizationInvoice>();
+    public DbSet<HrSystem.Domain.Entities.Organization.OrganizationInvoiceItem> OrganizationInvoiceItems => Set<HrSystem.Domain.Entities.Organization.OrganizationInvoiceItem>();
+    public DbSet<HrSystem.Domain.Entities.Organization.OrganizationAuditLog> OrganizationAuditLogs => Set<HrSystem.Domain.Entities.Organization.OrganizationAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +76,33 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
         modelBuilder.GetOnlyNotDeletedEntities();
+        
+        // Apply Multi-Tenancy Global Query Filter
+        ApplyMultiTenancyFilter(modelBuilder);
+    }
+    
+    private void ApplyMultiTenancyFilter(ModelBuilder modelBuilder)
+    {
+        // Get current organization ID from CurrentUser
+        var organizationId = CurrentUser.OrganizationId;
+        
+        if (!organizationId.HasValue)
+            return;
+            
+        // Apply filter to all entities that inherit from BaseAuditableEntity (they have TenantId)
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "e");
+                var property = System.Linq.Expressions.Expression.Property(parameter, nameof(BaseAuditableEntity.TenantId));
+                var organizationValue = System.Linq.Expressions.Expression.Constant(organizationId.Value);
+                var equalExpression = System.Linq.Expressions.Expression.Equal(property, organizationValue);
+                var lambda = System.Linq.Expressions.Expression.Lambda(equalExpression, parameter);
+                
+                entityType.SetQueryFilter(lambda);
+            }
+        }
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -79,6 +115,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     {
         var now = DateTimeOffset.UtcNow;
         var userId = CurrentUser.Id;
+        var organizationId = CurrentUser.OrganizationId;
 
         foreach (var entry in ChangeTracker.Entries())
         {
@@ -89,6 +126,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 case EntityState.Added:
                     if (auditable.CreatedDate == default) auditable.CreatedDate = now;
                     if (auditable.CreatedBy == Guid.Empty && userId.HasValue) auditable.CreatedBy = userId.Value;
+                    if (auditable.TenantId == Guid.Empty && organizationId.HasValue) auditable.TenantId = organizationId.Value;
                     auditable.IsDeleted = false;
                     break;
 
@@ -97,6 +135,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                     if (userId.HasValue) auditable.ModifiedBy = userId.Value;
                     entry.Property(nameof(BaseAuditableEntity.CreatedDate)).IsModified = false;
                     entry.Property(nameof(BaseAuditableEntity.CreatedBy)).IsModified = false;
+                    entry.Property(nameof(BaseAuditableEntity.TenantId)).IsModified = false;
                     break;
 
                 case EntityState.Deleted:
