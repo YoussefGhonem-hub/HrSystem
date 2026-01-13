@@ -8,7 +8,7 @@ public class LeaveRequestConfiguration : IEntityTypeConfiguration<LeaveRequest>
 {
     public void Configure(EntityTypeBuilder<LeaveRequest> builder)
     {
-        builder.ToTable("LeaveRequests");
+        builder.ToTable("LeaveRequests", "Leave");
 
         builder.Property(l => l.TotalDays).HasColumnType("decimal(18,2)");
         builder.Property(l => l.Reason).IsRequired().HasMaxLength(500);

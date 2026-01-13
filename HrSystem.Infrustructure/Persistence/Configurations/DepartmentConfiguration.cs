@@ -8,7 +8,7 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
 {
     public void Configure(EntityTypeBuilder<Department> builder)
     {
-        builder.ToTable("Departments");
+        builder.ToTable("Departments", "Employee");
 
         builder.Property(d => d.NameAr).IsRequired().HasMaxLength(200);
         builder.Property(d => d.NameEn).IsRequired().HasMaxLength(200);

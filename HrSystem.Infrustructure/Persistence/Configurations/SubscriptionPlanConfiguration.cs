@@ -8,7 +8,7 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
 {
     public void Configure(EntityTypeBuilder<SubscriptionPlan> builder)
     {
-        builder.ToTable("SubscriptionPlans");
+        builder.ToTable("SubscriptionPlans", "Organization");
 
         builder.HasIndex(sp => sp.Code).IsUnique();
 

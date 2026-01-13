@@ -8,7 +8,7 @@ public class PayslipConfiguration : IEntityTypeConfiguration<Payslip>
 {
     public void Configure(EntityTypeBuilder<Payslip> builder)
     {
-        builder.ToTable("Payslips");
+        builder.ToTable("Payslips", "Payroll");
 
         builder.HasIndex(p => p.PayslipNumber).IsUnique();
 

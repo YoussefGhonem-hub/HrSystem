@@ -8,7 +8,7 @@ public class OrganizationModuleConfiguration : IEntityTypeConfiguration<Organiza
 {
     public void Configure(EntityTypeBuilder<OrganizationModule> builder)
     {
-        builder.ToTable("OrganizationModules");
+        builder.ToTable("OrganizationModules", "Organization");
 
         builder.HasIndex(om => new { om.OrganizationId, om.ModuleName }).IsUnique();
 

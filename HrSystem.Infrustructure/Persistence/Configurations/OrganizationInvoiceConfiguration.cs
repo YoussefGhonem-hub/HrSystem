@@ -8,7 +8,7 @@ public class OrganizationInvoiceConfiguration : IEntityTypeConfiguration<Organiz
 {
     public void Configure(EntityTypeBuilder<OrganizationInvoice> builder)
     {
-        builder.ToTable("OrganizationInvoices");
+        builder.ToTable("OrganizationInvoices", "Organization");
 
         builder.HasIndex(oi => oi.InvoiceNumber).IsUnique();
 

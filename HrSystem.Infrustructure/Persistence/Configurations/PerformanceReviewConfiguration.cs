@@ -8,7 +8,7 @@ public class PerformanceReviewConfiguration : IEntityTypeConfiguration<Performan
 {
     public void Configure(EntityTypeBuilder<PerformanceReview> builder)
     {
-        builder.ToTable("PerformanceReviews");
+        builder.ToTable("PerformanceReviews", "Performance");
 
         builder.Property(p => p.OverallRating).HasColumnType("decimal(18,2)");
 

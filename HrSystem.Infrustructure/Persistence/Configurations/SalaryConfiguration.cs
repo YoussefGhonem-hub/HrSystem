@@ -8,7 +8,7 @@ public class SalaryConfiguration : IEntityTypeConfiguration<Salary>
 {
     public void Configure(EntityTypeBuilder<Salary> builder)
     {
-        builder.ToTable("Salaries");
+        builder.ToTable("Salaries", "Payroll");
 
         builder.Property(s => s.BasicSalary).HasColumnType("decimal(18,2)");
 

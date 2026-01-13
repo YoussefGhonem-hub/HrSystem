@@ -8,7 +8,7 @@ public class AttendanceConfiguration : IEntityTypeConfiguration<Attendance>
 {
     public void Configure(EntityTypeBuilder<Attendance> builder)
     {
-        builder.ToTable("Attendances");
+        builder.ToTable("Attendances", "Attendance");
 
         builder.HasIndex(a => new { a.EmployeeId, a.Date }).IsUnique();
 

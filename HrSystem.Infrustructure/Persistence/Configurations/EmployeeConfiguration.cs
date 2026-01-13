@@ -8,7 +8,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 {
     public void Configure(EntityTypeBuilder<Employee> builder)
     {
-        builder.ToTable("Employees");
+        builder.ToTable("Employees", "Employee");
 
         builder.HasIndex(e => e.EmployeeCode).IsUnique();
         builder.HasIndex(e => e.NationalId).IsUnique();

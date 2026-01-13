@@ -8,7 +8,7 @@ public class OrganizationSettingsConfiguration : IEntityTypeConfiguration<Organi
 {
     public void Configure(EntityTypeBuilder<OrganizationSettings> builder)
     {
-        builder.ToTable("OrganizationSettings");
+        builder.ToTable("OrganizationSettings", "Organization");
 
         builder.HasIndex(os => new { os.OrganizationId, os.SettingKey }).IsUnique();
 
