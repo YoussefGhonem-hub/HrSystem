@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="HrSystem.API/HrSystem.API.csproj" />
+  <Project Path="HrSystem.Application/HrSystem.Application.csproj" />
+  <Project Path="HrSystem.Domain/HrSystem.Domain.csproj" />
+  <Project Path="HrSystem.Infrustructure/HrSystem.Infrustructure.csproj" />
+  <Project Path="HrSystem.Shared/HrSystem.Shared.csproj" />
+</Solution>
