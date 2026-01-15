@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Payroll;
 
+/// <summary>
+/// Represents an individual employee's detailed salary statement for a specific period.
+/// This entity provides complete transparency in salary calculations, showing all earnings, deductions,
+/// taxes, and net pay. Essential for employee trust and satisfaction, legal compliance, dispute
+/// resolution, and maintaining accurate payment records. Supports digital payslip distribution
+/// for paperless operations.
+/// </summary>
 public class Payslip : BaseAuditableEntity
 {
     public Guid PayrollCycleId { get; set; }

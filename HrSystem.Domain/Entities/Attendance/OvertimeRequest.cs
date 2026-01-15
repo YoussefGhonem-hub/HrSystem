@@ -2,6 +2,12 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Attendance;
 
+/// <summary>
+/// Manages approval workflow for employee overtime work.
+/// This entity ensures proper authorization and documentation of extra working hours, enabling accurate
+/// overtime compensation calculation. Helps control labor costs, ensures compliance with overtime
+/// regulations, maintains audit trails, and supports workforce planning by tracking overtime patterns.
+/// </summary>
 public class OvertimeRequest : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

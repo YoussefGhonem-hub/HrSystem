@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Performance;
 
+/// <summary>
+/// Breaks down goals into smaller, trackable milestones.
+/// This entity facilitates progress tracking by creating checkpoints toward goal completion,
+/// enables early identification of delays, supports agile goal management, and maintains motivation
+/// through visible progress. Essential for effective goal execution and keeping employees
+/// focused on incremental achievements.
+/// </summary>
 public class GoalMilestone : BaseAuditableEntity
 {
     public Guid GoalId { get; set; }

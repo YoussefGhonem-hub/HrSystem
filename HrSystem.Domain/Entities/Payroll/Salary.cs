@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Payroll;
 
+/// <summary>
+/// Maintains employee salary structure and compensation history.
+/// This entity tracks salary changes over time, supports salary revision processes, and serves as
+/// the foundation for payroll calculations. Essential for compensation analysis, budget planning,
+/// ensuring pay equity, and maintaining accurate payroll records. Enables historical salary tracking
+/// for audits and salary increment reviews.
+/// </summary>
 public class Salary : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

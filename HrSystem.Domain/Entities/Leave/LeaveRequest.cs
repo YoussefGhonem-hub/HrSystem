@@ -3,6 +3,13 @@ using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Leave;
 
+/// <summary>
+/// Manages employee leave applications and approval workflows.
+/// This entity streamlines the leave request process with multi-level approvals, ensures adequate
+/// documentation, and maintains compliance with leave policies. Enables workforce planning by
+/// providing visibility into upcoming absences, prevents scheduling conflicts, and maintains
+/// accurate records for payroll deductions and leave balance updates.
+/// </summary>
 public class LeaveRequest : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

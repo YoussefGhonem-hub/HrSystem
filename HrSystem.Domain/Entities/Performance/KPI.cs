@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Performance;
 
+/// <summary>
+/// Defines Key Performance Indicators for measuring employee performance.
+/// This entity standardizes performance measurement criteria across roles and departments,
+/// enables objective performance evaluation, ensures consistency in assessments, and links
+/// individual performance to business outcomes. Critical for fair performance management,
+/// identifying high performers, and making data-driven talent decisions.
+/// </summary>
 public class KPI : BaseAuditableEntity
 {
     public string NameAr { get; set; } = string.Empty;

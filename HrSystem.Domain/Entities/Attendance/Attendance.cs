@@ -3,6 +3,13 @@ using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Attendance;
 
+/// <summary>
+/// Records daily employee attendance with check-in and check-out times.
+/// This entity enables accurate time tracking, monitors punctuality, and calculates worked hours for
+/// payroll processing. Supports integration with biometric devices, identifies attendance patterns,
+/// and helps reduce time theft. Critical for payroll accuracy, productivity analysis, and compliance
+/// with labor regulations regarding working hours.
+/// </summary>
 public class Attendance : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

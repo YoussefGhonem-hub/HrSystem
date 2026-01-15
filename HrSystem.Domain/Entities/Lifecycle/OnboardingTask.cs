@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Lifecycle;
 
+/// <summary>
+/// Manages structured onboarding process for new employees.
+/// This entity ensures consistent new hire experiences, reduces time-to-productivity, prevents
+/// missed critical setup tasks, and tracks onboarding progress. Essential for creating positive
+/// first impressions, ensuring compliance with onboarding requirements, improving retention,
+/// and helping new employees integrate smoothly into the organization.
+/// </summary>
 public class OnboardingTask : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

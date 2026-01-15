@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Lifecycle;
 
+/// <summary>
+/// Manages structured offboarding process for departing employees.
+/// This entity ensures proper exit procedures are followed, prevents security risks by revoking
+/// access timely, facilitates asset recovery, and maintains compliance with termination protocols.
+/// Critical for protecting company interests, maintaining security, ensuring knowledge transfer,
+/// and creating professional departure experiences.
+/// </summary>
 public class OffboardingTask : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

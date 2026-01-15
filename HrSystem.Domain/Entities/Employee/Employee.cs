@@ -3,6 +3,13 @@ using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Employee;
 
+/// <summary>
+/// Central entity representing an employee in the organization.
+/// This core entity stores comprehensive employee information including personal details, employment status,
+/// and organizational relationships. Serves as the foundation for all HR operations including payroll,
+/// attendance, performance management, and leave tracking. Essential for maintaining accurate workforce
+/// records, ensuring compliance with labor laws, and enabling effective people management.
+/// </summary>
 public class Employee : BaseAuditableEntity
 {
     // Personal Information

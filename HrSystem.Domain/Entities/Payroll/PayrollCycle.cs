@@ -3,6 +3,13 @@ using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Payroll;
 
+/// <summary>
+/// Represents a complete payroll processing period (typically monthly).
+/// This entity orchestrates the entire payroll process, aggregates payroll costs for financial reporting,
+/// tracks processing status, and maintains payroll history. Essential for financial planning, budget
+/// management, ensuring timely salary payments, and maintaining organized payroll records for audits
+/// and compliance verification.
+/// </summary>
 public class PayrollCycle : BaseAuditableEntity
 {
     public string CycleName { get; set; } = string.Empty; // e.g., "January 2026"

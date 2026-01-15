@@ -2,6 +2,12 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Organization;
 
+/// <summary>
+/// Manages billing and payment records for organization subscriptions.
+/// This entity tracks subscription invoices, payment status, and billing history for each organization.
+/// Essential for revenue tracking, accounts receivable management, financial reporting, and ensuring
+/// timely payments. Supports automated billing processes and helps maintain healthy cash flow.
+/// </summary>
 public class OrganizationInvoice : BaseEntity
 {
     public Guid OrganizationId { get; set; }

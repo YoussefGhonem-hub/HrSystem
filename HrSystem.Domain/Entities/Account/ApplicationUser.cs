@@ -2,6 +2,12 @@ using Microsoft.AspNetCore.Identity;
 
 namespace HrSystem.Domain.Entities.Account;
 
+/// <summary>
+/// Represents a system user account for the HR system.
+/// This entity enables secure authentication and authorization, allowing employees and HR staff
+/// to access the system with appropriate permissions. Supports multi-tenancy by associating users
+/// with their respective organizations, ensuring data isolation and security across different companies.
+/// </summary>
 public class ApplicationUser : IdentityUser<Guid>
 {
     public string? FullName { get; set; }

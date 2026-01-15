@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Lifecycle;
 
+/// <summary>
+/// Tracks employee acknowledgment of company policies and procedures.
+/// This entity ensures legal compliance by documenting policy communication and acceptance,
+/// reduces liability in disputes, maintains audit trails for compliance verification,
+/// and ensures employees are aware of company rules. Essential for risk management,
+/// regulatory compliance, and protecting the organization in legal matters.
+/// </summary>
 public class PolicyAcknowledgment : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

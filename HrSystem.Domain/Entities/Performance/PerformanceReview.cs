@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Performance;
 
+/// <summary>
+/// Manages formal employee performance evaluations and reviews.
+/// This entity enables structured performance management, supports objective employee assessments,
+/// facilitates feedback delivery, and drives performance improvement. Critical for making informed
+/// decisions on promotions, raises, and development needs. Helps align individual performance with
+/// organizational goals and maintains documentation for performance-related decisions.
+/// </summary>
 public class PerformanceReview : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

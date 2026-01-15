@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Performance;
 
+/// <summary>
+/// Defines and tracks individual employee goals and objectives.
+/// This entity aligns employee efforts with organizational objectives, enables progress monitoring,
+/// supports performance-based evaluations, and drives accountability. Essential for maintaining
+/// focus on priorities, facilitating meaningful performance discussions, and ensuring employees
+/// contribute effectively to business success.
+/// </summary>
 public class Goal : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

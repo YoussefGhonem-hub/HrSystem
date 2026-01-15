@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Payroll;
 
+/// <summary>
+/// Links specific allowances to employee salary structures.
+/// This entity enables customized compensation packages by allowing different allowances
+/// for different employees. Supports flexible allowance calculations (fixed amount or percentage),
+/// ensures accurate gross salary computation, and facilitates transparent compensation breakdown
+/// in payslips. Essential for competitive and equitable compensation management.
+/// </summary>
 public class SalaryAllowance : BaseAuditableEntity
 {
     public Guid SalaryId { get; set; }

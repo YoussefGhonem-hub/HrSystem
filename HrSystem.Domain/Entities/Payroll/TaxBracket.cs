@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Payroll;
 
+/// <summary>
+/// Maintains progressive income tax rates based on government tax regulations.
+/// This entity enables accurate tax calculation according to current tax laws, supports automatic
+/// adaptation to tax law changes, and ensures compliance with tax withholding requirements.
+/// Essential for proper tax deductions, avoiding legal issues, and maintaining accurate net salary
+/// calculations for employees across different income levels.
+/// </summary>
 public class TaxBracket : BaseAuditableEntity
 {
     public int Year { get; set; }

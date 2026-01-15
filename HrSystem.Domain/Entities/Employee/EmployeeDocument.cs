@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Employee;
 
+/// <summary>
+/// Stores and manages employee-related documents digitally.
+/// This entity enables paperless HR operations by securely storing contracts, certificates, IDs,
+/// and other important documents. Facilitates compliance with document retention policies, enables
+/// quick document retrieval during audits, and supports remote access to employee records.
+/// Essential for regulatory compliance and efficient document management.
+/// </summary>
 public class EmployeeDocument : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }

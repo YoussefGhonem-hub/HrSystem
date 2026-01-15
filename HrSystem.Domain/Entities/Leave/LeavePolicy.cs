@@ -3,6 +3,13 @@ using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Leave;
 
+/// <summary>
+/// Defines organizational leave rules and entitlements for different leave types.
+/// This entity standardizes leave management across the organization, ensures compliance with labor
+/// laws and company policies, and provides clear guidelines for leave approval processes. Enables
+/// consistent application of leave rules, supports audit requirements, and helps maintain fairness
+/// in leave administration.
+/// </summary>
 public class LeavePolicy : BaseAuditableEntity
 {
     public LeaveType LeaveType { get; set; }

@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Organization;
 
+/// <summary>
+/// Defines service tiers and pricing plans for the HR system.
+/// This entity enables flexible monetization strategies by offering different feature sets and capacity
+/// limits at various price points (Basic, Professional, Enterprise). Supports business growth through
+/// tiered offerings, facilitates upselling opportunities, and allows organizations to choose plans
+/// that match their size and requirements.
+/// </summary>
 public class SubscriptionPlan : BaseEntity
 {
     public string NameAr { get; set; } = string.Empty;

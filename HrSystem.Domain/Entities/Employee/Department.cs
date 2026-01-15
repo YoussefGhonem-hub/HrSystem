@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Employee;
 
+/// <summary>
+/// Represents organizational departments and their hierarchical structure.
+/// This entity enables effective organizational structure management, supporting hierarchical relationships
+/// between departments. Facilitates proper reporting structures, budget allocation, resource planning,
+/// and performance tracking at the departmental level. Essential for organizational clarity and efficient
+/// workforce management across different business units.
+/// </summary>
 public class Department : BaseAuditableEntity
 {
     public string NameAr { get; set; } = string.Empty;

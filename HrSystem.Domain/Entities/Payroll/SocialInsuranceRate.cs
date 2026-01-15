@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Payroll;
 
+/// <summary>
+/// Maintains current social insurance contribution rates and regulations.
+/// This entity ensures compliance with government-mandated social insurance requirements,
+/// enables accurate calculation of employee and employer contributions, and adapts to regulatory
+/// changes over time. Critical for legal compliance, avoiding penalties, and ensuring proper
+/// employee social security coverage.
+/// </summary>
 public class SocialInsuranceRate : BaseAuditableEntity
 {
     public int Year { get; set; }

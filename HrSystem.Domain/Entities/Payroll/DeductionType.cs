@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Payroll;
 
+/// <summary>
+/// Defines standardized deduction categories for payroll processing.
+/// This entity ensures consistent handling of salary deductions (loans, advances, penalties),
+/// distinguishes between recurring and one-time deductions, and maintains compliance with
+/// deduction regulations. Critical for accurate net salary calculations and proper documentation
+/// of all salary adjustments.
+/// </summary>
 public class DeductionType : BaseAuditableEntity
 {
     public string NameAr { get; set; } = string.Empty;

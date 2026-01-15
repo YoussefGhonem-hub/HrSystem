@@ -2,6 +2,12 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Account;
 
+/// <summary>
+/// Manages secure session tokens for extended user authentication.
+/// This entity enables seamless user experience by maintaining secure sessions without requiring
+/// frequent re-authentication, while ensuring security through token rotation and revocation.
+/// Critical for maintaining both user convenience and system security standards.
+/// </summary>
 public class RefreshToken : BaseAuditableEntity
 {
     public Guid UserId { get; set; }

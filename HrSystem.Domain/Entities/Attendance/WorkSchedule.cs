@@ -2,6 +2,13 @@ using HrSystem.Domain.Common;
 
 namespace HrSystem.Domain.Entities.Attendance;
 
+/// <summary>
+/// Defines standard working hours and schedules for different employee groups.
+/// This entity enables flexible work arrangement management, supports shift-based operations,
+/// and establishes baseline expectations for attendance. Facilitates automated late/early leave
+/// detection with grace periods, ensures fair attendance policies, and accommodates various
+/// work patterns (e.g., 5-day, 6-day weeks, flexible hours).
+/// </summary>
 public class WorkSchedule : BaseAuditableEntity
 {
     public string Name { get; set; } = string.Empty;
