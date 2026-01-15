@@ -1,0 +1,58 @@
+[
+  {
+    "titleAr": "الرئيس التنفيذي",
+    "titleEn": "Chief Executive Officer",
+    "description": "Top executive responsible for overall company operations",
+    "level": 1,
+    "minSalary": 50000,
+    "maxSalary": 100000
+  },
+  {
+    "titleAr": "مدير عام",
+    "titleEn": "General Manager",
+    "description": "Senior management position overseeing operations",
+    "level": 2,
+    "minSalary": 30000,
+    "maxSalary": 60000
+  },
+  {
+    "titleAr": "مدير",
+    "titleEn": "Manager",
+    "description": "Department or team manager",
+    "level": 3,
+    "minSalary": 15000,
+    "maxSalary": 35000
+  },
+  {
+    "titleAr": "مشرف",
+    "titleEn": "Supervisor",
+    "description": "Team supervisor or lead",
+    "level": 4,
+    "minSalary": 10000,
+    "maxSalary": 20000
+  },
+  {
+    "titleAr": "أخصائي أول",
+    "titleEn": "Senior Specialist",
+    "description": "Experienced specialist in their field",
+    "level": 5,
+    "minSalary": 8000,
+    "maxSalary": 15000
+  },
+  {
+    "titleAr": "أخصائي",
+    "titleEn": "Specialist",
+    "description": "Mid-level specialist",
+    "level": 6,
+    "minSalary": 5000,
+    "maxSalary": 10000
+  },
+  {
+    "titleAr": "موظف",
+    "titleEn": "Employee",
+    "description": "Entry-level employee",
+    "level": 7,
+    "minSalary": 3000,
+    "maxSalary": 6000
+  }
+]

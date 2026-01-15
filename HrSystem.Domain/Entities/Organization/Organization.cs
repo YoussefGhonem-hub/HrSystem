@@ -48,9 +48,9 @@ public class Organization : BaseEntity
 
     // Settings
     public string TimeZone { get; set; } = "Egypt Standard Time";
-    public string DefaultLanguage { get; set; } = "ar";
     public string Currency { get; set; } = "EGP";
-    public string DateFormat { get; set; } = "dd/MM/yyyy";
+    public string? WeekStartDay { get; set; }
+
 
     // Navigation Properties
     public virtual SubscriptionPlan? SubscriptionPlan { get; set; }

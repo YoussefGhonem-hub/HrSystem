@@ -1,0 +1,44 @@
+[
+  {
+    "nameAr": "بدل سكن",
+    "nameEn": "Housing Allowance",
+    "description": "Monthly housing allowance",
+    "isTaxable": true,
+    "isSubjectToInsurance": true
+  },
+  {
+    "nameAr": "بدل انتقال",
+    "nameEn": "Transportation Allowance",
+    "description": "Monthly transportation allowance",
+    "isTaxable": true,
+    "isSubjectToInsurance": true
+  },
+  {
+    "nameAr": "بدل طعام",
+    "nameEn": "Meal Allowance",
+    "description": "Daily or monthly meal allowance",
+    "isTaxable": false,
+    "isSubjectToInsurance": false
+  },
+  {
+    "nameAr": "بدل هاتف",
+    "nameEn": "Phone Allowance",
+    "description": "Monthly phone allowance",
+    "isTaxable": false,
+    "isSubjectToInsurance": false
+  },
+  {
+    "nameAr": "بدل طبيعة عمل",
+    "nameEn": "Nature of Work Allowance",
+    "description": "Special allowance for job nature",
+    "isTaxable": true,
+    "isSubjectToInsurance": true
+  },
+  {
+    "nameAr": "مكافأة",
+    "nameEn": "Bonus",
+    "description": "Performance or occasion bonus",
+    "isTaxable": true,
+    "isSubjectToInsurance": true
+  }
+]

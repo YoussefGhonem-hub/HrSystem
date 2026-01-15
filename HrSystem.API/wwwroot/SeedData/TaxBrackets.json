@@ -1,0 +1,65 @@
+[
+  {
+    "year": 2026,
+    "minIncome": 0,
+    "maxIncome": 21000,
+    "taxRate": 0,
+    "fixedAmount": 0,
+    "isActive": true,
+    "description": "Tax exempt bracket for annual income up to 21,000 EGP"
+  },
+  {
+    "year": 2026,
+    "minIncome": 21001,
+    "maxIncome": 30000,
+    "taxRate": 2.5,
+    "fixedAmount": 0,
+    "isActive": true,
+    "description": "2.5% tax for annual income from 21,001 to 30,000 EGP"
+  },
+  {
+    "year": 2026,
+    "minIncome": 30001,
+    "maxIncome": 45000,
+    "taxRate": 10,
+    "fixedAmount": 225,
+    "isActive": true,
+    "description": "10% tax for annual income from 30,001 to 45,000 EGP"
+  },
+  {
+    "year": 2026,
+    "minIncome": 45001,
+    "maxIncome": 60000,
+    "taxRate": 15,
+    "fixedAmount": 1725,
+    "isActive": true,
+    "description": "15% tax for annual income from 45,001 to 60,000 EGP"
+  },
+  {
+    "year": 2026,
+    "minIncome": 60001,
+    "maxIncome": 200000,
+    "taxRate": 20,
+    "fixedAmount": 3975,
+    "isActive": true,
+    "description": "20% tax for annual income from 60,001 to 200,000 EGP"
+  },
+  {
+    "year": 2026,
+    "minIncome": 200001,
+    "maxIncome": 400000,
+    "taxRate": 22.5,
+    "fixedAmount": 31975,
+    "isActive": true,
+    "description": "22.5% tax for annual income from 200,001 to 400,000 EGP"
+  },
+  {
+    "year": 2026,
+    "minIncome": 400001,
+    "maxIncome": 999999999,
+    "taxRate": 25,
+    "fixedAmount": 76975,
+    "isActive": true,
+    "description": "25% tax for annual income above 400,000 EGP"
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "nameAr": "الموارد البشرية",
+    "nameEn": "Human Resources",
+    "description": "Manages employee relations, recruitment, and HR policies",
+    "parentDepartmentCode": null,
+    "code": "HR"
+  },
+  {
+    "nameAr": "تكنولوجيا المعلومات",
+    "nameEn": "Information Technology",
+    "description": "Manages technology infrastructure and software development",
+    "parentDepartmentCode": null,
+    "code": "IT"
+  },
+  {
+    "nameAr": "المالية",
+    "nameEn": "Finance",
+    "description": "Manages financial operations and accounting",
+    "parentDepartmentCode": null,
+    "code": "FIN"
+  },
+  {
+    "nameAr": "التسويق",
+    "nameEn": "Marketing",
+    "description": "Manages marketing and brand promotion",
+    "parentDepartmentCode": null,
+    "code": "MKT"
+  },
+  {
+    "nameAr": "المبيعات",
+    "nameEn": "Sales",
+    "description": "Manages sales operations and customer relations",
+    "parentDepartmentCode": null,
+    "code": "SALES"
+  },
+  {
+    "nameAr": "العمليات",
+    "nameEn": "Operations",
+    "description": "Manages daily business operations",
+    "parentDepartmentCode": null,
+    "code": "OPS"
+  }
+]

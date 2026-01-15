@@ -1,0 +1,90 @@
+[
+  {
+    "nameAr": "عيد الشرطة - ثورة 25 يناير",
+    "nameEn": "Police Day - January 25 Revolution",
+    "date": "2026-01-25",
+    "year": 2026,
+    "isRecurring": true,
+    "description": "National holiday"
+  },
+  {
+    "nameAr": "عيد تحرير سيناء",
+    "nameEn": "Sinai Liberation Day",
+    "date": "2026-04-25",
+    "year": 2026,
+    "isRecurring": true,
+    "description": "National holiday"
+  },
+  {
+    "nameAr": "عيد الفطر",
+    "nameEn": "Eid al-Fitr",
+    "date": "2026-04-01",
+    "year": 2026,
+    "isRecurring": false,
+    "description": "Islamic holiday (3 days)"
+  },
+  {
+    "nameAr": "شم النسيم",
+    "nameEn": "Sham El Nessim",
+    "date": "2026-04-20",
+    "year": 2026,
+    "isRecurring": false,
+    "description": "Spring festival"
+  },
+  {
+    "nameAr": "عيد العمال",
+    "nameEn": "Labour Day",
+    "date": "2026-05-01",
+    "year": 2026,
+    "isRecurring": true,
+    "description": "International Workers' Day"
+  },
+  {
+    "nameAr": "وقفة عرفة",
+    "nameEn": "Arafat Day",
+    "date": "2026-06-06",
+    "year": 2026,
+    "isRecurring": false,
+    "description": "Islamic holiday"
+  },
+  {
+    "nameAr": "عيد الأضحى",
+    "nameEn": "Eid al-Adha",
+    "date": "2026-06-07",
+    "year": 2026,
+    "isRecurring": false,
+    "description": "Islamic holiday (4 days)"
+  },
+  {
+    "nameAr": "رأس السنة الهجرية",
+    "nameEn": "Islamic New Year",
+    "date": "2026-06-27",
+    "year": 2026,
+    "isRecurring": false,
+    "description": "Islamic new year"
+  },
+  {
+    "nameAr": "ثورة 23 يوليو",
+    "nameEn": "Revolution Day",
+    "date": "2026-07-23",
+    "year": 2026,
+    "isRecurring": true,
+    "description": "National holiday"
+  },
+  {
+    "nameAr": "المولد النبوي الشريف",
+    "nameEn": "Prophet's Birthday",
+    "date": "2026-09-05",
+    "year": 2026,
+    "isRecurring": false,
+    "description": "Islamic holiday"
+  },
+  {
+    "nameAr": "ذكرى انتصارات أكتوبر",
+    "nameEn": "Armed Forces Day",
+    "date": "2026-10-06",
+    "year": 2026,
+    "isRecurring": true,
+    "description": "National holiday"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "nameAr": "قرض",
+    "nameEn": "Loan",
+    "description": "Employee loan deduction",
+    "isRecurring": true
+  },
+  {
+    "nameAr": "سلفة",
+    "nameEn": "Advance",
+    "description": "Salary advance deduction",
+    "isRecurring": false
+  },
+  {
+    "nameAr": "غياب",
+    "nameEn": "Absence",
+    "description": "Deduction for unauthorized absence",
+    "isRecurring": false
+  },
+  {
+    "nameAr": "تأخير",
+    "nameEn": "Late Arrival",
+    "description": "Deduction for late arrival",
+    "isRecurring": false
+  },
+  {
+    "nameAr": "جزاء",
+    "nameEn": "Penalty",
+    "description": "Disciplinary penalty",
+    "isRecurring": false
+  },
+  {
+    "nameAr": "أخرى",
+    "nameEn": "Other",
+    "description": "Other deductions",
+    "isRecurring": false
+  }
+]

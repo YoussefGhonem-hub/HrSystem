@@ -1,0 +1,32 @@
+[
+  {
+    "name": "SuperAdmin",
+    "displayName": "مدير النظام",
+    "normalizedName": "SUPERADMIN"
+  },
+  {
+    "name": "OrganizationAdmin",
+    "displayName": "مدير المؤسسة",
+    "normalizedName": "ORGANIZATIONADMIN"
+  },
+  {
+    "name": "HRManager",
+    "displayName": "مدير الموارد البشرية",
+    "normalizedName": "HRMANAGER"
+  },
+  {
+    "name": "HRSpecialist",
+    "displayName": "أخصائي موارد بشرية",
+    "normalizedName": "HRSPECIALIST"
+  },
+  {
+    "name": "DepartmentManager",
+    "displayName": "مدير قسم",
+    "normalizedName": "DEPARTMENTMANAGER"
+  },
+  {
+    "name": "Employee",
+    "displayName": "موظف",
+    "normalizedName": "EMPLOYEE"
+  }
+]

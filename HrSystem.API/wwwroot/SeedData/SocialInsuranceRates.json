@@ -1,0 +1,20 @@
+[
+  {
+    "year": 2026,
+    "employeeRate": 14.0,
+    "employerRate": 18.75,
+    "minSalaryBase": 1400,
+    "maxSalaryBase": 10900,
+    "isActive": true,
+    "description": "Social insurance rates for 2026 as per Egyptian law"
+  },
+  {
+    "year": 2025,
+    "employeeRate": 14.0,
+    "employerRate": 18.75,
+    "minSalaryBase": 1300,
+    "maxSalaryBase": 9800,
+    "isActive": false,
+    "description": "Social insurance rates for 2025"
+  }
+]
