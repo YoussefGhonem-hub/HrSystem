@@ -37,19 +37,17 @@ public class UpdateGoalCommandValidator : AbstractValidator<UpdateGoalCommand>
             .NotEmpty().WithMessage("Target date is required")
             .GreaterThan(x => x.StartDate).WithMessage("Target date must be after start date");
 
-        RuleFor(x => x.Status)
-            .NotEmpty().WithMessage("Status is required")
-            .Must(s => new[] { "NotStarted", "InProgress", "Completed", "Cancelled" }.Contains(s))
-            .WithMessage("Status must be NotStarted, InProgress, Completed, or Cancelled");
+        RuleFor(x => x.StatusId)
+            .NotEmpty().WithMessage("Status ID is required")
+            .MustAsync(StatusExists).WithMessage("Status does not exist");
 
         RuleFor(x => x.Progress)
             .GreaterThanOrEqualTo(0).WithMessage("Progress must be at least 0")
             .LessThanOrEqualTo(100).WithMessage("Progress must not exceed 100");
 
-        RuleFor(x => x.Priority)
-            .NotEmpty().WithMessage("Priority is required")
-            .Must(p => new[] { "Low", "Medium", "High" }.Contains(p))
-            .WithMessage("Priority must be Low, Medium, or High");
+        RuleFor(x => x.PriorityId)
+            .NotEmpty().WithMessage("Priority ID is required")
+            .MustAsync(PriorityExists).WithMessage("Priority does not exist");
 
         RuleFor(x => x.AssignedBy)
             .MustAsync(async (assignedBy, cancellationToken) =>
@@ -62,5 +60,15 @@ public class UpdateGoalCommandValidator : AbstractValidator<UpdateGoalCommand>
     private async Task<bool> GoalExists(Guid goalId, CancellationToken cancellationToken)
     {
         return await _context.Goals.AnyAsync(g => g.Id == goalId, cancellationToken);
+    }
+
+    private async Task<bool> StatusExists(Guid statusId, CancellationToken cancellationToken)
+    {
+        return await _context.GoalStatuses.AnyAsync(gs => gs.Id == statusId, cancellationToken);
+    }
+
+    private async Task<bool> PriorityExists(Guid priorityId, CancellationToken cancellationToken)
+    {
+        return await _context.GoalPriorities.AnyAsync(gp => gp.Id == priorityId, cancellationToken);
     }
 }

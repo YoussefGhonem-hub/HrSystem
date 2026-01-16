@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HrSystem.Infrustructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260115141455_initDB")]
-    partial class initDB
+    [Migration("20260116172526_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -599,6 +599,9 @@ namespace HrSystem.Infrustructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -644,6 +647,8 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("IsDeleted");
 
                     b.HasIndex("ManagerId");
@@ -665,6 +670,9 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.Property<string>("AddressEn")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("City")
                         .HasColumnType("nvarchar(max)");
@@ -788,6 +796,8 @@ namespace HrSystem.Infrustructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("DepartmentId");
 
@@ -1502,6 +1512,156 @@ namespace HrSystem.Infrustructure.Migrations
                     b.HasIndex("EmployeeId", "PolicyName", "PolicyVersion");
 
                     b.ToTable("PolicyAcknowledgments", "Lifecycle");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Organization.Branch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AddressAr")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("AddressEn")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("BranchManagerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ClosingDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Country")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("CurrentEmployeeCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Fax")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHeadquarter")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("MaxEmployeeCapacity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ModifiedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("OpeningDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<TimeSpan?>("WorkEndTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("WorkStartTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("WorkingDays")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchManagerId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Country");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("OrganizationId", "IsActive");
+
+                    b.ToTable("Branches", "Organization");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Organization.Organization", b =>
@@ -2660,7 +2820,8 @@ namespace HrSystem.Infrustructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CompletionNotes")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
@@ -2675,10 +2836,12 @@ namespace HrSystem.Infrustructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("DescriptionAr")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("DescriptionEn")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uniqueidentifier");
@@ -2692,21 +2855,19 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<DateTimeOffset?>("ModifiedDate")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("Priority")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<Guid>("PriorityId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Progress")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("TargetDate")
                         .HasColumnType("datetime2");
@@ -2730,7 +2891,11 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.HasIndex("IsDeleted");
 
-                    b.ToTable("Goals", "Performance");
+                    b.HasIndex("PriorityId");
+
+                    b.HasIndex("StatusId");
+
+                    b.ToTable("Goals", (string)null);
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Performance.GoalMilestone", b =>
@@ -2793,6 +2958,132 @@ namespace HrSystem.Infrustructure.Migrations
                     b.HasIndex("IsDeleted");
 
                     b.ToTable("GoalMilestones");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Performance.GoalPriority", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DescriptionAr")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DescriptionEn")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ModifiedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("GoalPriorities", (string)null);
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Performance.GoalStatus", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DescriptionAr")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DescriptionEn")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ModifiedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("GoalStatuses", (string)null);
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Performance.KPI", b =>
@@ -3204,6 +3495,11 @@ namespace HrSystem.Infrustructure.Migrations
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Employee.Department", b =>
                 {
+                    b.HasOne("HrSystem.Domain.Entities.Organization.Branch", "Branch")
+                        .WithMany("Departments")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("HrSystem.Domain.Entities.Employee.Employee", "Manager")
                         .WithMany()
                         .HasForeignKey("ManagerId")
@@ -3214,6 +3510,8 @@ namespace HrSystem.Infrustructure.Migrations
                         .HasForeignKey("ParentDepartmentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("Branch");
+
                     b.Navigation("Manager");
 
                     b.Navigation("ParentDepartment");
@@ -3221,6 +3519,11 @@ namespace HrSystem.Infrustructure.Migrations
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Employee.Employee", b =>
                 {
+                    b.HasOne("HrSystem.Domain.Entities.Organization.Branch", "Branch")
+                        .WithMany("Employees")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("HrSystem.Domain.Entities.Employee.Department", "Department")
                         .WithMany("Employees")
                         .HasForeignKey("DepartmentId")
@@ -3237,6 +3540,8 @@ namespace HrSystem.Infrustructure.Migrations
                         .HasForeignKey("JobTitleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Department");
 
@@ -3343,6 +3648,24 @@ namespace HrSystem.Infrustructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Organization.Branch", b =>
+                {
+                    b.HasOne("HrSystem.Domain.Entities.Employee.Employee", "BranchManager")
+                        .WithMany()
+                        .HasForeignKey("BranchManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HrSystem.Domain.Entities.Organization.Organization", "Organization")
+                        .WithMany("Branches")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BranchManager");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Organization.Organization", b =>
@@ -3510,7 +3833,23 @@ namespace HrSystem.Infrustructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("HrSystem.Domain.Entities.Performance.GoalPriority", "Priority")
+                        .WithMany("Goals")
+                        .HasForeignKey("PriorityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HrSystem.Domain.Entities.Performance.GoalStatus", "Status")
+                        .WithMany("Goals")
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Employee");
+
+                    b.Navigation("Priority");
+
+                    b.Navigation("Status");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Performance.GoalMilestone", b =>
@@ -3671,8 +4010,17 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Navigation("LeaveBalances");
                 });
 
+            modelBuilder.Entity("HrSystem.Domain.Entities.Organization.Branch", b =>
+                {
+                    b.Navigation("Departments");
+
+                    b.Navigation("Employees");
+                });
+
             modelBuilder.Entity("HrSystem.Domain.Entities.Organization.Organization", b =>
                 {
+                    b.Navigation("Branches");
+
                     b.Navigation("Users");
                 });
 
@@ -3718,6 +4066,16 @@ namespace HrSystem.Infrustructure.Migrations
             modelBuilder.Entity("HrSystem.Domain.Entities.Performance.Goal", b =>
                 {
                     b.Navigation("Milestones");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Performance.GoalPriority", b =>
+                {
+                    b.Navigation("Goals");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Performance.GoalStatus", b =>
+                {
+                    b.Navigation("Goals");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Performance.KPI", b =>

@@ -13,9 +13,9 @@ public record UpdateGoalCommand(
     string? DescriptionEn,
     DateTime StartDate,
     DateTime TargetDate,
-    string Status,
+    Guid StatusId,
     int Progress,
-    string Priority,
+    Guid PriorityId,
     Guid? AssignedBy,
     string? CompletionNotes
 ) : IRequest<ErrorOr<GenericResponse<GoalDto>>>;

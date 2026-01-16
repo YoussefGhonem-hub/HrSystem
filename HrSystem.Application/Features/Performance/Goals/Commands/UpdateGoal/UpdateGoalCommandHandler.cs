@@ -31,18 +31,18 @@ public class UpdateGoalCommandHandler : IRequestHandler<UpdateGoalCommand, Error
         goal.DescriptionEn = request.DescriptionEn;
         goal.StartDate = request.StartDate;
         goal.TargetDate = request.TargetDate;
-        goal.Status = request.Status;
+        goal.StatusId = request.StatusId;
         goal.Progress = request.Progress;
-        goal.Priority = request.Priority;
+        goal.PriorityId = request.PriorityId;
         goal.AssignedBy = request.AssignedBy;
         goal.CompletionNotes = request.CompletionNotes;
 
-        // Auto-set CompletionDate when status is Completed
-        if (request.Status == "Completed" && !goal.CompletionDate.HasValue)
+        // Auto-set CompletionDate when progress is 100
+        if (request.Progress == 100 && !goal.CompletionDate.HasValue)
         {
             goal.CompletionDate = DateTime.UtcNow;
         }
-        else if (request.Status != "Completed" && goal.CompletionDate.HasValue)
+        else if (request.Progress < 100 && goal.CompletionDate.HasValue)
         {
             goal.CompletionDate = null;
         }
@@ -51,6 +51,8 @@ public class UpdateGoalCommandHandler : IRequestHandler<UpdateGoalCommand, Error
 
         var updatedGoal = await _context.Goals
             .Include(g => g.Employee)
+            .Include(g => g.Status)
+            .Include(g => g.Priority)
             .FirstAsync(g => g.Id == goal.Id, cancellationToken);
 
         var dto = new GoalDto
@@ -65,9 +67,13 @@ public class UpdateGoalCommandHandler : IRequestHandler<UpdateGoalCommand, Error
             StartDate = updatedGoal.StartDate,
             TargetDate = updatedGoal.TargetDate,
             CompletionDate = updatedGoal.CompletionDate,
-            Status = updatedGoal.Status,
+            StatusId = updatedGoal.StatusId,
+            StatusNameEn = updatedGoal.Status?.NameEn ?? string.Empty,
+            StatusNameAr = updatedGoal.Status?.NameAr ?? string.Empty,
             Progress = updatedGoal.Progress,
-            Priority = updatedGoal.Priority,
+            PriorityId = updatedGoal.PriorityId,
+            PriorityNameEn = updatedGoal.Priority?.NameEn ?? string.Empty,
+            PriorityNameAr = updatedGoal.Priority?.NameAr ?? string.Empty,
             AssignedBy = updatedGoal.AssignedBy,
             CompletionNotes = updatedGoal.CompletionNotes
         };

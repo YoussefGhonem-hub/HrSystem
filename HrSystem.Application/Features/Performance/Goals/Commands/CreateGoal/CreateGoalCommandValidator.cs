@@ -37,10 +37,13 @@ public class CreateGoalCommandValidator : AbstractValidator<CreateGoalCommand>
             .NotEmpty().WithMessage("Target date is required")
             .GreaterThan(x => x.StartDate).WithMessage("Target date must be after start date");
 
-        RuleFor(x => x.Priority)
-            .NotEmpty().WithMessage("Priority is required")
-            .Must(p => new[] { "Low", "Medium", "High" }.Contains(p))
-            .WithMessage("Priority must be Low, Medium, or High");
+        RuleFor(x => x.StatusId)
+            .NotEmpty().WithMessage("Status ID is required")
+            .MustAsync(StatusExists).WithMessage("Status does not exist");
+
+        RuleFor(x => x.PriorityId)
+            .NotEmpty().WithMessage("Priority ID is required")
+            .MustAsync(PriorityExists).WithMessage("Priority does not exist");
 
         RuleFor(x => x.AssignedBy)
             .MustAsync(async (assignedBy, cancellationToken) =>
@@ -53,5 +56,15 @@ public class CreateGoalCommandValidator : AbstractValidator<CreateGoalCommand>
     private async Task<bool> EmployeeExists(Guid employeeId, CancellationToken cancellationToken)
     {
         return await _context.Employees.AnyAsync(e => e.Id == employeeId, cancellationToken);
+    }
+
+    private async Task<bool> StatusExists(Guid statusId, CancellationToken cancellationToken)
+    {
+        return await _context.GoalStatuses.AnyAsync(gs => gs.Id == statusId, cancellationToken);
+    }
+
+    private async Task<bool> PriorityExists(Guid priorityId, CancellationToken cancellationToken)
+    {
+        return await _context.GoalPriorities.AnyAsync(gp => gp.Id == priorityId, cancellationToken);
     }
 }

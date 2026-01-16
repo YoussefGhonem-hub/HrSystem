@@ -4,6 +4,7 @@ using HrSystem.Domain.Entities.Employee;
 using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Payroll;
+using HrSystem.Domain.Entities.Performance;
 using HrSystem.Domain.Enums;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -50,6 +51,8 @@ public static class AppDbContextSeed
             await SeedTaxBracketsAsync(context, seedDataPath);
             await SeedPublicHolidaysAsync(context, seedDataPath);
             await SeedWorkSchedulesAsync(context, seedDataPath);
+            await SeedGoalStatusesAsync(context, seedDataPath);
+            await SeedGoalPrioritiesAsync(context, seedDataPath);
 
             Console.WriteLine("Database seeding completed successfully!");
         }
@@ -927,5 +930,99 @@ public static class AppDbContextSeed
         public bool IsThursday { get; set; }
         public bool IsFriday { get; set; }
         public bool IsDefault { get; set; }
+    }
+
+    private class GoalStatusSeedData
+    {
+        public Guid Id { get; set; }
+        public string NameAr { get; set; } = string.Empty;
+        public string NameEn { get; set; } = string.Empty;
+        public string? DescriptionAr { get; set; }
+        public string? DescriptionEn { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    private class GoalPrioritySeedData
+    {
+        public Guid Id { get; set; }
+        public string NameAr { get; set; } = string.Empty;
+        public string NameEn { get; set; } = string.Empty;
+        public string? DescriptionAr { get; set; }
+        public string? DescriptionEn { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    private static async Task SeedGoalStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.GoalStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "GoalStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var statuses = JsonSerializer.Deserialize<List<GoalStatusSeedData>>(json, _jsonOptions);
+
+        if (statuses == null) return;
+
+        foreach (var statusData in statuses)
+        {
+            var status = new GoalStatus
+            {
+                Id = statusData.Id,
+                NameAr = statusData.NameAr,
+                NameEn = statusData.NameEn,
+                DescriptionAr = statusData.DescriptionAr,
+                DescriptionEn = statusData.DescriptionEn,
+                DisplayOrder = statusData.DisplayOrder,
+                IsActive = statusData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow,
+                IsDeleted = false,
+                TenantId = context.Organizations.First().Id,
+                CreatedBy = context.Employees.First().Id
+            };
+
+            context.GoalStatuses.Add(status);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {statuses.Count} goal statuses");
+    }
+
+    private static async Task SeedGoalPrioritiesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.GoalPriorities.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "GoalPriorities.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var priorities = JsonSerializer.Deserialize<List<GoalPrioritySeedData>>(json, _jsonOptions);
+
+        if (priorities == null) return;
+
+        foreach (var priorityData in priorities)
+        {
+            var priority = new GoalPriority
+            {
+                Id = priorityData.Id,
+                NameAr = priorityData.NameAr,
+                NameEn = priorityData.NameEn,
+                DescriptionAr = priorityData.DescriptionAr,
+                DescriptionEn = priorityData.DescriptionEn,
+                DisplayOrder = priorityData.DisplayOrder,
+                IsActive = priorityData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow,
+                IsDeleted = false,
+                TenantId = context.Organizations.First().Id,
+                CreatedBy = context.Employees.First().Id
+            };
+
+            context.GoalPriorities.Add(priority);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {priorities.Count} goal priorities");
     }
 }

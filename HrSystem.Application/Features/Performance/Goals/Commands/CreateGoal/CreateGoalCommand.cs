@@ -15,7 +15,8 @@ public record CreateGoalCommand(
     string? DescriptionEn,
     DateTime StartDate,
     DateTime TargetDate,
-    string Priority,
+    Guid StatusId,
+    Guid PriorityId,
     Guid? AssignedBy
 ) : IRequest<ErrorOr<GenericResponse<GoalDto>>>;
 
@@ -38,9 +39,9 @@ public class CreateGoalCommandHandler : IRequestHandler<CreateGoalCommand, Error
             DescriptionEn = request.DescriptionEn,
             StartDate = request.StartDate,
             TargetDate = request.TargetDate,
-            Status = "NotStarted",
+            StatusId = request.StatusId,
             Progress = 0,
-            Priority = request.Priority,
+            PriorityId = request.PriorityId,
             AssignedBy = request.AssignedBy,
             TenantId = Guid.NewGuid()
         };
@@ -50,6 +51,8 @@ public class CreateGoalCommandHandler : IRequestHandler<CreateGoalCommand, Error
 
         var createdGoal = await _context.Goals
             .Include(g => g.Employee)
+            .Include(g => g.Status)
+            .Include(g => g.Priority)
             .FirstAsync(g => g.Id == goal.Id, cancellationToken);
 
         var dto = new GoalDto
@@ -64,9 +67,13 @@ public class CreateGoalCommandHandler : IRequestHandler<CreateGoalCommand, Error
             StartDate = createdGoal.StartDate,
             TargetDate = createdGoal.TargetDate,
             CompletionDate = createdGoal.CompletionDate,
-            Status = createdGoal.Status,
+            StatusId = createdGoal.StatusId,
+            StatusNameEn = createdGoal.Status?.NameEn ?? string.Empty,
+            StatusNameAr = createdGoal.Status?.NameAr ?? string.Empty,
             Progress = createdGoal.Progress,
-            Priority = createdGoal.Priority,
+            PriorityId = createdGoal.PriorityId,
+            PriorityNameEn = createdGoal.Priority?.NameEn ?? string.Empty,
+            PriorityNameAr = createdGoal.Priority?.NameAr ?? string.Empty,
             AssignedBy = createdGoal.AssignedBy,
             CompletionNotes = createdGoal.CompletionNotes
         };

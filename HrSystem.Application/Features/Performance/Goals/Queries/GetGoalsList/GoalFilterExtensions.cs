@@ -19,12 +19,14 @@ public static class GoalFilterExtensions
 
         if (!string.IsNullOrEmpty(status))
         {
-            query = query.Where(g => g.Status.ToLower() == status.ToLower());
+            var statusLower = status.ToLower();
+            query = query.Where(g => g.Status.NameEn.ToLower() == statusLower || g.Status.NameAr.ToLower() == statusLower);
         }
 
         if (!string.IsNullOrEmpty(priority))
         {
-            query = query.Where(g => g.Priority.ToLower() == priority.ToLower());
+            var priorityLower = priority.ToLower();
+            query = query.Where(g => g.Priority.NameEn.ToLower() == priorityLower || g.Priority.NameAr.ToLower() == priorityLower);
         }
 
         if (startDateFrom.HasValue)

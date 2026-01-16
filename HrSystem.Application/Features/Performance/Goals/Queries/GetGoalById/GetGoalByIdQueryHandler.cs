@@ -18,6 +18,8 @@ public class GetGoalByIdQueryHandler : IRequestHandler<GetGoalByIdQuery, ErrorOr
     {
         var goal = await _context.Goals
             .Include(g => g.Employee)
+            .Include(g => g.Status)
+            .Include(g => g.Priority)
             .FirstOrDefaultAsync(g => g.Id == request.Id, cancellationToken);
 
         if (goal == null)
@@ -37,9 +39,13 @@ public class GetGoalByIdQueryHandler : IRequestHandler<GetGoalByIdQuery, ErrorOr
             StartDate = goal.StartDate,
             TargetDate = goal.TargetDate,
             CompletionDate = goal.CompletionDate,
-            Status = goal.Status,
+            StatusId = goal.StatusId,
+            StatusNameEn = goal.Status?.NameEn ?? string.Empty,
+            StatusNameAr = goal.Status?.NameAr ?? string.Empty,
             Progress = goal.Progress,
-            Priority = goal.Priority,
+            PriorityId = goal.PriorityId,
+            PriorityNameEn = goal.Priority?.NameEn ?? string.Empty,
+            PriorityNameAr = goal.Priority?.NameAr ?? string.Empty,
             AssignedBy = goal.AssignedBy,
             CompletionNotes = goal.CompletionNotes
         };

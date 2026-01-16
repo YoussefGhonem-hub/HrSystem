@@ -1,0 +1,47 @@
+[
+  {
+    "id": "11111111-1111-1111-1111-111111111101",
+    "nameAr": "لم يبدأ",
+    "nameEn": "Not Started",
+    "descriptionAr": "الهدف لم يبدأ بعد",
+    "descriptionEn": "Goal has not been started yet",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111102",
+    "nameAr": "قيد التنفيذ",
+    "nameEn": "In Progress",
+    "descriptionAr": "العمل على الهدف جاري حالياً",
+    "descriptionEn": "Goal is currently being worked on",
+    "displayOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111103",
+    "nameAr": "مكتمل",
+    "nameEn": "Completed",
+    "descriptionAr": "تم إنجاز الهدف بنجاح",
+    "descriptionEn": "Goal has been successfully completed",
+    "displayOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111104",
+    "nameAr": "ملغي",
+    "nameEn": "Cancelled",
+    "descriptionAr": "تم إلغاء الهدف",
+    "descriptionEn": "Goal has been cancelled",
+    "displayOrder": 4,
+    "isActive": true
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111105",
+    "nameAr": "معلق",
+    "nameEn": "On Hold",
+    "descriptionAr": "الهدف معلق مؤقتاً",
+    "descriptionEn": "Goal is temporarily on hold",
+    "displayOrder": 5,
+    "isActive": true
+  }
+]

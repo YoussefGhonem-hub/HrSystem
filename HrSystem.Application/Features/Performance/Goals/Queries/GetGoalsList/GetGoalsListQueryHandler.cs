@@ -19,6 +19,8 @@ public class GetGoalsListQueryHandler : IRequestHandler<GetGoalsListQuery, Error
     {
         var query = _context.Goals
             .Include(g => g.Employee)
+            .Include(g => g.Status)
+            .Include(g => g.Priority)
             .AsQueryable();
 
         query = query.ApplyFilters(
@@ -47,9 +49,11 @@ public class GetGoalsListQueryHandler : IRequestHandler<GetGoalsListQuery, Error
             StartDate = g.StartDate,
             TargetDate = g.TargetDate,
             CompletionDate = g.CompletionDate,
-            Status = g.Status,
+            StatusId = g.StatusId,
+            StatusNameEn = g.Status?.NameEn ?? string.Empty,
             Progress = g.Progress,
-            Priority = g.Priority
+            PriorityId = g.PriorityId,
+            PriorityNameEn = g.Priority?.NameEn ?? string.Empty
         }).ToList();
 
         var pagedResult = new PagedResult<GoalListDto>

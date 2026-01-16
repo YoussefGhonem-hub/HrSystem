@@ -10,7 +10,9 @@ public record GoalListDto
     public DateTime StartDate { get; init; }
     public DateTime TargetDate { get; init; }
     public DateTime? CompletionDate { get; init; }
-    public string Status { get; init; } = string.Empty;
+    public Guid StatusId { get; init; }
+    public string StatusNameEn { get; init; } = string.Empty;
     public int Progress { get; init; }
-    public string Priority { get; init; } = string.Empty;
+    public Guid PriorityId { get; init; }
+    public string PriorityNameEn { get; init; } = string.Empty;
 }

@@ -3,8 +3,10 @@ using HrSystem.Application.Features.Performance.Feedbacks.Queries.GetFeedbackByI
 using HrSystem.Application.Features.Performance.Feedbacks.Queries.GetFeedbacksList;
 using HrSystem.Application.Features.Performance.GoalMilestones.Common;
 using HrSystem.Application.Features.Performance.GoalMilestones.Queries.GetGoalMilestonesList;
+using HrSystem.Application.Features.Performance.GoalPriorities.Common;
 using HrSystem.Application.Features.Performance.Goals.Queries.GetGoalById;
 using HrSystem.Application.Features.Performance.Goals.Queries.GetGoalsList;
+using HrSystem.Application.Features.Performance.GoalStatuses.Common;
 using HrSystem.Application.Features.Performance.KPIEvaluations.Common;
 using HrSystem.Application.Features.Performance.KPIEvaluations.Queries.GetKPIEvaluationsList;
 using HrSystem.Application.Features.Performance.KPIs.Common;
@@ -67,9 +69,27 @@ public class PerformanceMappingConfig : IRegister
 
         // Goal mappings
         config.NewConfig<Goal, GoalDto>()
-            .Map(dest => dest.EmployeeName, src => src.Employee != null ? src.Employee.FullNameEn : null);
+            .Map(dest => dest.EmployeeName, src => src.Employee != null ? src.Employee.FullNameEn : null)
+            .Map(dest => dest.StatusNameEn, src => src.Status != null ? src.Status.NameEn : string.Empty)
+            .Map(dest => dest.StatusNameAr, src => src.Status != null ? src.Status.NameAr : string.Empty)
+            .Map(dest => dest.PriorityNameEn, src => src.Priority != null ? src.Priority.NameEn : string.Empty)
+            .Map(dest => dest.PriorityNameAr, src => src.Priority != null ? src.Priority.NameAr : string.Empty);
 
         config.NewConfig<Goal, GoalListDto>()
-            .Map(dest => dest.EmployeeName, src => src.Employee != null ? src.Employee.FullNameEn : string.Empty);
+            .Map(dest => dest.EmployeeName, src => src.Employee != null ? src.Employee.FullNameEn : string.Empty)
+            .Map(dest => dest.StatusNameEn, src => src.Status != null ? src.Status.NameEn : string.Empty)
+            .Map(dest => dest.PriorityNameEn, src => src.Priority != null ? src.Priority.NameEn : string.Empty);
+
+        // GoalStatus mappings
+        config.NewConfig<GoalStatus, GoalStatusDto>()
+            .Map(dest => dest.GoalsCount, src => src.Goals.Count);
+
+        config.NewConfig<GoalStatus, GoalStatusListDto>();
+
+        // GoalPriority mappings
+        config.NewConfig<GoalPriority, GoalPriorityDto>()
+            .Map(dest => dest.GoalsCount, src => src.Goals.Count);
+
+        config.NewConfig<GoalPriority, GoalPriorityListDto>();
     }
 }

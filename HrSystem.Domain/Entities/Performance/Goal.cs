@@ -21,14 +21,16 @@ public class Goal : BaseAuditableEntity
     public DateTime TargetDate { get; set; }
     public DateTime? CompletionDate { get; set; }
     
-    public string Status { get; set; } = "NotStarted"; // NotStarted, InProgress, Completed, Cancelled
+    public Guid StatusId { get; set; }
     public int Progress { get; set; } // 0-100 percentage
-    public string Priority { get; set; } = "Medium"; // Low, Medium, High
+    public Guid PriorityId { get; set; }
     
     public Guid? AssignedBy { get; set; }
     public string? CompletionNotes { get; set; }
 
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;
+    public virtual GoalStatus Status { get; set; } = null!;
+    public virtual GoalPriority Priority { get; set; } = null!;
     public virtual ICollection<GoalMilestone> Milestones { get; set; } = new List<GoalMilestone>();
 }
