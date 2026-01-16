@@ -1,4 +1,7 @@
-using HrSystem.Application.Features.JobTitles.DTOs;
+using HrSystem.Application.Features.JobTitles.Commands.CreateJobTitle;
+using HrSystem.Application.Features.JobTitles.Commands.UpdateJobTitle;
+using HrSystem.Application.Features.JobTitles.Queries.GetJobTitleById;
+using HrSystem.Application.Features.JobTitles.Queries.GetJobTitlesList;
 using HrSystem.Domain.Entities.Employee;
 using Mapster;
 

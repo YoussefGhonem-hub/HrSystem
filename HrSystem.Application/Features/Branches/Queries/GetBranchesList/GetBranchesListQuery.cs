@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
-using HrSystem.Application.Features.Branches.DTOs;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;

@@ -1,5 +1,5 @@
 using ErrorOr;
-using HrSystem.Application.Features.Employees.DTOs;
+using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Shared.Common;
 using MediatR;
 

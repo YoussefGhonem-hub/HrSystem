@@ -1,4 +1,7 @@
-using HrSystem.Application.Features.Branches.DTOs;
+using HrSystem.Application.Features.Branches.Commands.CreateBranch;
+using HrSystem.Application.Features.Branches.Commands.UpdateBranch;
+using HrSystem.Application.Features.Branches.Queries.GetBranchById;
+using HrSystem.Application.Features.Branches.Queries.GetBranchesList;
 using HrSystem.Domain.Entities.Organization;
 using Mapster;
 

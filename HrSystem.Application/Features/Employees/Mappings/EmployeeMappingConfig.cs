@@ -1,4 +1,7 @@
-using HrSystem.Application.Features.Employees.DTOs;
+using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
+using HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
+using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
+using HrSystem.Application.Features.Employees.Queries.GetEmployeesList;
 using HrSystem.Domain.Entities.Employee;
 using Mapster;
 

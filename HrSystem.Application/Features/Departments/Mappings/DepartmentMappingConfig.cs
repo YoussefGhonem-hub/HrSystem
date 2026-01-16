@@ -1,4 +1,7 @@
-using HrSystem.Application.Features.Departments.DTOs;
+using HrSystem.Application.Features.Departments.Commands.CreateDepartment;
+using HrSystem.Application.Features.Departments.Commands.UpdateDepartment;
+using HrSystem.Application.Features.Departments.Queries.GetDepartmentById;
+using HrSystem.Application.Features.Departments.Queries.GetDepartmentsList;
 using HrSystem.Domain.Entities.Employee;
 using Mapster;
 

@@ -1,5 +1,5 @@
 using ErrorOr;
-using HrSystem.Application.Features.Departments.DTOs;
+using HrSystem.Application.Features.Departments.Queries.GetDepartmentById;
 using HrSystem.Domain.Entities.Employee;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;

@@ -1,5 +1,5 @@
 using ErrorOr;
-using HrSystem.Application.Features.JobTitles.DTOs;
+using HrSystem.Application.Features.JobTitles.Queries.GetJobTitleById;
 using HrSystem.Domain.Entities.Employee;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;

@@ -1,5 +1,5 @@
 using ErrorOr;
-using HrSystem.Application.Features.Branches.DTOs;
+using HrSystem.Application.Features.Branches.Queries.GetBranchById;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
