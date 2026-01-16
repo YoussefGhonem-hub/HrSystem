@@ -21,6 +21,10 @@ public static class CurrentUser
     private const string RoleClaim = ClaimTypes.Role;
     private const string AudienceClaim = "aud";
     private const string OrganizationIdClaim = "organization_id"; // Custom claim for multi-tenancy
+    private const string EmployeeIdClaim = "employee_id"; // Employee ID claim
+    private const string JobTitleIdClaim = "job_title_id"; // Job Title ID claim
+    private const string DirectManagerIdClaim = "direct_manager_id"; // Direct Manager ID claim
+    private const string DepartmentClaim = "department"; // Department name claim
 
     // Read guest id from request header "X-Guest-UserId" and cache per-request
     public static string? GuestId
@@ -80,6 +84,35 @@ public static class CurrentUser
             return Guid.TryParse(raw, out var orgId) ? orgId : null;
         }
     }
+
+    public static Guid? EmployeeId
+    {
+        get
+        {
+            var raw = GetClaimValue(EmployeeIdClaim);
+            return Guid.TryParse(raw, out var empId) ? empId : null;
+        }
+    }
+
+    public static Guid? JobTitleId
+    {
+        get
+        {
+            var raw = GetClaimValue(JobTitleIdClaim);
+            return Guid.TryParse(raw, out var jobId) ? jobId : null;
+        }
+    }
+
+    public static Guid? DirectManagerId
+    {
+        get
+        {
+            var raw = GetClaimValue(DirectManagerIdClaim);
+            return Guid.TryParse(raw, out var managerId) ? managerId : null;
+        }
+    }
+
+    public static string? Department => GetClaimValue(DepartmentClaim);
 
     public static string UserId => GetClaimValue(SubClaim) ?? GetClaimValue(NameIdClaim) ?? GetClaimValue("Id") ?? string.Empty;
     public static string UserName => GetClaimValue(PreferredUsernameClaim) ?? GetClaimValue(ClaimTypes.Name) ?? string.Empty;
