@@ -5,4 +5,12 @@ using MediatR;
 
 namespace HrSystem.Application.Features.JobTitles.Commands.UpdateJobTitle;
 
-public record UpdateJobTitleCommand(Guid Id, UpdateJobTitleDto JobTitle) : IRequest<ErrorOr<GenericResponse<JobTitleDto>>>;
+public record UpdateJobTitleCommand(
+    Guid Id,
+    string TitleAr,
+    string TitleEn,
+    string? Description,
+    int Level,
+    decimal MinSalary,
+    decimal MaxSalary
+) : IRequest<ErrorOr<GenericResponse<JobTitleDto>>>;

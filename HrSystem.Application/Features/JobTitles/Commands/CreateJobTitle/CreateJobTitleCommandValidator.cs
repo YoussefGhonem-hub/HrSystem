@@ -6,22 +6,22 @@ public class CreateJobTitleCommandValidator : AbstractValidator<CreateJobTitleCo
 {
     public CreateJobTitleCommandValidator()
     {
-        RuleFor(x => x.JobTitle.TitleAr)
+        RuleFor(x => x.TitleAr)
             .NotEmpty().WithMessage("Title in Arabic is required")
             .MaximumLength(200).WithMessage("Title must not exceed 200 characters");
 
-        RuleFor(x => x.JobTitle.TitleEn)
+        RuleFor(x => x.TitleEn)
             .NotEmpty().WithMessage("Title in English is required")
             .MaximumLength(200).WithMessage("Title must not exceed 200 characters");
 
-        RuleFor(x => x.JobTitle.Level)
+        RuleFor(x => x.Level)
             .GreaterThan(0).WithMessage("Level must be greater than 0");
 
-        RuleFor(x => x.JobTitle.MinSalary)
+        RuleFor(x => x.MinSalary)
             .GreaterThanOrEqualTo(0).WithMessage("Minimum salary cannot be negative");
 
-        RuleFor(x => x.JobTitle.MaxSalary)
-            .GreaterThan(x => x.JobTitle.MinSalary)
+        RuleFor(x => x.MaxSalary)
+            .GreaterThan(x => x.MinSalary)
             .WithMessage("Maximum salary must be greater than minimum salary");
     }
 }

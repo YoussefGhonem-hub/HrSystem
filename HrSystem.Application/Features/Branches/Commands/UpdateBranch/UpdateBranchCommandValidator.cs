@@ -15,27 +15,27 @@ public class UpdateBranchCommandValidator : AbstractValidator<UpdateBranchComman
         RuleFor(x => x.Id)
             .NotEmpty().WithMessage("Branch ID is required");
 
-        RuleFor(x => x.Branch.NameAr)
+        RuleFor(x => x.NameAr)
             .NotEmpty().WithMessage("Name in Arabic is required")
             .MaximumLength(200).WithMessage("Name must not exceed 200 characters");
 
-        RuleFor(x => x.Branch.NameEn)
+        RuleFor(x => x.NameEn)
             .NotEmpty().WithMessage("Name in English is required")
             .MaximumLength(200).WithMessage("Name must not exceed 200 characters");
 
-        RuleFor(x => x.Branch.Email)
+        RuleFor(x => x.Email)
             .EmailAddress().WithMessage("Invalid email format")
-            .When(x => !string.IsNullOrEmpty(x.Branch.Email));
+            .When(x => !string.IsNullOrEmpty(x.Email));
 
-        RuleFor(x => x.Branch.TimeZone)
+        RuleFor(x => x.TimeZone)
             .NotEmpty().WithMessage("Time zone is required");
 
-        RuleFor(x => x.Branch.Currency)
+        RuleFor(x => x.Currency)
             .NotEmpty().WithMessage("Currency is required");
 
-        RuleFor(x => x.Branch.BranchManagerId)
+        RuleFor(x => x.BranchManagerId)
             .MustAsync(ManagerExists).WithMessage("Branch manager does not exist")
-            .When(x => x.Branch.BranchManagerId.HasValue);
+            .When(x => x.BranchManagerId.HasValue);
     }
 
     private async Task<bool> ManagerExists(Guid? managerId, CancellationToken cancellationToken)

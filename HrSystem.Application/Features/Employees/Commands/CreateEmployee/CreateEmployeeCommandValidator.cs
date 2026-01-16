@@ -12,66 +12,66 @@ public class CreateEmployeeCommandValidator : AbstractValidator<CreateEmployeeCo
     {
         _context = context;
 
-        RuleFor(x => x.Employee.EmployeeCode)
+        RuleFor(x => x.EmployeeCode)
             .NotEmpty().WithMessage("Employee code is required")
             .MaximumLength(50).WithMessage("Employee code must not exceed 50 characters")
             .MustAsync(BeUniqueEmployeeCode).WithMessage("Employee code already exists");
 
-        RuleFor(x => x.Employee.FirstNameAr)
+        RuleFor(x => x.FirstNameAr)
             .NotEmpty().WithMessage("First name in Arabic is required")
             .MaximumLength(100).WithMessage("First name must not exceed 100 characters");
 
-        RuleFor(x => x.Employee.LastNameAr)
+        RuleFor(x => x.LastNameAr)
             .NotEmpty().WithMessage("Last name in Arabic is required")
             .MaximumLength(100).WithMessage("Last name must not exceed 100 characters");
 
-        RuleFor(x => x.Employee.FirstNameEn)
+        RuleFor(x => x.FirstNameEn)
             .NotEmpty().WithMessage("First name in English is required")
             .MaximumLength(100).WithMessage("First name must not exceed 100 characters");
 
-        RuleFor(x => x.Employee.LastNameEn)
+        RuleFor(x => x.LastNameEn)
             .NotEmpty().WithMessage("Last name in English is required")
             .MaximumLength(100).WithMessage("Last name must not exceed 100 characters");
 
-        RuleFor(x => x.Employee.NationalId)
+        RuleFor(x => x.NationalId)
             .NotEmpty().WithMessage("National ID is required")
             .MaximumLength(20).WithMessage("National ID must not exceed 20 characters")
             .MustAsync(BeUniqueNationalId).WithMessage("National ID already exists");
 
-        RuleFor(x => x.Employee.Email)
+        RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")
             .EmailAddress().WithMessage("Invalid email format")
             .MustAsync(BeUniqueEmail).WithMessage("Email already exists");
 
-        RuleFor(x => x.Employee.PhoneNumber)
+        RuleFor(x => x.PhoneNumber)
             .NotEmpty().WithMessage("Phone number is required")
             .MaximumLength(20).WithMessage("Phone number must not exceed 20 characters");
 
-        RuleFor(x => x.Employee.DateOfBirth)
+        RuleFor(x => x.DateOfBirth)
             .NotEmpty().WithMessage("Date of birth is required")
             .Must(BeValidAge).WithMessage("Employee must be at least 18 years old");
 
-        RuleFor(x => x.Employee.DepartmentId)
+        RuleFor(x => x.DepartmentId)
             .NotEmpty().WithMessage("Department is required")
             .MustAsync(DepartmentExists).WithMessage("Department does not exist");
 
-        RuleFor(x => x.Employee.JobTitleId)
+        RuleFor(x => x.JobTitleId)
             .NotEmpty().WithMessage("Job title is required")
             .MustAsync(JobTitleExists).WithMessage("Job title does not exist");
 
-        RuleFor(x => x.Employee.DirectManagerId)
+        RuleFor(x => x.DirectManagerId)
             .MustAsync(ManagerExists).WithMessage("Direct manager does not exist")
-            .When(x => x.Employee.DirectManagerId.HasValue);
+            .When(x => x.DirectManagerId.HasValue);
 
-        RuleFor(x => x.Employee.BranchId)
+        RuleFor(x => x.BranchId)
             .MustAsync(BranchExists).WithMessage("Branch does not exist")
-            .When(x => x.Employee.BranchId.HasValue);
+            .When(x => x.BranchId.HasValue);
 
-        RuleFor(x => x.Employee.HiringDate)
+        RuleFor(x => x.HiringDate)
             .NotEmpty().WithMessage("Hiring date is required")
             .LessThanOrEqualTo(DateTime.Today).WithMessage("Hiring date cannot be in the future");
 
-        RuleFor(x => x.Employee.ProbationPeriodMonths)
+        RuleFor(x => x.ProbationPeriodMonths)
             .InclusiveBetween(0, 12).WithMessage("Probation period must be between 0 and 12 months");
     }
 

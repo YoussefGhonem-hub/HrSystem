@@ -1,5 +1,3 @@
-using HrSystem.Application.Features.Branches.Commands.CreateBranch;
-using HrSystem.Application.Features.Branches.Commands.UpdateBranch;
 using HrSystem.Application.Features.Branches.Queries.GetBranchById;
 using HrSystem.Application.Features.Branches.Queries.GetBranchesList;
 using HrSystem.Domain.Entities.Organization;
@@ -18,11 +16,5 @@ public class BranchMappingConfig : IRegister
 
         config.NewConfig<Branch, BranchListDto>()
             .Map(dest => dest.EmployeeCount, src => src.Employees.Count);
-
-        config.NewConfig<CreateBranchDto, Branch>()
-            .Map(dest => dest.IsActive, src => true);
-
-        config.NewConfig<UpdateBranchDto, Branch>()
-            .IgnoreNonMapped(true);
     }
 }

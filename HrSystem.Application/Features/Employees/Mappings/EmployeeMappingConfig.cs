@@ -1,5 +1,3 @@
-using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
-using HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeesList;
 using HrSystem.Domain.Entities.Employee;
@@ -27,12 +25,5 @@ public class EmployeeMappingConfig : IRegister
             .Map(dest => dest.DepartmentNameEn, src => src.Department.NameEn)
             .Map(dest => dest.JobTitleEn, src => src.JobTitle.TitleEn)
             .Map(dest => dest.BranchName, src => src.Branch != null ? src.Branch.NameEn : null);
-
-        config.NewConfig<CreateEmployeeDto, Employee>()
-            .Map(dest => dest.Status, src => Domain.Enums.EmployeeStatus.Active)
-            .Map(dest => dest.ProbationEndDate, src => src.HiringDate.AddMonths(src.ProbationPeriodMonths));
-
-        config.NewConfig<UpdateEmployeeDto, Employee>()
-            .IgnoreNonMapped(true);
     }
 }

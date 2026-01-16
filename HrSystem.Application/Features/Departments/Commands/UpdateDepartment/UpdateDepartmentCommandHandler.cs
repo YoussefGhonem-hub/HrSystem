@@ -26,7 +26,12 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
             return Error.NotFound(description: "Department not found");
         }
 
-        request.Department.Adapt(department);
+        department.NameAr = request.NameAr;
+        department.NameEn = request.NameEn;
+        department.Description = request.Description;
+        department.ManagerId = request.ManagerId;
+        department.ParentDepartmentId = request.ParentDepartmentId;
+        department.BranchId = request.BranchId;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -37,7 +42,20 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
             .Include(d => d.Employees)
             .FirstAsync(d => d.Id == department.Id, cancellationToken);
 
-        var dto = updatedDepartment.Adapt<DepartmentDto>();
+        var dto = new DepartmentDto
+        {
+            Id = updatedDepartment.Id,
+            NameAr = updatedDepartment.NameAr,
+            NameEn = updatedDepartment.NameEn,
+            Description = updatedDepartment.Description,
+            ManagerId = updatedDepartment.ManagerId,
+            ManagerName = updatedDepartment.Manager?.FullNameEn,
+            ParentDepartmentId = updatedDepartment.ParentDepartmentId,
+            ParentDepartmentName = updatedDepartment.ParentDepartment?.NameEn,
+            BranchId = updatedDepartment.BranchId,
+            BranchName = updatedDepartment.Branch?.NameEn,
+            EmployeeCount = updatedDepartment.Employees.Count
+        };
 
         return new GenericResponse<DepartmentDto>
         {

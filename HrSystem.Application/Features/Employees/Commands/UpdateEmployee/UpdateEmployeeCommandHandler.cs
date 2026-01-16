@@ -2,7 +2,6 @@ using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using Mapster;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,8 +28,25 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             return Error.NotFound(description: "Employee not found");
         }
 
-        // Map updates using Mapster
-        request.Employee.Adapt(employee);
+        employee.FirstNameAr = request.FirstNameAr;
+        employee.LastNameAr = request.LastNameAr;
+        employee.FirstNameEn = request.FirstNameEn;
+        employee.LastNameEn = request.LastNameEn;
+        employee.PassportNumber = request.PassportNumber;
+        employee.MaritalStatus = request.MaritalStatus;
+        employee.Email = request.Email;
+        employee.PhoneNumber = request.PhoneNumber;
+        employee.MobileNumber = request.MobileNumber;
+        employee.AddressAr = request.AddressAr;
+        employee.AddressEn = request.AddressEn;
+        employee.City = request.City;
+        employee.Country = request.Country;
+        employee.DepartmentId = request.DepartmentId;
+        employee.JobTitleId = request.JobTitleId;
+        employee.DirectManagerId = request.DirectManagerId;
+        employee.BranchId = request.BranchId;
+        employee.ContractType = request.ContractType;
+        employee.Status = request.Status;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -42,7 +58,45 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             .Include(e => e.Branch)
             .FirstAsync(e => e.Id == employee.Id, cancellationToken);
 
-        var dto = updatedEmployee.Adapt<EmployeeDto>();
+        var dto = new EmployeeDto
+        {
+            Id = updatedEmployee.Id,
+            EmployeeCode = updatedEmployee.EmployeeCode,
+            FirstNameAr = updatedEmployee.FirstNameAr,
+            LastNameAr = updatedEmployee.LastNameAr,
+            FirstNameEn = updatedEmployee.FirstNameEn,
+            LastNameEn = updatedEmployee.LastNameEn,
+            FullNameAr = updatedEmployee.FullNameAr,
+            FullNameEn = updatedEmployee.FullNameEn,
+            NationalId = updatedEmployee.NationalId,
+            PassportNumber = updatedEmployee.PassportNumber,
+            DateOfBirth = updatedEmployee.DateOfBirth,
+            Gender = updatedEmployee.Gender,
+            MaritalStatus = updatedEmployee.MaritalStatus,
+            Email = updatedEmployee.Email,
+            PhoneNumber = updatedEmployee.PhoneNumber,
+            MobileNumber = updatedEmployee.MobileNumber,
+            AddressAr = updatedEmployee.AddressAr,
+            AddressEn = updatedEmployee.AddressEn,
+            City = updatedEmployee.City,
+            Country = updatedEmployee.Country,
+            DepartmentId = updatedEmployee.DepartmentId,
+            DepartmentNameEn = updatedEmployee.Department?.NameEn ?? string.Empty,
+            DepartmentNameAr = updatedEmployee.Department?.NameAr ?? string.Empty,
+            JobTitleId = updatedEmployee.JobTitleId,
+            JobTitleEn = updatedEmployee.JobTitle?.TitleEn ?? string.Empty,
+            JobTitleAr = updatedEmployee.JobTitle?.TitleAr ?? string.Empty,
+            DirectManagerId = updatedEmployee.DirectManagerId,
+            DirectManagerName = updatedEmployee.DirectManager?.FullNameEn,
+            BranchId = updatedEmployee.BranchId,
+            BranchName = updatedEmployee.Branch?.NameEn,
+            ContractType = updatedEmployee.ContractType,
+            HiringDate = updatedEmployee.HiringDate,
+            ProbationPeriodMonths = updatedEmployee.ProbationPeriodMonths,
+            ProbationEndDate = updatedEmployee.ProbationEndDate,
+            Status = updatedEmployee.Status,
+            CreatedDate = updatedEmployee.CreatedDate.DateTime
+        };
 
         return new GenericResponse<EmployeeDto>
         {

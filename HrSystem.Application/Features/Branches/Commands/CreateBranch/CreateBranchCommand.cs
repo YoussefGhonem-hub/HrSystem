@@ -1,15 +1,36 @@
 using ErrorOr;
 using HrSystem.Application.Features.Branches.Queries.GetBranchById;
 using HrSystem.Domain.Entities.Organization;
+using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using Mapster;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace HrSystem.Application.Features.Branches.Commands.CreateBranch;
 
-public record CreateBranchCommand(CreateBranchDto Branch) : IRequest<ErrorOr<GenericResponse<BranchDto>>>;
+public record CreateBranchCommand(
+    string NameAr,
+    string NameEn,
+    string Code,
+    string? Description,
+    Country Country,
+    string? City,
+    string? AddressAr,
+    string? AddressEn,
+    string? PostalCode,
+    double? Latitude,
+    double? Longitude,
+    string? PhoneNumber,
+    string? Email,
+    string? Fax,
+    string TimeZone,
+    string Currency,
+    string? Language,
+    bool IsHeadquarter,
+    DateTime? OpeningDate,
+    Guid? BranchManagerId
+) : IRequest<ErrorOr<GenericResponse<BranchDto>>>;
 
 public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, ErrorOr<GenericResponse<BranchDto>>>
 {
@@ -21,9 +42,32 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, E
         CreateBranchCommand request,
         CancellationToken cancellationToken)
     {
-        var branch = request.Branch.Adapt<Branch>();
-        branch.OrganizationId = Guid.NewGuid(); // Should come from CurrentUser.OrganizationId
-        branch.TenantId = Guid.NewGuid();
+        var branch = new Branch
+        {
+            NameAr = request.NameAr,
+            NameEn = request.NameEn,
+            Code = request.Code,
+            Description = request.Description,
+            Country = request.Country,
+            City = request.City,
+            AddressAr = request.AddressAr,
+            AddressEn = request.AddressEn,
+            PostalCode = request.PostalCode,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            PhoneNumber = request.PhoneNumber,
+            Email = request.Email,
+            Fax = request.Fax,
+            TimeZone = request.TimeZone,
+            Currency = request.Currency,
+            Language = request.Language,
+            IsHeadquarter = request.IsHeadquarter,
+            OpeningDate = request.OpeningDate,
+            BranchManagerId = request.BranchManagerId,
+            IsActive = true,
+            OrganizationId = Guid.NewGuid(), // Should come from CurrentUser.OrganizationId
+            TenantId = Guid.NewGuid()
+        };
 
         _context.Branches.Add(branch);
         await _context.SaveChangesAsync(cancellationToken);
@@ -34,7 +78,35 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, E
             .Include(b => b.Departments)
             .FirstAsync(b => b.Id == branch.Id, cancellationToken);
 
-        var dto = createdBranch.Adapt<BranchDto>();
+        var dto = new BranchDto
+        {
+            Id = createdBranch.Id,
+            NameAr = createdBranch.NameAr,
+            NameEn = createdBranch.NameEn,
+            Code = createdBranch.Code,
+            Description = createdBranch.Description,
+            Country = createdBranch.Country,
+            City = createdBranch.City,
+            AddressAr = createdBranch.AddressAr,
+            AddressEn = createdBranch.AddressEn,
+            PostalCode = createdBranch.PostalCode,
+            Latitude = createdBranch.Latitude,
+            Longitude = createdBranch.Longitude,
+            PhoneNumber = createdBranch.PhoneNumber,
+            Email = createdBranch.Email,
+            Fax = createdBranch.Fax,
+            TimeZone = createdBranch.TimeZone,
+            Currency = createdBranch.Currency,
+            Language = createdBranch.Language,
+            IsHeadquarter = createdBranch.IsHeadquarter,
+            IsActive = createdBranch.IsActive,
+            OpeningDate = createdBranch.OpeningDate,
+            ClosingDate = createdBranch.ClosingDate,
+            BranchManagerId = createdBranch.BranchManagerId,
+            BranchManagerName = createdBranch.BranchManager?.FullNameEn,
+            EmployeeCount = createdBranch.Employees.Count,
+            DepartmentCount = createdBranch.Departments.Count
+        };
 
         return new GenericResponse<BranchDto>
         {

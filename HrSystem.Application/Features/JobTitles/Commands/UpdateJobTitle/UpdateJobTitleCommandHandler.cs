@@ -26,7 +26,12 @@ public class UpdateJobTitleCommandHandler : IRequestHandler<UpdateJobTitleComman
             return Error.NotFound(description: "Job title not found");
         }
 
-        request.JobTitle.Adapt(jobTitle);
+        jobTitle.TitleAr = request.TitleAr;
+        jobTitle.TitleEn = request.TitleEn;
+        jobTitle.Description = request.Description;
+        jobTitle.Level = request.Level;
+        jobTitle.MinSalary = request.MinSalary;
+        jobTitle.MaxSalary = request.MaxSalary;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -34,7 +39,17 @@ public class UpdateJobTitleCommandHandler : IRequestHandler<UpdateJobTitleComman
             .Include(j => j.Employees)
             .FirstAsync(j => j.Id == jobTitle.Id, cancellationToken);
 
-        var dto = updatedJobTitle.Adapt<JobTitleDto>();
+        var dto = new JobTitleDto
+        {
+            Id = updatedJobTitle.Id,
+            TitleAr = updatedJobTitle.TitleAr,
+            TitleEn = updatedJobTitle.TitleEn,
+            Description = updatedJobTitle.Description,
+            Level = updatedJobTitle.Level,
+            MinSalary = updatedJobTitle.MinSalary,
+            MaxSalary = updatedJobTitle.MaxSalary,
+            EmployeeCount = updatedJobTitle.Employees.Count
+        };
 
         return new GenericResponse<JobTitleDto>
         {

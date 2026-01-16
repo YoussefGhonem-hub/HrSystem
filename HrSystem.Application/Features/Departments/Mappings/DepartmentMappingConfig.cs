@@ -1,5 +1,3 @@
-using HrSystem.Application.Features.Departments.Commands.CreateDepartment;
-using HrSystem.Application.Features.Departments.Commands.UpdateDepartment;
 using HrSystem.Application.Features.Departments.Queries.GetDepartmentById;
 using HrSystem.Application.Features.Departments.Queries.GetDepartmentsList;
 using HrSystem.Domain.Entities.Employee;
@@ -21,9 +19,5 @@ public class DepartmentMappingConfig : IRegister
             .Map(dest => dest.ManagerName, src => src.Manager != null ? src.Manager.FullNameEn : null)
             .Map(dest => dest.BranchName, src => src.Branch != null ? src.Branch.NameEn : null)
             .Map(dest => dest.EmployeeCount, src => src.Employees.Count);
-
-        config.NewConfig<CreateDepartmentDto, Department>();
-        config.NewConfig<UpdateDepartmentDto, Department>()
-            .IgnoreNonMapped(true);
     }
 }

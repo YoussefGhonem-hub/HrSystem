@@ -3,13 +3,19 @@ using HrSystem.Application.Features.JobTitles.Queries.GetJobTitleById;
 using HrSystem.Domain.Entities.Employee;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using Mapster;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace HrSystem.Application.Features.JobTitles.Commands.CreateJobTitle;
 
-public record CreateJobTitleCommand(CreateJobTitleDto JobTitle) : IRequest<ErrorOr<GenericResponse<JobTitleDto>>>;
+public record CreateJobTitleCommand(
+    string TitleAr,
+    string TitleEn,
+    string? Description,
+    int Level,
+    decimal MinSalary,
+    decimal MaxSalary
+) : IRequest<ErrorOr<GenericResponse<JobTitleDto>>>;
 
 public class CreateJobTitleCommandHandler : IRequestHandler<CreateJobTitleCommand, ErrorOr<GenericResponse<JobTitleDto>>>
 {
@@ -21,8 +27,16 @@ public class CreateJobTitleCommandHandler : IRequestHandler<CreateJobTitleComman
         CreateJobTitleCommand request,
         CancellationToken cancellationToken)
     {
-        var jobTitle = request.JobTitle.Adapt<JobTitle>();
-        jobTitle.TenantId = Guid.NewGuid(); // Should come from CurrentUser.OrganizationId
+        var jobTitle = new JobTitle
+        {
+            TitleAr = request.TitleAr,
+            TitleEn = request.TitleEn,
+            Description = request.Description,
+            Level = request.Level,
+            MinSalary = request.MinSalary,
+            MaxSalary = request.MaxSalary,
+            TenantId = Guid.NewGuid() // Should come from CurrentUser.OrganizationId
+        };
 
         _context.JobTitles.Add(jobTitle);
         await _context.SaveChangesAsync(cancellationToken);
@@ -31,7 +45,17 @@ public class CreateJobTitleCommandHandler : IRequestHandler<CreateJobTitleComman
             .Include(j => j.Employees)
             .FirstAsync(j => j.Id == jobTitle.Id, cancellationToken);
 
-        var dto = createdJobTitle.Adapt<JobTitleDto>();
+        var dto = new JobTitleDto
+        {
+            Id = createdJobTitle.Id,
+            TitleAr = createdJobTitle.TitleAr,
+            TitleEn = createdJobTitle.TitleEn,
+            Description = createdJobTitle.Description,
+            Level = createdJobTitle.Level,
+            MinSalary = createdJobTitle.MinSalary,
+            MaxSalary = createdJobTitle.MaxSalary,
+            EmployeeCount = createdJobTitle.Employees.Count
+        };
 
         return new GenericResponse<JobTitleDto>
         {

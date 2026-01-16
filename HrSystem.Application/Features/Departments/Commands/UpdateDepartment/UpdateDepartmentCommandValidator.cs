@@ -15,26 +15,26 @@ public class UpdateDepartmentCommandValidator : AbstractValidator<UpdateDepartme
         RuleFor(x => x.Id)
             .NotEmpty().WithMessage("Department ID is required");
 
-        RuleFor(x => x.Department.NameAr)
+        RuleFor(x => x.NameAr)
             .NotEmpty().WithMessage("Name in Arabic is required")
             .MaximumLength(200).WithMessage("Name must not exceed 200 characters");
 
-        RuleFor(x => x.Department.NameEn)
+        RuleFor(x => x.NameEn)
             .NotEmpty().WithMessage("Name in English is required")
             .MaximumLength(200).WithMessage("Name must not exceed 200 characters");
 
-        RuleFor(x => x.Department.ManagerId)
+        RuleFor(x => x.ManagerId)
             .MustAsync(ManagerExists).WithMessage("Manager does not exist")
-            .When(x => x.Department.ManagerId.HasValue);
+            .When(x => x.ManagerId.HasValue);
 
-        RuleFor(x => x.Department.ParentDepartmentId)
+        RuleFor(x => x.ParentDepartmentId)
             .MustAsync(ParentDepartmentExists).WithMessage("Parent department does not exist")
             .MustAsync(NotBeCircular).WithMessage("Cannot set department as its own parent")
-            .When(x => x.Department.ParentDepartmentId.HasValue);
+            .When(x => x.ParentDepartmentId.HasValue);
 
-        RuleFor(x => x.Department.BranchId)
+        RuleFor(x => x.BranchId)
             .MustAsync(BranchExists).WithMessage("Branch does not exist")
-            .When(x => x.Department.BranchId.HasValue);
+            .When(x => x.BranchId.HasValue);
     }
 
     private async Task<bool> ManagerExists(Guid? managerId, CancellationToken cancellationToken)
