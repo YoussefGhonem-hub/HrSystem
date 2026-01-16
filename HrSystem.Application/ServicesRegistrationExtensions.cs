@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using HrSystem.Application.Common.Behaviors;
+using HrSystem.Application.Common.Mappings;
 using Mapster;
 using MapsterMapper;
 using MediatR;
