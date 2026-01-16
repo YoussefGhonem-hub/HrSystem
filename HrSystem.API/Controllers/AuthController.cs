@@ -1,5 +1,5 @@
 using HrSystem.API.Controllers.Shared;
-using HrSystem.Application.Auth.Commands.Login;
+using HrSystem.Application.Features.Auth.Commands.Login;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

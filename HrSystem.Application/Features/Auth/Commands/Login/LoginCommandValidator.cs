@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace HrSystem.Application.Auth.Commands.Login;
+namespace HrSystem.Application.Features.Auth.Commands.Login;
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>
 {

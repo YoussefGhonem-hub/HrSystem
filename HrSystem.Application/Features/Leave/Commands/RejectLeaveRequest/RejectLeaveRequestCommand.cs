@@ -6,7 +6,7 @@ using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrSystem.Application.Leave.Commands.RejectLeaveRequest;
+namespace HrSystem.Application.Features.Leave.Commands.RejectLeaveRequest;
 
 /// <summary>
 /// Command to reject a leave request

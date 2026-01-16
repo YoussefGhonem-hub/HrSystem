@@ -4,7 +4,7 @@ using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.CurrentUser;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrSystem.Application.Leave.Commands.ApproveLeaveRequest;
+namespace HrSystem.Application.Features.Leave.Commands.ApproveLeaveRequest;
 
 public class ApproveLeaveRequestCommandValidator : AbstractValidator<ApproveLeaveRequestCommand>
 {

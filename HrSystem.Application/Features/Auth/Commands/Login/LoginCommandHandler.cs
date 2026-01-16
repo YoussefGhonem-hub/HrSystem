@@ -7,7 +7,7 @@ using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrSystem.Application.Auth.Commands.Login;
+namespace HrSystem.Application.Features.Auth.Commands.Login;
 
 public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<GenericResponse<LoginResponse>>>
 {

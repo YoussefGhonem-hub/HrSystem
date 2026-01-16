@@ -6,7 +6,7 @@ using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrSystem.Application.Leave.Queries.GetPendingLeaveRequests;
+namespace HrSystem.Application.Features.Leave.Queries.GetPendingLeaveRequests;
 
 /// <summary>
 /// Query to get leave requests pending approval by current user

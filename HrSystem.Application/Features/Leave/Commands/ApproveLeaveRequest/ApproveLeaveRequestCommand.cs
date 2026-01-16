@@ -8,7 +8,7 @@ using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrSystem.Application.Leave.Commands.ApproveLeaveRequest;
+namespace HrSystem.Application.Features.Leave.Commands.ApproveLeaveRequest;
 
 /// <summary>
 /// Command to approve a leave request with multi-level approval workflow
@@ -46,11 +46,11 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
         bool isDirectManager = leaveRequest!.Employee.DirectManagerId == currentEmployee!.Id;
 
         // Check if current user has HR role
-        bool isHRManager = CurrentUser.Roles?.Contains("HR Manager") == true || 
+        bool isHRManager = CurrentUser.Roles?.Contains("HR Manager") == true ||
                           CurrentUser.Roles?.Contains("Admin") == true;
 
         // **WORKFLOW LOGIC:**
-        
+
         // Step 1: Direct Manager Approval (Team Leader, Department Manager, etc.)
         if (leaveRequest.Status == LeaveStatus.Pending)
         {
@@ -67,11 +67,11 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
             }
 
             await _context.SaveChangesAsync(cancellationToken);
-            
-            var message = leaveRequest.Status == LeaveStatus.Approved 
-                ? "Leave request fully approved" 
+
+            var message = leaveRequest.Status == LeaveStatus.Approved
+                ? "Leave request fully approved"
                 : "Leave request approved by manager, pending HR approval";
-                
+
             return GenericResponse.SuccessResult(message);
         }
 

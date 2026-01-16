@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace HrSystem.Application.Leave.Queries.GetPendingLeaveRequests;
+namespace HrSystem.Application.Features.Leave.Queries.GetPendingLeaveRequests;
 
 public class GetPendingLeaveRequestsQueryValidator : AbstractValidator<GetPendingLeaveRequestsQuery>
 {
