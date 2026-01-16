@@ -1,4 +1,4 @@
-namespace HrSystem.Application.Common;
+namespace HrSystem.Application.Common.PaginatedList;
 
 public class PaginationParams
 {

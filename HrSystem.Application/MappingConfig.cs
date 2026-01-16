@@ -1,6 +1,6 @@
 using Mapster;
 
-namespace HrSystem.Application.Common.Mappings;
+namespace HrSystem.Application;
 
 public static class MappingConfig
 {

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 
-namespace HrSystem.Application.Common;
+namespace HrSystem.Application.Common.PaginatedList;
 
 public class PagedResult<T>
 {
