@@ -35,12 +35,14 @@ public static class AppDbContextSeed
 
         try
         {
-            // Seed in order: Roles -> SubscriptionPlans -> Organization -> Others
+            // Seed in order: Roles -> SubscriptionPlans -> Organization -> Branches -> Others
             await SeedRolesAsync(roleManager, seedDataPath);
             await SeedSubscriptionPlansAsync(context, seedDataPath);
             await SeedOrganizationAsync(context, seedDataPath);
+            await SeedBranchesAsync(context, seedDataPath);
             await SeedDepartmentsAsync(context, seedDataPath);
             await SeedJobTitlesAsync(context, seedDataPath);
+            await SeedEmployeesAsync(context, userManager, seedDataPath);
             await SeedLeavePoliciesAsync(context, seedDataPath);
             await SeedAllowanceTypesAsync(context, seedDataPath);
             await SeedDeductionTypesAsync(context, seedDataPath);
@@ -187,6 +189,60 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded demo organization: {orgData.NameEn}");
     }
 
+    private static async Task SeedBranchesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.Branches.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "Branches.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var branches = JsonSerializer.Deserialize<List<BranchSeedData>>(json, _jsonOptions);
+
+        if (branches == null) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        foreach (var branchData in branches)
+        {
+            var branch = new Branch
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organization.Id,
+                NameAr = branchData.NameAr,
+                NameEn = branchData.NameEn,
+                Code = branchData.Code,
+                Description = branchData.Description,
+                Country = (Country)branchData.Country,
+                City = branchData.City,
+                AddressAr = branchData.AddressAr,
+                AddressEn = branchData.AddressEn,
+                PostalCode = branchData.PostalCode,
+                PhoneNumber = branchData.PhoneNumber,
+                Email = branchData.Email,
+                TimeZone = branchData.TimeZone,
+                Currency = branchData.Currency,
+                Language = branchData.Language,
+                IsHeadquarter = branchData.IsHeadquarter,
+                IsActive = branchData.IsActive,
+                MaxEmployeeCapacity = branchData.MaxEmployeeCapacity,
+                CurrentEmployeeCount = 0,
+                OpeningDate = DateTime.UtcNow,
+                WorkStartTime = TimeSpan.Parse(branchData.WorkStartTime),
+                WorkEndTime = TimeSpan.Parse(branchData.WorkEndTime),
+                WorkingDays = branchData.WorkingDays,
+                TenantId = organization.Id,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.Branches.AddAsync(branch);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {branches.Count} branches");
+    }
+
     private static async Task SeedDepartmentsAsync(ApplicationDbContext context, string seedDataPath)
     {
         if (await context.Departments.AnyAsync()) return;
@@ -202,6 +258,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var branches = await context.Branches.ToListAsync();
+        var headquarter = branches.FirstOrDefault(b => b.IsHeadquarter);
+
         foreach (var deptData in departments)
         {
             var department = new Department
@@ -210,6 +269,7 @@ public static class AppDbContextSeed
                 NameAr = deptData.NameAr,
                 NameEn = deptData.NameEn,
                 Description = deptData.Description,
+                BranchId = headquarter?.Id, // Assign to headquarter by default
                 TenantId = organization.Id,
                 CreatedDate = DateTimeOffset.UtcNow
             };
@@ -256,6 +316,120 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {jobTitles.Count} job titles");
+    }
+
+    private static async Task SeedEmployeesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, string seedDataPath)
+    {
+        if (await context.Employees.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "Employees.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var employees = JsonSerializer.Deserialize<List<EmployeeSeedData>>(json, _jsonOptions);
+
+        if (employees == null) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var departments = await context.Departments.ToListAsync();
+        var jobTitles = await context.JobTitles.ToListAsync();
+        var branches = await context.Branches.ToListAsync();
+
+        // Dictionary to store employee codes and their IDs for manager assignment
+        var employeeMap = new Dictionary<string, Guid>();
+
+        // First pass: Create all employees without manager assignment
+        foreach (var empData in employees)
+        {
+            var department = departments.FirstOrDefault(d => d.NameEn.StartsWith(empData.DepartmentCode));
+            var jobTitle = jobTitles.FirstOrDefault(j => j.TitleEn.Contains(empData.JobTitleCode) || j.TitleEn.Replace(" ", "").ToUpper().Contains(empData.JobTitleCode.Replace("-", "")));
+            var branch = branches.FirstOrDefault(b => b.Code == empData.BranchCode);
+
+            if (department == null || jobTitle == null || branch == null) 
+            {
+                Console.WriteLine($"Skipping employee {empData.EmployeeCode}: department={department?.NameEn}, jobTitle={jobTitle?.TitleEn}, branch={branch?.Code}");
+                continue;
+            }
+
+            var employeeId = Guid.NewGuid();
+            var employee = new Employee
+            {
+                Id = employeeId,
+                EmployeeCode = empData.EmployeeCode,
+                FirstNameAr = empData.FirstNameAr,
+                LastNameAr = empData.LastNameAr,
+                FirstNameEn = empData.FirstNameEn,
+                LastNameEn = empData.LastNameEn,
+                NationalId = empData.NationalId,
+                PassportNumber = empData.PassportNumber,
+                DateOfBirth = DateTime.Parse(empData.DateOfBirth),
+                Gender = (Gender)empData.Gender,
+                MaritalStatus = (MaritalStatus)empData.MaritalStatus,
+                Email = empData.Email,
+                PhoneNumber = empData.PhoneNumber,
+                MobileNumber = empData.MobileNumber,
+                AddressAr = empData.AddressAr,
+                AddressEn = empData.AddressEn,
+                City = empData.City,
+                Country = empData.Country,
+                DepartmentId = department.Id,
+                JobTitleId = jobTitle.Id,
+                BranchId = branch.Id,
+                ContractType = (ContractType)empData.ContractType,
+                Status = (EmployeeStatus)empData.Status,
+                HiringDate = DateTime.Parse(empData.HiringDate),
+                ProbationPeriodMonths = empData.ProbationPeriodMonths,
+                TenantId = organization.Id,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            employeeMap[empData.EmployeeCode] = employeeId;
+            await context.Employees.AddAsync(employee);
+
+            // Create user account for employee
+            var user = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = empData.Email,
+                Email = empData.Email,
+                EmailConfirmed = true,
+                FullName = $"{empData.FirstNameEn} {empData.LastNameEn}",
+                IsActive = true,
+                OrganizationId = organization.Id,
+                EmployeeId = employeeId,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            var result = await userManager.CreateAsync(user, "Password@123");
+            if (result.Succeeded && !string.IsNullOrEmpty(empData.Role))
+            {
+                await userManager.AddToRoleAsync(user, empData.Role);
+                Console.WriteLine($"Created user: {empData.Email} with role: {empData.Role}");
+            }
+
+            employee.UserId = user.Id;
+        }
+
+        await context.SaveChangesAsync();
+
+        // Second pass: Update manager assignments
+        var allEmployees = await context.Employees.ToListAsync();
+        foreach (var empData in employees.Where(e => !string.IsNullOrEmpty(e.DirectManagerCode)))
+        {
+            if (employeeMap.TryGetValue(empData.DirectManagerCode, out var managerId))
+            {
+                var employee = allEmployees.FirstOrDefault(e => e.EmployeeCode == empData.EmployeeCode);
+                if (employee != null)
+                {
+                    employee.DirectManagerId = managerId;
+                }
+            }
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {employees.Count} employees");
     }
 
     private static async Task SeedLeavePoliciesAsync(ApplicationDbContext context, string seedDataPath)
@@ -604,8 +778,63 @@ public static class AppDbContextSeed
         public string Code { get; set; } = string.Empty;
     }
 
+    private class BranchSeedData
+    {
+        public string NameAr { get; set; } = string.Empty;
+        public string NameEn { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int Country { get; set; }
+        public string? City { get; set; }
+        public string? AddressAr { get; set; }
+        public string? AddressEn { get; set; }
+        public string? PostalCode { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+        public string TimeZone { get; set; } = string.Empty;
+        public string Currency { get; set; } = string.Empty;
+        public string? Language { get; set; }
+        public bool IsHeadquarter { get; set; }
+        public bool IsActive { get; set; }
+        public int MaxEmployeeCapacity { get; set; }
+        public string WorkStartTime { get; set; } = string.Empty;
+        public string WorkEndTime { get; set; } = string.Empty;
+        public string? WorkingDays { get; set; }
+    }
+
+    private class EmployeeSeedData
+    {
+        public string EmployeeCode { get; set; } = string.Empty;
+        public string FirstNameAr { get; set; } = string.Empty;
+        public string LastNameAr { get; set; } = string.Empty;
+        public string FirstNameEn { get; set; } = string.Empty;
+        public string LastNameEn { get; set; } = string.Empty;
+        public string NationalId { get; set; } = string.Empty;
+        public string? PassportNumber { get; set; }
+        public string DateOfBirth { get; set; } = string.Empty;
+        public int Gender { get; set; }
+        public int MaritalStatus { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string? MobileNumber { get; set; }
+        public string AddressAr { get; set; } = string.Empty;
+        public string? AddressEn { get; set; }
+        public string? City { get; set; }
+        public string? Country { get; set; }
+        public string DepartmentCode { get; set; } = string.Empty;
+        public string JobTitleCode { get; set; } = string.Empty;
+        public string BranchCode { get; set; } = string.Empty;
+        public int ContractType { get; set; }
+        public int Status { get; set; }
+        public string HiringDate { get; set; } = string.Empty;
+        public int ProbationPeriodMonths { get; set; }
+        public string? DirectManagerCode { get; set; }
+        public string? Role { get; set; }
+    }
+
     private class JobTitleSeedData
     {
+        public string? Code { get; set; }
         public string TitleAr { get; set; } = string.Empty;
         public string TitleEn { get; set; } = string.Empty;
         public string? Description { get; set; }

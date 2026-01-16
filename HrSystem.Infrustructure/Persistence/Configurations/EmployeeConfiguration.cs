@@ -38,5 +38,10 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .WithMany(e => e.Subordinates)
             .HasForeignKey(e => e.DirectManagerId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(e => e.Branch)
+            .WithMany(b => b.Employees)
+            .HasForeignKey(e => e.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

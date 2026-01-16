@@ -40,6 +40,7 @@ public class Employee : BaseAuditableEntity
     public Guid DepartmentId { get; set; }
     public Guid JobTitleId { get; set; }
     public Guid? DirectManagerId { get; set; }
+    public Guid? BranchId { get; set; } // Branch assignment for multi-branch organizations
     public ContractType ContractType { get; set; }
     public EmployeeStatus Status { get; set; }
     
@@ -57,6 +58,7 @@ public class Employee : BaseAuditableEntity
     public virtual Department Department { get; set; } = null!;
     public virtual JobTitle JobTitle { get; set; } = null!;
     public virtual Employee? DirectManager { get; set; }
+    public virtual Organization.Branch? Branch { get; set; }
     public virtual ICollection<Employee> Subordinates { get; set; } = new List<Employee>();
     public virtual ICollection<EmployeeDocument> Documents { get; set; } = new List<EmployeeDocument>();
     public virtual ICollection<Payroll.Salary> Salaries { get; set; } = new List<Payroll.Salary>();

@@ -1,5 +1,6 @@
 [
   {
+    "code": "CEO",
     "titleAr": "الرئيس التنفيذي",
     "titleEn": "Chief Executive Officer",
     "description": "Top executive responsible for overall company operations",
@@ -8,51 +9,84 @@
     "maxSalary": 100000
   },
   {
-    "titleAr": "مدير عام",
-    "titleEn": "General Manager",
-    "description": "Senior management position overseeing operations",
-    "level": 2,
-    "minSalary": 30000,
-    "maxSalary": 60000
-  },
-  {
-    "titleAr": "مدير",
-    "titleEn": "Manager",
-    "description": "Department or team manager",
+    "code": "HR-MGR",
+    "titleAr": "مدير الموارد البشرية",
+    "titleEn": "HR Manager",
+    "description": "Manages human resources operations",
     "level": 3,
     "minSalary": 15000,
     "maxSalary": 35000
   },
   {
-    "titleAr": "مشرف",
-    "titleEn": "Supervisor",
-    "description": "Team supervisor or lead",
-    "level": 4,
-    "minSalary": 10000,
-    "maxSalary": 20000
+    "code": "IT-MGR",
+    "titleAr": "مدير تكنولوجيا المعلومات",
+    "titleEn": "IT Manager",
+    "description": "Manages IT infrastructure and development",
+    "level": 3,
+    "minSalary": 15000,
+    "maxSalary": 35000
   },
   {
-    "titleAr": "أخصائي أول",
-    "titleEn": "Senior Specialist",
-    "description": "Experienced specialist in their field",
-    "level": 5,
-    "minSalary": 8000,
-    "maxSalary": 15000
+    "code": "FIN-MGR",
+    "titleAr": "مدير المالية",
+    "titleEn": "Finance Manager",
+    "description": "Manages financial operations",
+    "level": 3,
+    "minSalary": 15000,
+    "maxSalary": 35000
   },
   {
-    "titleAr": "أخصائي",
-    "titleEn": "Specialist",
-    "description": "Mid-level specialist",
+    "code": "OPS-MGR",
+    "titleAr": "مدير العمليات",
+    "titleEn": "Operations Manager",
+    "description": "Manages business operations",
+    "level": 3,
+    "minSalary": 15000,
+    "maxSalary": 35000
+  },
+  {
+    "code": "SALES-MGR",
+    "titleAr": "مدير المبيعات",
+    "titleEn": "Sales Manager",
+    "description": "Manages sales operations",
+    "level": 3,
+    "minSalary": 15000,
+    "maxSalary": 35000
+  },
+  {
+    "code": "HR-SPEC",
+    "titleAr": "أخصائي موارد بشرية",
+    "titleEn": "HR Specialist",
+    "description": "HR operations specialist",
     "level": 6,
     "minSalary": 5000,
     "maxSalary": 10000
   },
   {
-    "titleAr": "موظف",
-    "titleEn": "Employee",
-    "description": "Entry-level employee",
+    "code": "DEV",
+    "titleAr": "مطور برمجيات",
+    "titleEn": "Software Developer",
+    "description": "Software development specialist",
+    "level": 6,
+    "minSalary": 5000,
+    "maxSalary": 12000
+  },
+  {
+    "code": "ACC",
+    "titleAr": "محاسب",
+    "titleEn": "Accountant",
+    "description": "Financial accounting specialist",
+    "level": 6,
+    "minSalary": 5000,
+    "maxSalary": 10000
+  },
+  {
+    "code": "SALES-REP",
+    "titleAr": "مندوب مبيعات",
+    "titleEn": "Sales Representative",
+    "description": "Sales representative",
     "level": 7,
     "minSalary": 3000,
-    "maxSalary": 6000
+    "maxSalary": 8000
   }
 ]

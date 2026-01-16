@@ -54,5 +54,6 @@ public class Organization : BaseEntity
 
     // Navigation Properties
     public virtual SubscriptionPlan? SubscriptionPlan { get; set; }
+    public virtual ICollection<Branch> Branches { get; set; } = new List<Branch>();
     public virtual ICollection<Account.ApplicationUser> Users { get; set; } = new List<Account.ApplicationUser>();
 }

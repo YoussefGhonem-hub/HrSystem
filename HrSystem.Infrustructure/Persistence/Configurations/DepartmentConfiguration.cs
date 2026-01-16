@@ -22,5 +22,10 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
             .WithMany(d => d.SubDepartments)
             .HasForeignKey(d => d.ParentDepartmentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(d => d.Branch)
+            .WithMany(b => b.Departments)
+            .HasForeignKey(d => d.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
