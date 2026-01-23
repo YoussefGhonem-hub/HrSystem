@@ -41,6 +41,7 @@ public static class AppDbContextSeed
             await SeedRolesAsync(roleManager, seedDataPath);
             await SeedSubscriptionPlansAsync(context, seedDataPath);
             await SeedOrganizationAsync(context, seedDataPath);
+            await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
             await SeedCountriesAsync(context, seedDataPath);
             await SeedBranchesAsync(context, seedDataPath);
             await SeedDepartmentsAsync(context, seedDataPath);
@@ -205,6 +206,73 @@ public static class AppDbContextSeed
         await context.Organizations.AddAsync(organization);
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded demo organization: {orgData.NameEn}");
+    }
+
+    private static async Task SeedRoleUsersAsync(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
+        string seedDataPath)
+    {
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var filePath = Path.Combine(seedDataPath, "Roles.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var roles = JsonSerializer.Deserialize<List<RoleSeedData>>(json, _jsonOptions);
+
+        if (roles == null || roles.Count == 0) return;
+
+        foreach (var roleData in roles)
+        {
+            var roleExists = await roleManager.RoleExistsAsync(roleData.Name);
+            if (!roleExists)
+            {
+                continue;
+            }
+
+            var usersInRole = await userManager.GetUsersInRoleAsync(roleData.Name);
+            var hasUserInOrg = usersInRole.Any(u => u.OrganizationId == organization.Id);
+            if (hasUserInOrg)
+            {
+                continue;
+            }
+
+            var email = $"{roleData.Name.ToLowerInvariant()}@{organization.Code.ToLowerInvariant()}.local";
+            var existingUser = await userManager.FindByEmailAsync(email);
+
+            var user = existingUser ?? new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                FullName = roleData.DisplayName,
+                IsActive = true,
+                OrganizationId = organization.Id,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            if (existingUser == null)
+            {
+                var createResult = await userManager.CreateAsync(user, "Password@123");
+                if (!createResult.Succeeded)
+                {
+                    Console.WriteLine($"Failed to create user for role {roleData.Name}: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
+                    continue;
+                }
+            }
+
+            var inRole = await userManager.IsInRoleAsync(user, roleData.Name);
+            if (!inRole)
+            {
+                await userManager.AddToRoleAsync(user, roleData.Name);
+            }
+
+            Console.WriteLine($"Ensured role user for: {roleData.Name}");
+        }
     }
 
     private static async Task SeedBranchesAsync(ApplicationDbContext context, string seedDataPath)
@@ -436,7 +504,8 @@ public static class AppDbContextSeed
         var allEmployees = await context.Employees.ToListAsync();
         foreach (var empData in employees.Where(e => !string.IsNullOrEmpty(e.DirectManagerCode)))
         {
-            if (employeeMap.TryGetValue(empData.DirectManagerCode, out var managerId))
+            var managerCode = empData.DirectManagerCode!;
+            if (employeeMap.TryGetValue(managerCode, out var managerId))
             {
                 var employee = allEmployees.FirstOrDefault(e => e.EmployeeCode == empData.EmployeeCode);
                 if (employee != null)
