@@ -13,7 +13,7 @@ public class BranchConfiguration : IEntityTypeConfiguration<Branch>
         // Indexes
         builder.HasIndex(b => b.Code).IsUnique();
         builder.HasIndex(b => new { b.OrganizationId, b.IsActive });
-        builder.HasIndex(b => b.Country);
+        builder.HasIndex(b => b.CountryId);
 
         // Properties
         builder.Property(b => b.NameAr).IsRequired().HasMaxLength(200);
@@ -34,10 +34,6 @@ public class BranchConfiguration : IEntityTypeConfiguration<Branch>
         builder.Property(b => b.Currency).IsRequired().HasMaxLength(10);
         builder.Property(b => b.Language).HasMaxLength(10);
         builder.Property(b => b.WorkingDays).HasMaxLength(100);
-        
-        builder.Property(b => b.Country)
-            .IsRequired()
-            .HasConversion<int>();
 
         // Relationships
         builder.HasOne(b => b.Organization)
@@ -48,6 +44,11 @@ public class BranchConfiguration : IEntityTypeConfiguration<Branch>
         builder.HasOne(b => b.BranchManager)
             .WithMany()
             .HasForeignKey(b => b.BranchManagerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(b => b.Country)
+            .WithMany()
+            .HasForeignKey(b => b.CountryId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(b => b.Departments)

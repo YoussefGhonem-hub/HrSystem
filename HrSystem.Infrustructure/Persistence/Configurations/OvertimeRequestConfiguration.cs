@@ -11,7 +11,6 @@ public class OvertimeRequestConfiguration : IEntityTypeConfiguration<OvertimeReq
         builder.ToTable("OvertimeRequests", "Attendance");
 
         builder.Property(o => o.Reason).IsRequired().HasMaxLength(500);
-        builder.Property(o => o.Status).HasMaxLength(50);
 
         builder.HasOne(o => o.Employee)
             .WithMany()

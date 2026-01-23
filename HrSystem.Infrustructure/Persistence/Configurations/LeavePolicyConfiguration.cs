@@ -13,6 +13,11 @@ public class LeavePolicyConfiguration : IEntityTypeConfiguration<LeavePolicy>
         builder.Property(lp => lp.NameAr).IsRequired().HasMaxLength(200);
         builder.Property(lp => lp.NameEn).IsRequired().HasMaxLength(200);
 
-        builder.HasIndex(lp => lp.LeaveType).IsUnique();
+        builder.HasIndex(lp => lp.LeaveTypeId).IsUnique();
+
+        builder.HasOne(lp => lp.LeaveType)
+            .WithMany()
+            .HasForeignKey(lp => lp.LeaveTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

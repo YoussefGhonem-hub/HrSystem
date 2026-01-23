@@ -18,7 +18,6 @@ public class OrganizationInvoiceConfiguration : IEntityTypeConfiguration<Organiz
         builder.Property(oi => oi.TotalAmount).HasColumnType("decimal(18,2)");
         builder.Property(oi => oi.PaidAmount).HasColumnType("decimal(18,2)");
         builder.Property(oi => oi.RemainingAmount).HasColumnType("decimal(18,2)");
-        builder.Property(oi => oi.Status).HasMaxLength(50);
 
         builder.HasOne(oi => oi.Organization)
             .WithMany()
