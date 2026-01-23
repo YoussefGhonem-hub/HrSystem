@@ -2,6 +2,7 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Leave.Commands.ApproveLeaveRequest;
 using HrSystem.Application.Features.Leave.Commands.RejectLeaveRequest;
 using HrSystem.Application.Features.Leave.Queries.GetLeaveRequests;
+using HrSystem.Application.Features.Leave.Queries.GetMyLeaveDashboard;
 using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -52,6 +53,22 @@ public class LeaveController : APIBaseController
             pageSize);
 
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get annual leave dashboard data for the currently logged-in user
+    /// </summary>
+    [HttpGet("my-dashboard")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyLeaveDashboard([FromQuery] int? year = null, [FromQuery] int historyCount = 5)
+    {
+        var result = await _mediator.Send(new GetMyLeaveDashboardQuery(year, historyCount));
 
         return result.Match(
             response => Ok(response),
