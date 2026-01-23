@@ -197,6 +197,17 @@ public class SeedDataDtos
         public bool IsRecurring { get; set; }
     }
 
+    public class EmployeeDocumentTypeSeedData
+    {
+        public Guid Id { get; set; }
+        public string NameEn { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string CategoryKey { get; set; } = string.Empty;
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
     public class SocialInsuranceRateSeedData
     {
         public int Year { get; set; }

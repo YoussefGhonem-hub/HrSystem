@@ -1,0 +1,65 @@
+[
+  {
+    "id": "00000000-0000-0000-000f-000000000001",
+    "nameEn": "National ID",
+    "nameAr": "الهوية الوطنية",
+    "description": "Employee national ID document",
+    "categoryKey": "personal",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-000f-000000000002",
+    "nameEn": "Birth Certificate",
+    "nameAr": "شهادة الميلاد",
+    "description": "Employee birth certificate",
+    "categoryKey": "personal",
+    "displayOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-000f-000000000003",
+    "nameEn": "Employment Contract",
+    "nameAr": "عقد العمل",
+    "description": "Employment contract document",
+    "categoryKey": "employment",
+    "displayOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-000f-000000000004",
+    "nameEn": "Job Offer Letter",
+    "nameAr": "خطاب عرض العمل",
+    "description": "Job offer letter document",
+    "categoryKey": "employment",
+    "displayOrder": 4,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-000f-000000000005",
+    "nameEn": "NDA / Company Policy",
+    "nameAr": "اتفاقية سرية / سياسة الشركة",
+    "description": "NDA or company policy acknowledgment",
+    "categoryKey": "employment",
+    "displayOrder": 5,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-000f-000000000006",
+    "nameEn": "Insurance Form",
+    "nameAr": "نموذج التأمين",
+    "description": "Insurance related document",
+    "categoryKey": "insurance",
+    "displayOrder": 6,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-000f-000000000007",
+    "nameEn": "Social Insurance Document",
+    "nameAr": "مستند التأمين الاجتماعي",
+    "description": "Social insurance document",
+    "categoryKey": "insurance",
+    "displayOrder": 7,
+    "isActive": true
+  }
+]

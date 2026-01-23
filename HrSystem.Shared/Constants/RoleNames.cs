@@ -11,24 +11,24 @@ public static class RoleNames
     public const string SuperAdmin = "SuperAdmin";
 
     /// <summary>
-    /// Administrator role with full system access
+    /// Organization Administrator role with full organization access
     /// </summary>
-    public const string Admin = "Admin";
+    public const string OrganizationAdmin = "OrganizationAdmin";
 
     /// <summary>
     /// HR Manager role with HR management capabilities
     /// </summary>
-    public const string HRManager = "HR Manager";
+    public const string HRManager = "HRManager";
+
+    /// <summary>
+    /// HR Specialist role with HR support capabilities
+    /// </summary>
+    public const string HRSpecialist = "HRSpecialist";
 
     /// <summary>
     /// Department Manager role with department management capabilities
     /// </summary>
-    public const string DepartmentManager = "Department Manager";
-
-    /// <summary>
-    /// General Manager role
-    /// </summary>
-    public const string Manager = "Manager";
+    public const string DepartmentManager = "DepartmentManager";
 
     /// <summary>
     /// Regular employee role
@@ -36,28 +36,16 @@ public static class RoleNames
     public const string Employee = "Employee";
 
     /// <summary>
-    /// Supervisor role
-    /// </summary>
-    public const string Supervisor = "Supervisor";
-
-    /// <summary>
-    /// Team Lead role
-    /// </summary>
-    public const string TeamLead = "Team Lead";
-
-    /// <summary>
     /// Gets all available role names
     /// </summary>
     public static readonly string[] All = new[]
     {
         SuperAdmin,
-        Admin,
+        OrganizationAdmin,
         HRManager,
+        HRSpecialist,
         DepartmentManager,
-        Manager,
-        Employee,
-        Supervisor,
-        TeamLead
+        Employee
     };
 
     /// <summary>

@@ -49,10 +49,9 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
 
         // Determine user's role
         bool isHRManager = CurrentUser.Roles?.Contains(RoleNames.HRManager) == true ||
-                          CurrentUser.Roles?.Contains(RoleNames.Admin) == true;
+                  CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
 
-        bool isDepartmentManager = CurrentUser.Roles?.Contains(RoleNames.DepartmentManager) == true ||
-                                   CurrentUser.Roles?.Contains(RoleNames.Manager) == true;
+        bool isDepartmentManager = CurrentUser.Roles?.Contains(RoleNames.DepartmentManager) == true;
 
         bool isEmployee = !isHRManager && !isDepartmentManager;
 

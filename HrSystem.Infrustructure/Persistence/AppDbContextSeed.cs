@@ -5,6 +5,7 @@ using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Payroll;
 using HrSystem.Domain.Entities.Performance;
+using HrSystem.Domain.Enums;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +51,7 @@ public static class AppDbContextSeed
             await SeedMaritalStatusesAsync(context, seedDataPath);
             await SeedEmployeeStatusesAsync(context, seedDataPath);
             await SeedEmployeesAsync(context, userManager, seedDataPath);
+            await SeedEmployeeDocumentTypesAsync(context, seedDataPath);
             await SeedLeaveStatusesAsync(context, seedDataPath);
             await SeedLeaveTypesAsync(context, seedDataPath);
             await SeedLeavePoliciesAsync(context, seedDataPath);
@@ -628,6 +630,39 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded {deductions.Count} deduction types");
     }
 
+    private static async Task SeedEmployeeDocumentTypesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.EmployeeDocumentTypes.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "EmployeeDocumentTypes.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var documentTypes = JsonSerializer.Deserialize<List<EmployeeDocumentTypeSeedData>>(json, _jsonOptions);
+
+        if (documentTypes == null) return;
+
+        foreach (var docType in documentTypes)
+        {
+            var entity = new EmployeeDocumentType
+            {
+                Id = docType.Id == Guid.Empty ? Guid.NewGuid() : docType.Id,
+                NameEn = docType.NameEn,
+                NameAr = docType.NameAr,
+                Description = docType.Description,
+                CategoryKey = ParseDocumentCategory(docType.CategoryKey),
+                DisplayOrder = docType.DisplayOrder,
+                IsActive = docType.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.EmployeeDocumentTypes.AddAsync(entity);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {documentTypes.Count} employee document types");
+    }
+
     private static async Task SeedSocialInsuranceRatesAsync(ApplicationDbContext context, string seedDataPath)
     {
         if (await context.SocialInsuranceRates.AnyAsync()) return;
@@ -664,6 +699,18 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {rates.Count} social insurance rates");
+    }
+
+    private static DocumentCategory ParseDocumentCategory(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return DocumentCategory.Other;
+        }
+
+        return Enum.TryParse<DocumentCategory>(value, true, out var category)
+            ? category
+            : DocumentCategory.Other;
     }
 
     private static async Task SeedTaxBracketsAsync(ApplicationDbContext context, string seedDataPath)

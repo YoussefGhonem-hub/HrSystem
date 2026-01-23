@@ -10,9 +10,15 @@ public class EmployeeDocumentConfiguration : IEntityTypeConfiguration<EmployeeDo
     {
         builder.ToTable("EmployeeDocuments", "Employee");
 
-        builder.Property(ed => ed.DocumentType).IsRequired().HasMaxLength(100);
         builder.Property(ed => ed.DocumentName).IsRequired().HasMaxLength(200);
         builder.Property(ed => ed.FilePath).IsRequired().HasMaxLength(500);
+
+        builder.HasOne(ed => ed.DocumentType)
+            .WithMany(dt => dt.Documents)
+            .HasForeignKey(ed => ed.DocumentTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(ed => ed.DocumentTypeId);
 
         builder.HasOne(ed => ed.Employee)
             .WithMany(e => e.Documents)

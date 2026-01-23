@@ -1,10 +1,4 @@
-[
-  {
-    "nameAr": "قرض",
-    "nameEn": "Loan",
-    "description": "Employee loan deduction",
-    "isRecurring": true
-  },
+[ 
   {
     "nameAr": "سلفة",
     "nameEn": "Advance",

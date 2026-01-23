@@ -3,6 +3,8 @@ using HrSystem.Infrustructure;
 using HrSystem.Infrustructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Storage.AWS3;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddAmazonS3(builder.Configuration);
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo

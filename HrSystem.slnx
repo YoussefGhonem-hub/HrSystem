@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/HrSystem.Packages/">
+    <Project Path="Storage.AWS3/Storage.AWS3.csproj" Id="634b9d46-2bb1-4a6a-a517-41dc63e92096" />
+  </Folder>
   <Project Path="HrSystem.API/HrSystem.API.csproj" />
   <Project Path="HrSystem.Application/HrSystem.Application.csproj" />
   <Project Path="HrSystem.Domain/HrSystem.Domain.csproj" />

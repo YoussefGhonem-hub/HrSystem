@@ -12,7 +12,7 @@ namespace HrSystem.Domain.Entities.Employee;
 public class EmployeeDocument : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }
-    public string DocumentType { get; set; } = string.Empty; // ID, Contract, Insurance, Certificate, etc.
+    public Guid DocumentTypeId { get; set; }
     public string DocumentName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
     public string? FileUrl { get; set; }
@@ -23,4 +23,5 @@ public class EmployeeDocument : BaseAuditableEntity
 
     // Navigation Properties
     public virtual Employee Employee { get; set; } = null!;
+    public virtual EmployeeDocumentType DocumentType { get; set; } = null!;
 }
