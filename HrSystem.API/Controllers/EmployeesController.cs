@@ -3,6 +3,7 @@ using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Employees.Commands.DeleteEmployee;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
+using HrSystem.Application.Features.Employees.Queries.GetMyProfile;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeesList;
 using HrSystem.Domain.Enums;
 using MediatR;
@@ -70,6 +71,23 @@ public class EmployeesController : APIBaseController
     {
         var query = new GetEmployeeByIdQuery(id);
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get personal information for the currently logged-in user
+    /// </summary>
+    [HttpGet("me")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyProfile()
+    {
+        var result = await _mediator.Send(new GetMyProfileQuery());
 
         return result.Match(
             response => Ok(response),
