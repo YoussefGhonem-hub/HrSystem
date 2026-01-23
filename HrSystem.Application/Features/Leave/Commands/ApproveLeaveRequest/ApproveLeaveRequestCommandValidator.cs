@@ -1,6 +1,6 @@
 using FluentValidation;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using Microsoft.EntityFrameworkCore;
 
@@ -56,7 +56,7 @@ public class ApproveLeaveRequestCommandValidator : AbstractValidator<ApproveLeav
         var leaveRequest = await _context.LeaveRequests
             .FirstOrDefaultAsync(lr => lr.Id == leaveRequestId, cancellationToken);
 
-        return leaveRequest?.Status != LeaveStatus.Rejected;
+        return leaveRequest?.LeaveStatusId != LeaveStatusIds.Rejected;
     }
 
     private async Task<bool> NotBeAlreadyApproved(Guid leaveRequestId, CancellationToken cancellationToken)
@@ -64,7 +64,7 @@ public class ApproveLeaveRequestCommandValidator : AbstractValidator<ApproveLeav
         var leaveRequest = await _context.LeaveRequests
             .FirstOrDefaultAsync(lr => lr.Id == leaveRequestId, cancellationToken);
 
-        return leaveRequest?.Status != LeaveStatus.Approved;
+        return leaveRequest?.LeaveStatusId != LeaveStatusIds.Approved;
     }
 
     private async Task<bool> UserMustBeLinkedToEmployee(ApproveLeaveRequestCommand command, CancellationToken cancellationToken)
@@ -95,13 +95,13 @@ public class ApproveLeaveRequestCommandValidator : AbstractValidator<ApproveLeav
                           CurrentUser.Roles?.Contains("Admin") == true;
 
         // If pending, only direct manager can approve
-        if (leaveRequest.Status == LeaveStatus.Pending)
+        if (leaveRequest.LeaveStatusId == LeaveStatusIds.Pending)
         {
             return isDirectManager;
         }
 
         // If manager approved, only HR can approve
-        if (leaveRequest.Status == LeaveStatus.ManagerApproved)
+        if (leaveRequest.LeaveStatusId == LeaveStatusIds.ManagerApproved)
         {
             return isHRManager;
         }

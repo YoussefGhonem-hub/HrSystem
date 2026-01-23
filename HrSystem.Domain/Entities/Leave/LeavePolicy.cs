@@ -1,5 +1,4 @@
 using HrSystem.Domain.Common;
-using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Leave;
 
@@ -12,7 +11,7 @@ namespace HrSystem.Domain.Entities.Leave;
 /// </summary>
 public class LeavePolicy : BaseAuditableEntity
 {
-    public LeaveType LeaveType { get; set; }
+    public Guid LeaveTypeId { get; set; }
     public string NameAr { get; set; } = string.Empty;
     public string NameEn { get; set; } = string.Empty;
     public int DefaultDaysPerYear { get; set; }
@@ -27,5 +26,6 @@ public class LeavePolicy : BaseAuditableEntity
     public string? Description { get; set; }
 
     // Navigation Properties
+    public virtual LeaveType LeaveType { get; set; } = null!;
     public virtual ICollection<LeaveBalance> LeaveBalances { get; set; } = new List<LeaveBalance>();
 }

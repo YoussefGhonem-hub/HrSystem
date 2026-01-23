@@ -20,6 +20,8 @@ public class GetPerformanceReviewsListQueryHandler : IRequestHandler<GetPerforma
         var query = _context.PerformanceReviews
             .Include(r => r.Employee)
             .Include(r => r.Reviewer)
+            .Include(r => r.ReviewType)
+            .Include(r => r.Status)
             .AsQueryable();
 
         query = query.ApplyFilters(
@@ -48,9 +50,11 @@ public class GetPerformanceReviewsListQueryHandler : IRequestHandler<GetPerforma
             ReviewPeriodStart = r.ReviewPeriodStart,
             ReviewPeriodEnd = r.ReviewPeriodEnd,
             ReviewDate = r.ReviewDate,
-            ReviewType = r.ReviewType,
+            ReviewTypeId = r.ReviewTypeId,
+            ReviewType = r.ReviewType?.NameEn,
             OverallRating = r.OverallRating,
-            Status = r.Status,
+            StatusId = r.StatusId,
+            Status = r.Status?.NameEn,
             EmployeeAcknowledged = r.EmployeeAcknowledged
         }).ToList();
 

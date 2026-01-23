@@ -1,0 +1,102 @@
+[
+  {
+    "id": "00000000-0000-0000-0001-000000000001",
+    "nameEn": "Annual Leave",
+    "nameAr": "إجازة سنوية",
+    "description": "Paid annual vacation leave",
+    "icon": "calendar",
+    "colorCode": "#4CAF50",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000002",
+    "nameEn": "Sick Leave",
+    "nameAr": "إجازة مرضية",
+    "description": "Leave for illness or medical treatment",
+    "icon": "medical",
+    "colorCode": "#F44336",
+    "displayOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000003",
+    "nameEn": "Emergency Leave",
+    "nameAr": "إجازة طارئة",
+    "description": "Leave for urgent personal matters",
+    "icon": "alert",
+    "colorCode": "#FF9800",
+    "displayOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000004",
+    "nameEn": "Unpaid Leave",
+    "nameAr": "إجازة بدون راتب",
+    "description": "Leave without salary",
+    "icon": "remove-circle",
+    "colorCode": "#9E9E9E",
+    "displayOrder": 4,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000005",
+    "nameEn": "Maternity Leave",
+    "nameAr": "إجازة أمومة",
+    "description": "Leave for childbirth and maternity",
+    "icon": "woman",
+    "colorCode": "#E91E63",
+    "displayOrder": 5,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000006",
+    "nameEn": "Paternity Leave",
+    "nameAr": "إجازة أبوة",
+    "description": "Leave for fathers after childbirth",
+    "icon": "man",
+    "colorCode": "#2196F3",
+    "displayOrder": 6,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000007",
+    "nameEn": "Study Leave",
+    "nameAr": "إجازة دراسية",
+    "description": "Leave for educational purposes",
+    "icon": "school",
+    "colorCode": "#9C27B0",
+    "displayOrder": 7,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000008",
+    "nameEn": "Bereavement Leave",
+    "nameAr": "إجازة حداد",
+    "description": "Leave for death of a family member",
+    "icon": "sad",
+    "colorCode": "#607D8B",
+    "displayOrder": 8,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000009",
+    "nameEn": "Marriage Leave",
+    "nameAr": "إجازة زواج",
+    "description": "Leave for wedding celebration",
+    "icon": "heart",
+    "colorCode": "#FF5722",
+    "displayOrder": 9,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0001-000000000010",
+    "nameEn": "Hajj Leave",
+    "nameAr": "إجازة حج",
+    "description": "Leave for Hajj pilgrimage",
+    "icon": "globe",
+    "colorCode": "#00BCD4",
+    "displayOrder": 10,
+    "isActive": true
+  }
+]

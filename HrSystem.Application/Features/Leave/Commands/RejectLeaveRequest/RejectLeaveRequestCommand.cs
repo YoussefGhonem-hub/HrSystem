@@ -1,7 +1,7 @@
 using ErrorOr;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -44,11 +44,11 @@ public class RejectLeaveRequestCommandHandler : IRequestHandler<RejectLeaveReque
                           CurrentUser.Roles?.Contains("Admin") == true;
 
         // Reject the leave request
-        leaveRequest.Status = LeaveStatus.Rejected;
+        leaveRequest.LeaveStatusId = LeaveStatusIds.Rejected;
         leaveRequest.RejectionReason = request.RejectionReason;
 
         // Track who rejected it
-        if (isDirectManager && leaveRequest.Status == LeaveStatus.Pending)
+        if (isDirectManager && leaveRequest.LeaveStatusId == LeaveStatusIds.Pending)
         {
             leaveRequest.ManagerId = currentEmployee.Id;
             leaveRequest.ManagerApprovalDate = DateTime.UtcNow;

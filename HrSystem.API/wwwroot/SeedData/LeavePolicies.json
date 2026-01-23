@@ -1,6 +1,6 @@
 [
   {
-    "leaveType": 0,
+    "leaveTypeId": "00000000-0000-0000-0001-000000000001",
     "nameAr": "إجازة سنوية",
     "nameEn": "Annual Leave",
     "defaultDaysPerYear": 21,
@@ -15,7 +15,7 @@
     "description": "Regular annual leave entitlement"
   },
   {
-    "leaveType": 1,
+    "leaveTypeId": "00000000-0000-0000-0001-000000000002",
     "nameAr": "إجازة مرضية",
     "nameEn": "Sick Leave",
     "defaultDaysPerYear": 30,
@@ -30,7 +30,7 @@
     "description": "Sick leave with medical certificate required for more than 3 days"
   },
   {
-    "leaveType": 2,
+    "leaveTypeId": "00000000-0000-0000-0001-000000000003",
     "nameAr": "إجازة طارئة",
     "nameEn": "Emergency Leave",
     "defaultDaysPerYear": 5,
@@ -45,7 +45,7 @@
     "description": "Emergency situations requiring immediate leave"
   },
   {
-    "leaveType": 3,
+    "leaveTypeId": "00000000-0000-0000-0001-000000000005",
     "nameAr": "إجازة أمومة",
     "nameEn": "Maternity Leave",
     "defaultDaysPerYear": 90,
@@ -60,7 +60,7 @@
     "description": "Maternity leave as per labor law"
   },
   {
-    "leaveType": 4,
+    "leaveTypeId": "00000000-0000-0000-0001-000000000004",
     "nameAr": "إجازة بدون راتب",
     "nameEn": "Unpaid Leave",
     "defaultDaysPerYear": 30,

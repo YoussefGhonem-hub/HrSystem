@@ -20,9 +20,9 @@ public class CreatePerformanceReviewCommandValidator : AbstractValidator<CreateP
             .NotEmpty().WithMessage("Reviewer ID is required")
             .MustAsync(ReviewerExists).WithMessage("Reviewer does not exist");
 
-        RuleFor(x => x.ReviewType)
-            .NotEmpty().WithMessage("Review type is required")
-            .MaximumLength(50).WithMessage("Review type must not exceed 50 characters");
+        RuleFor(x => x.ReviewTypeId)
+            .NotEmpty().WithMessage("Review type ID is required")
+            .MustAsync(ReviewTypeExists).WithMessage("Review type does not exist");
 
         RuleFor(x => x.ReviewPeriodStart)
             .NotEmpty().WithMessage("Review period start is required");
@@ -47,5 +47,10 @@ public class CreatePerformanceReviewCommandValidator : AbstractValidator<CreateP
     private async Task<bool> ReviewerExists(Guid reviewerId, CancellationToken cancellationToken)
     {
         return await _context.Employees.AnyAsync(e => e.Id == reviewerId, cancellationToken);
+    }
+
+    private async Task<bool> ReviewTypeExists(Guid reviewTypeId, CancellationToken cancellationToken)
+    {
+        return await _context.ReviewTypes.AnyAsync(rt => rt.Id == reviewTypeId, cancellationToken);
     }
 }

@@ -1,9 +1,9 @@
 using ErrorOr;
 using HrSystem.Application.Common;
 using HrSystem.Domain.Entities.Leave;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -52,9 +52,9 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
         // **WORKFLOW LOGIC:**
 
         // Step 1: Direct Manager Approval (Team Leader, Department Manager, etc.)
-        if (leaveRequest.Status == LeaveStatus.Pending)
+        if (leaveRequest.LeaveStatusId == LeaveStatusIds.Pending)
         {
-            leaveRequest.Status = LeaveStatus.ManagerApproved;
+            leaveRequest.LeaveStatusId = LeaveStatusIds.ManagerApproved;
             leaveRequest.ManagerId = currentEmployee.Id;
             leaveRequest.ManagerApprovalDate = DateTime.UtcNow;
             leaveRequest.ManagerComments = request.Comments;
@@ -63,12 +63,12 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
             if (!leaveRequest.LeavePolicy.RequiresHRApproval)
             {
                 // If HR approval not required, mark as fully approved
-                leaveRequest.Status = LeaveStatus.Approved;
+                leaveRequest.LeaveStatusId = LeaveStatusIds.Approved;
             }
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            var message = leaveRequest.Status == LeaveStatus.Approved
+            var message = leaveRequest.LeaveStatusId == LeaveStatusIds.Approved
                 ? "Leave request fully approved"
                 : "Leave request approved by manager, pending HR approval";
 
@@ -76,9 +76,9 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
         }
 
         // Step 2: HR Manager Approval
-        if (leaveRequest.Status == LeaveStatus.ManagerApproved)
+        if (leaveRequest.LeaveStatusId == LeaveStatusIds.ManagerApproved)
         {
-            leaveRequest.Status = LeaveStatus.Approved;
+            leaveRequest.LeaveStatusId = LeaveStatusIds.Approved;
             leaveRequest.HRApprovedBy = currentEmployee.Id;
             leaveRequest.HRApprovalDate = DateTime.UtcNow;
             leaveRequest.HRComments = request.Comments;

@@ -2,6 +2,7 @@ using ErrorOr;
 using HrSystem.Application.Features.Performance.PerformanceReviews.Queries.GetPerformanceReviewById;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +14,7 @@ public record CreatePerformanceReviewCommand(
     DateTime ReviewPeriodStart,
     DateTime ReviewPeriodEnd,
     DateTime ReviewDate,
-    string ReviewType,
+    Guid ReviewTypeId,
     decimal OverallRating,
     string? StrengthsAr,
     string? StrengthsEn,
@@ -42,9 +43,9 @@ public class CreatePerformanceReviewCommandHandler : IRequestHandler<CreatePerfo
             ReviewPeriodStart = request.ReviewPeriodStart,
             ReviewPeriodEnd = request.ReviewPeriodEnd,
             ReviewDate = request.ReviewDate,
-            ReviewType = request.ReviewType,
+            ReviewTypeId = request.ReviewTypeId,
             OverallRating = request.OverallRating,
-            Status = "Draft",
+            StatusId = ReviewStatusIds.Draft,
             StrengthsAr = request.StrengthsAr,
             StrengthsEn = request.StrengthsEn,
             WeaknessesAr = request.WeaknessesAr,
@@ -63,6 +64,8 @@ public class CreatePerformanceReviewCommandHandler : IRequestHandler<CreatePerfo
         var createdReview = await _context.PerformanceReviews
             .Include(r => r.Employee)
             .Include(r => r.Reviewer)
+            .Include(r => r.ReviewType)
+            .Include(r => r.Status)
             .FirstAsync(r => r.Id == review.Id, cancellationToken);
 
         var dto = new PerformanceReviewDto
@@ -75,9 +78,11 @@ public class CreatePerformanceReviewCommandHandler : IRequestHandler<CreatePerfo
             ReviewPeriodStart = createdReview.ReviewPeriodStart,
             ReviewPeriodEnd = createdReview.ReviewPeriodEnd,
             ReviewDate = createdReview.ReviewDate,
-            ReviewType = createdReview.ReviewType,
+            ReviewTypeId = createdReview.ReviewTypeId,
+            ReviewType = createdReview.ReviewType?.NameEn,
             OverallRating = createdReview.OverallRating,
-            Status = createdReview.Status,
+            StatusId = createdReview.StatusId,
+            Status = createdReview.Status?.NameEn,
             StrengthsAr = createdReview.StrengthsAr,
             StrengthsEn = createdReview.StrengthsEn,
             WeaknessesAr = createdReview.WeaknessesAr,

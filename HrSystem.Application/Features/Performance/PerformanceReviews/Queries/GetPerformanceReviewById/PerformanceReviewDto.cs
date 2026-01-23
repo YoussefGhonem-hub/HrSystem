@@ -10,9 +10,11 @@ public record PerformanceReviewDto
     public DateTime ReviewPeriodStart { get; init; }
     public DateTime ReviewPeriodEnd { get; init; }
     public DateTime ReviewDate { get; init; }
-    public string ReviewType { get; init; } = string.Empty;
+    public Guid ReviewTypeId { get; init; }
+    public string? ReviewType { get; init; }
     public decimal OverallRating { get; init; }
-    public string Status { get; init; } = string.Empty;
+    public Guid StatusId { get; init; }
+    public string? Status { get; init; }
     public string? StrengthsAr { get; init; }
     public string? StrengthsEn { get; init; }
     public string? WeaknessesAr { get; init; }

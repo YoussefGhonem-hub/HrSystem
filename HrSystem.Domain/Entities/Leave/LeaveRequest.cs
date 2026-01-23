@@ -1,5 +1,4 @@
 using HrSystem.Domain.Common;
-using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Leave;
 
@@ -14,12 +13,12 @@ public class LeaveRequest : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }
     public Guid LeavePolicyId { get; set; }
-    public LeaveType LeaveType { get; set; }
+    public Guid LeaveTypeId { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public decimal TotalDays { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public LeaveStatus Status { get; set; }
+    public Guid LeaveStatusId { get; set; }
     
     // Approval Workflow
     public Guid? ManagerId { get; set; }
@@ -44,4 +43,6 @@ public class LeaveRequest : BaseAuditableEntity
     public virtual Employee.Employee Employee { get; set; } = null!;
     public virtual LeavePolicy LeavePolicy { get; set; } = null!;
     public virtual Employee.Employee? Manager { get; set; }
+    public virtual LeaveStatus LeaveStatus { get; set; } = null!;
+    public virtual LeaveType LeaveType { get; set; } = null!;
 }

@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
@@ -17,8 +16,8 @@ namespace HrSystem.Application.Features.Leave.Queries.GetLeaveRequests;
 /// - HR Manager: Gets manager-approved requests waiting for HR approval
 /// </summary>
 public record GetLeaveRequestsQuery(
-    LeaveStatus? Status = null,
-    LeaveType? LeaveType = null,
+    Guid? StatusId = null,
+    Guid? LeaveTypeId = null,
     DateTime? StartDateFrom = null,
     DateTime? StartDateTo = null,
     Guid? EmployeeId = null,
@@ -66,6 +65,8 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
             .Include(lr => lr.Employee)
                 .ThenInclude(e => e.Branch)
             .Include(lr => lr.LeavePolicy)
+            .Include(lr => lr.LeaveStatus)
+            .Include(lr => lr.LeaveType)
             .AsQueryable();
 
         // Apply role-based filters
@@ -76,8 +77,8 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
             isEmployee);
 
         // Apply additional filters if provided
-        query = query.ApplyStatusFilter(request.Status);
-        query = query.ApplyLeaveTypeFilter(request.LeaveType);
+        query = query.ApplyStatusFilter(request.StatusId);
+        query = query.ApplyLeaveTypeFilter(request.LeaveTypeId);
         query = query.ApplyDateRangeFilter(request.StartDateFrom, request.StartDateTo);
         
         // Allow HR/Managers to filter by specific employee if provided
@@ -105,14 +106,16 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
                 DepartmentName = lr.Employee.Department.NameEn,
                 JobTitle = lr.Employee.JobTitle.TitleEn,
                 BranchName = lr.Employee.Branch != null ? lr.Employee.Branch.NameEn : null,
-                LeaveType = lr.LeaveType,
-                LeaveTypeName = lr.LeaveType.ToString(),
+                LeaveTypeId = lr.LeaveTypeId,
+                LeaveTypeName = lr.LeaveType.NameEn,
+                LeaveTypeNameAr = lr.LeaveType.NameAr,
                 StartDate = lr.StartDate,
                 EndDate = lr.EndDate,
                 TotalDays = lr.TotalDays,
                 Reason = lr.Reason,
-                Status = lr.Status,
-                StatusName = lr.Status.ToString(),
+                StatusId = lr.LeaveStatusId,
+                StatusName = lr.LeaveStatus.NameEn,
+                StatusNameAr = lr.LeaveStatus.NameAr,
                 ManagerApprovalDate = lr.ManagerApprovalDate,
                 ManagerComments = lr.ManagerComments,
                 HRApprovalDate = lr.HRApprovalDate,
@@ -120,8 +123,8 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
                 DocumentUrl = lr.DocumentUrl,
                 CreatedDate = lr.CreatedDate,
                 RequiresHRApproval = lr.LeavePolicy.RequiresHRApproval,
-                CurrentApprovalLevel = lr.Status == LeaveStatus.Pending ? "Manager" : 
-                                     lr.Status == LeaveStatus.ManagerApproved ? "HR" : "Completed"
+                CurrentApprovalLevel = lr.LeaveStatusId == LeaveStatusIds.Pending ? "Manager" : 
+                                     lr.LeaveStatusId == LeaveStatusIds.ManagerApproved ? "HR" : "Completed"
             })
             .ToListAsync(cancellationToken);
 
@@ -153,14 +156,16 @@ public class LeaveRequestDto
     public string DepartmentName { get; set; } = string.Empty;
     public string JobTitle { get; set; } = string.Empty;
     public string? BranchName { get; set; }
-    public LeaveType LeaveType { get; set; }
+    public Guid LeaveTypeId { get; set; }
     public string LeaveTypeName { get; set; } = string.Empty;
+    public string LeaveTypeNameAr { get; set; } = string.Empty;
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public decimal TotalDays { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public LeaveStatus Status { get; set; }
+    public Guid StatusId { get; set; }
     public string StatusName { get; set; } = string.Empty;
+    public string StatusNameAr { get; set; } = string.Empty;
     public DateTime? ManagerApprovalDate { get; set; }
     public string? ManagerComments { get; set; }
     public DateTime? HRApprovalDate { get; set; }

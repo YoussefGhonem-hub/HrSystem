@@ -24,12 +24,12 @@ public static class PerformanceReviewFilterExtensions
 
         if (!string.IsNullOrEmpty(reviewType))
         {
-            query = query.Where(r => r.ReviewType.ToLower().Contains(reviewType.ToLower()));
+            query = query.Where(r => r.ReviewType != null && r.ReviewType.NameEn.ToLower().Contains(reviewType.ToLower()));
         }
 
         if (!string.IsNullOrEmpty(status))
         {
-            query = query.Where(r => r.Status.ToLower() == status.ToLower());
+            query = query.Where(r => r.Status != null && r.Status.NameEn.ToLower() == status.ToLower());
         }
 
         if (reviewDateFrom.HasValue)

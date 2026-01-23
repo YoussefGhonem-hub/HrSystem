@@ -28,9 +28,9 @@ public class UpdatePerformanceReviewCommandHandler : IRequestHandler<UpdatePerfo
         review.ReviewPeriodStart = request.ReviewPeriodStart;
         review.ReviewPeriodEnd = request.ReviewPeriodEnd;
         review.ReviewDate = request.ReviewDate;
-        review.ReviewType = request.ReviewType;
+        review.ReviewTypeId = request.ReviewTypeId;
         review.OverallRating = request.OverallRating;
-        review.Status = request.Status;
+        review.StatusId = request.StatusId;
         review.StrengthsAr = request.StrengthsAr;
         review.StrengthsEn = request.StrengthsEn;
         review.WeaknessesAr = request.WeaknessesAr;
@@ -57,6 +57,8 @@ public class UpdatePerformanceReviewCommandHandler : IRequestHandler<UpdatePerfo
         var updatedReview = await _context.PerformanceReviews
             .Include(r => r.Employee)
             .Include(r => r.Reviewer)
+            .Include(r => r.ReviewType)
+            .Include(r => r.Status)
             .FirstAsync(r => r.Id == review.Id, cancellationToken);
 
         var dto = new PerformanceReviewDto
@@ -69,9 +71,11 @@ public class UpdatePerformanceReviewCommandHandler : IRequestHandler<UpdatePerfo
             ReviewPeriodStart = updatedReview.ReviewPeriodStart,
             ReviewPeriodEnd = updatedReview.ReviewPeriodEnd,
             ReviewDate = updatedReview.ReviewDate,
-            ReviewType = updatedReview.ReviewType,
+            ReviewTypeId = updatedReview.ReviewTypeId,
+            ReviewType = updatedReview.ReviewType?.NameEn,
             OverallRating = updatedReview.OverallRating,
-            Status = updatedReview.Status,
+            StatusId = updatedReview.StatusId,
+            Status = updatedReview.Status?.NameEn,
             StrengthsAr = updatedReview.StrengthsAr,
             StrengthsEn = updatedReview.StrengthsEn,
             WeaknessesAr = updatedReview.WeaknessesAr,

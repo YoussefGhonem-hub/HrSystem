@@ -46,6 +46,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<HrSystem.Domain.Entities.Leave.LeavePolicy> LeavePolicies => Set<HrSystem.Domain.Entities.Leave.LeavePolicy>();
     public DbSet<HrSystem.Domain.Entities.Leave.LeaveBalance> LeaveBalances => Set<HrSystem.Domain.Entities.Leave.LeaveBalance>();
     public DbSet<HrSystem.Domain.Entities.Leave.LeaveRequest> LeaveRequests => Set<HrSystem.Domain.Entities.Leave.LeaveRequest>();
+    public DbSet<HrSystem.Domain.Entities.Leave.LeaveStatus> LeaveStatuses => Set<HrSystem.Domain.Entities.Leave.LeaveStatus>();
+    public DbSet<HrSystem.Domain.Entities.Leave.LeaveType> LeaveTypes => Set<HrSystem.Domain.Entities.Leave.LeaveType>();
 
     // Performance Management
     public DbSet<HrSystem.Domain.Entities.Performance.PerformanceReview> PerformanceReviews => Set<HrSystem.Domain.Entities.Performance.PerformanceReview>();

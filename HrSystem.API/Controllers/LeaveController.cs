@@ -2,7 +2,7 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Leave.Commands.ApproveLeaveRequest;
 using HrSystem.Application.Features.Leave.Commands.RejectLeaveRequest;
 using HrSystem.Application.Features.Leave.Queries.GetLeaveRequests;
-using HrSystem.Domain.Enums;
+using HrSystem.Application.Features.Leave.Queries.GetLeaveTypes;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,8 +30,8 @@ public class LeaveController : APIBaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetLeaveRequests(
-        [FromQuery] LeaveStatus? status = null,
-        [FromQuery] LeaveType? leaveType = null,
+        [FromQuery] Guid? statusId = null,
+        [FromQuery] Guid? leaveTypeId = null,
         [FromQuery] DateTime? startDateFrom = null,
         [FromQuery] DateTime? startDateTo = null,
         [FromQuery] Guid? employeeId = null,
@@ -41,8 +41,8 @@ public class LeaveController : APIBaseController
         [FromQuery] int pageSize = 10)
     {
         var query = new GetLeaveRequestsQuery(
-            status,
-            leaveType,
+            statusId,
+            leaveTypeId,
             startDateFrom,
             startDateTo,
             employeeId,
@@ -51,6 +51,23 @@ public class LeaveController : APIBaseController
             pageNumber,
             pageSize);
         
+        var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get all active leave types for dropdown
+    /// </summary>
+    [HttpGet("types")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetLeaveTypes()
+    {
+        var query = new GetLeaveTypesQuery();
         var result = await _mediator.Send(query);
 
         return result.Match(

@@ -1,21 +1,26 @@
 using FluentValidation;
+using HrSystem.Infrustructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace HrSystem.Application.Features.Performance.PerformanceReviews.Commands.UpdatePerformanceReview;
 
 public class UpdatePerformanceReviewCommandValidator : AbstractValidator<UpdatePerformanceReviewCommand>
 {
-    public UpdatePerformanceReviewCommandValidator()
+    private readonly ApplicationDbContext _context;
+
+    public UpdatePerformanceReviewCommandValidator(ApplicationDbContext context)
     {
+        _context = context;
         RuleFor(x => x.Id)
             .NotEmpty().WithMessage("Performance review ID is required");
 
-        RuleFor(x => x.ReviewType)
-            .NotEmpty().WithMessage("Review type is required")
-            .MaximumLength(50).WithMessage("Review type must not exceed 50 characters");
+        RuleFor(x => x.ReviewTypeId)
+            .NotEmpty().WithMessage("Review type ID is required")
+            .MustAsync(ReviewTypeExists).WithMessage("Review type does not exist");
 
-        RuleFor(x => x.Status)
-            .NotEmpty().WithMessage("Status is required")
-            .MaximumLength(50).WithMessage("Status must not exceed 50 characters");
+        RuleFor(x => x.StatusId)
+            .NotEmpty().WithMessage("Status ID is required")
+            .MustAsync(StatusExists).WithMessage("Status does not exist");
 
         RuleFor(x => x.ReviewPeriodStart)
             .NotEmpty().WithMessage("Review period start is required");
@@ -30,5 +35,15 @@ public class UpdatePerformanceReviewCommandValidator : AbstractValidator<UpdateP
         RuleFor(x => x.OverallRating)
             .GreaterThanOrEqualTo(0).WithMessage("Overall rating must be at least 0")
             .LessThanOrEqualTo(5).WithMessage("Overall rating must not exceed 5");
+    }
+
+    private async Task<bool> ReviewTypeExists(Guid reviewTypeId, CancellationToken cancellationToken)
+    {
+        return await _context.ReviewTypes.AnyAsync(rt => rt.Id == reviewTypeId, cancellationToken);
+    }
+
+    private async Task<bool> StatusExists(Guid statusId, CancellationToken cancellationToken)
+    {
+        return await _context.ReviewStatuses.AnyAsync(rs => rs.Id == statusId, cancellationToken);
     }
 }

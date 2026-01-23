@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using static HrSystem.Infrustructure.Persistence.SeedData.SeedDataDtos;
 
 namespace HrSystem.Infrustructure.Persistence;
 
@@ -44,6 +45,8 @@ public static class AppDbContextSeed
             await SeedDepartmentsAsync(context, seedDataPath);
             await SeedJobTitlesAsync(context, seedDataPath);
             await SeedEmployeesAsync(context, userManager, seedDataPath);
+            await SeedLeaveStatusesAsync(context, seedDataPath);
+            await SeedLeaveTypesAsync(context, seedDataPath);
             await SeedLeavePoliciesAsync(context, seedDataPath);
             await SeedAllowanceTypesAsync(context, seedDataPath);
             await SeedDeductionTypesAsync(context, seedDataPath);
@@ -354,7 +357,7 @@ public static class AppDbContextSeed
             var jobTitle = jobTitles.FirstOrDefault(j => j.TitleEn.Contains(empData.JobTitleCode) || j.TitleEn.Replace(" ", "").ToUpper().Contains(empData.JobTitleCode.Replace("-", "")));
             var branch = branches.FirstOrDefault(b => b.Code == empData.BranchCode);
 
-            if (department == null || jobTitle == null || branch == null) 
+            if (department == null || jobTitle == null || branch == null)
             {
                 Console.WriteLine($"Skipping employee {empData.EmployeeCode}: department={department?.NameEn}, jobTitle={jobTitle?.TitleEn}, branch={branch?.Code}");
                 continue;
@@ -439,6 +442,71 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded {employees.Count} employees");
     }
 
+    private static async Task SeedLeaveStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.LeaveStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "LeaveStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var statuses = JsonSerializer.Deserialize<List<LeaveStatusSeedData>>(json, _jsonOptions);
+
+        if (statuses == null) return;
+
+        foreach (var statusData in statuses)
+        {
+            var status = new HrSystem.Domain.Entities.Leave.LeaveStatus
+            {
+                Id = statusData.Id,
+                NameEn = statusData.NameEn,
+                NameAr = statusData.NameAr,
+                Description = statusData.Description,
+                DisplayOrder = statusData.DisplayOrder,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.LeaveStatuses.AddAsync(status);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {statuses.Count} leave statuses");
+    }
+
+    private static async Task SeedLeaveTypesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.LeaveTypes.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "LeaveTypes.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var types = JsonSerializer.Deserialize<List<LeaveTypeSeedData>>(json, _jsonOptions);
+
+        if (types == null) return;
+
+        foreach (var typeData in types)
+        {
+            var leaveType = new HrSystem.Domain.Entities.Leave.LeaveType
+            {
+                Id = typeData.Id,
+                NameEn = typeData.NameEn,
+                NameAr = typeData.NameAr,
+                Description = typeData.Description,
+                Icon = typeData.Icon,
+                ColorCode = typeData.ColorCode,
+                DisplayOrder = typeData.DisplayOrder,
+                IsActive = typeData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.LeaveTypes.AddAsync(leaveType);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {types.Count} leave types");
+    }
+
     private static async Task SeedLeavePoliciesAsync(ApplicationDbContext context, string seedDataPath)
     {
         if (await context.LeavePolicies.AnyAsync()) return;
@@ -459,7 +527,7 @@ public static class AppDbContextSeed
             var policy = new LeavePolicy
             {
                 Id = Guid.NewGuid(),
-                LeaveType = (LeaveType)policyData.LeaveType,
+                LeaveTypeId = policyData.LeaveTypeId,
                 NameAr = policyData.NameAr,
                 NameEn = policyData.NameEn,
                 DefaultDaysPerYear = policyData.DefaultDaysPerYear,
@@ -715,260 +783,6 @@ public static class AppDbContextSeed
     }
 
     // Seed Data DTOs
-    private class RoleSeedData
-    {
-        public string Name { get; set; } = string.Empty;
-        public string DisplayName { get; set; } = string.Empty;
-        public string NormalizedName { get; set; } = string.Empty;
-    }
-
-    private class SubscriptionPlanSeedData
-    {
-        public string Code { get; set; } = string.Empty;
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? DescriptionAr { get; set; }
-        public string? DescriptionEn { get; set; }
-        public decimal MonthlyPrice { get; set; }
-        public decimal AnnualPrice { get; set; }
-        public string Currency { get; set; } = "EGP";
-        public int MaxEmployees { get; set; }
-        public int MaxStorageGB { get; set; }
-        public int MaxDepartments { get; set; }
-        public bool AllowBiometricIntegration { get; set; }
-        public bool AllowPayrollModule { get; set; }
-        public bool AllowPerformanceModule { get; set; }
-        public bool AllowRecruitmentModule { get; set; }
-        public bool AllowCustomReports { get; set; }
-        public bool AllowAPIAccess { get; set; }
-        public int TrialDays { get; set; }
-        public bool IsActive { get; set; }
-        public int DisplayOrder { get; set; }
-    }
-
-    private class OrganizationSeedData
-    {
-        public string Code { get; set; } = string.Empty;
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? LogoUrl { get; set; }
-        public string? CommercialRegistrationNumber { get; set; }
-        public string? TaxRegistrationNumber { get; set; }
-        public string? LegalEntityType { get; set; }
-        public string? Email { get; set; }
-        public string? PhoneNumber { get; set; }
-        public string? Website { get; set; }
-        public string? AddressAr { get; set; }
-        public string? AddressEn { get; set; }
-        public string? City { get; set; }
-        public string? Country { get; set; }
-        public string? PostalCode { get; set; }
-        public string SubscriptionPlanCode { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
-        public bool IsTrialPeriod { get; set; }
-        public int TrialDays { get; set; }
-        public int MaxEmployees { get; set; }
-        public int CurrentEmployeeCount { get; set; }
-        public int MaxStorageGB { get; set; }
-        public decimal CurrentStorageGB { get; set; }
-        public string TimeZone { get; set; } = string.Empty;
-        public string Currency { get; set; } = string.Empty;
-        public string? WeekStartDay { get; set; }
-    }
-
-    private class DepartmentSeedData
-    {
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? ParentDepartmentCode { get; set; }
-        public string Code { get; set; } = string.Empty;
-    }
-
-    private class BranchSeedData
-    {
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string Code { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public int Country { get; set; }
-        public string? City { get; set; }
-        public string? AddressAr { get; set; }
-        public string? AddressEn { get; set; }
-        public string? PostalCode { get; set; }
-        public string? PhoneNumber { get; set; }
-        public string? Email { get; set; }
-        public string TimeZone { get; set; } = string.Empty;
-        public string Currency { get; set; } = string.Empty;
-        public string? Language { get; set; }
-        public bool IsHeadquarter { get; set; }
-        public bool IsActive { get; set; }
-        public int MaxEmployeeCapacity { get; set; }
-        public string WorkStartTime { get; set; } = string.Empty;
-        public string WorkEndTime { get; set; } = string.Empty;
-        public string? WorkingDays { get; set; }
-    }
-
-    private class EmployeeSeedData
-    {
-        public string EmployeeCode { get; set; } = string.Empty;
-        public string FirstNameAr { get; set; } = string.Empty;
-        public string LastNameAr { get; set; } = string.Empty;
-        public string FirstNameEn { get; set; } = string.Empty;
-        public string LastNameEn { get; set; } = string.Empty;
-        public string NationalId { get; set; } = string.Empty;
-        public string? PassportNumber { get; set; }
-        public string DateOfBirth { get; set; } = string.Empty;
-        public int Gender { get; set; }
-        public int MaritalStatus { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string PhoneNumber { get; set; } = string.Empty;
-        public string? MobileNumber { get; set; }
-        public string AddressAr { get; set; } = string.Empty;
-        public string? AddressEn { get; set; }
-        public string? City { get; set; }
-        public string? Country { get; set; }
-        public string DepartmentCode { get; set; } = string.Empty;
-        public string JobTitleCode { get; set; } = string.Empty;
-        public string BranchCode { get; set; } = string.Empty;
-        public int ContractType { get; set; }
-        public int Status { get; set; }
-        public string HiringDate { get; set; } = string.Empty;
-        public int ProbationPeriodMonths { get; set; }
-        public string? DirectManagerCode { get; set; }
-        public string? Role { get; set; }
-    }
-
-    private class JobTitleSeedData
-    {
-        public string? Code { get; set; }
-        public string TitleAr { get; set; } = string.Empty;
-        public string TitleEn { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public int Level { get; set; }
-        public decimal MinSalary { get; set; }
-        public decimal MaxSalary { get; set; }
-    }
-
-    private class LeavePolicySeedData
-    {
-        public int LeaveType { get; set; }
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public int DefaultDaysPerYear { get; set; }
-        public int MaxCarryForward { get; set; }
-        public bool RequiresApproval { get; set; }
-        public bool RequiresManagerApproval { get; set; }
-        public bool RequiresHRApproval { get; set; }
-        public bool IsPaid { get; set; }
-        public int MaxConsecutiveDays { get; set; }
-        public int MinDaysNotice { get; set; }
-        public bool RequiresDocument { get; set; }
-        public string? Description { get; set; }
-    }
-
-    private class AllowanceTypeSeedData
-    {
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public bool IsTaxable { get; set; }
-        public bool IsSubjectToInsurance { get; set; }
-    }
-
-    private class DeductionTypeSeedData
-    {
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public bool IsRecurring { get; set; }
-    }
-
-    private class SocialInsuranceRateSeedData
-    {
-        public int Year { get; set; }
-        public decimal EmployeeRate { get; set; }
-        public decimal EmployerRate { get; set; }
-        public decimal MinSalaryBase { get; set; }
-        public decimal MaxSalaryBase { get; set; }
-        public bool IsActive { get; set; }
-        public string? Description { get; set; }
-    }
-
-    private class TaxBracketSeedData
-    {
-        public int Year { get; set; }
-        public decimal MinIncome { get; set; }
-        public decimal MaxIncome { get; set; }
-        public decimal TaxRate { get; set; }
-        public decimal FixedAmount { get; set; }
-        public bool IsActive { get; set; }
-        public string? Description { get; set; }
-    }
-
-    private class PublicHolidaySeedData
-    {
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string Date { get; set; } = string.Empty;
-        public int Year { get; set; }
-        public bool IsRecurring { get; set; }
-        public string? Description { get; set; }
-    }
-
-    private class WorkScheduleSeedData
-    {
-        public string Name { get; set; } = string.Empty;
-        public string StartTime { get; set; } = string.Empty;
-        public string EndTime { get; set; } = string.Empty;
-        public string? BreakDuration { get; set; }
-        public int WorkingHoursPerDay { get; set; }
-        public int WorkingDaysPerWeek { get; set; }
-        public string? GracePeriodLate { get; set; }
-        public string? GracePeriodEarlyLeave { get; set; }
-        public bool IsSaturday { get; set; }
-        public bool IsSunday { get; set; }
-        public bool IsMonday { get; set; }
-        public bool IsTuesday { get; set; }
-        public bool IsWednesday { get; set; }
-        public bool IsThursday { get; set; }
-        public bool IsFriday { get; set; }
-        public bool IsDefault { get; set; }
-    }
-
-    private class GoalStatusSeedData
-    {
-        public Guid Id { get; set; }
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? DescriptionAr { get; set; }
-        public string? DescriptionEn { get; set; }
-        public int DisplayOrder { get; set; }
-        public bool IsActive { get; set; }
-    }
-
-    private class GoalPrioritySeedData
-    {
-        public Guid Id { get; set; }
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? DescriptionAr { get; set; }
-        public string? DescriptionEn { get; set; }
-        public int DisplayOrder { get; set; }
-        public bool IsActive { get; set; }
-    }
-
-    private class StatusSeedData
-    {
-        public string Code { get; set; } = string.Empty;
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? DescriptionAr { get; set; }
-        public string? DescriptionEn { get; set; }
-        public string? ColorCode { get; set; }
-        public int DisplayOrder { get; set; }
-        public bool IsActive { get; set; }
-    }
 
     private static async Task SeedGoalStatusesAsync(ApplicationDbContext context, string seedDataPath)
     {
@@ -1067,7 +881,7 @@ public static class AppDbContextSeed
         {
             var reviewType = new ReviewType
             {
-                Id = Guid.NewGuid(),
+                Id = typeData.Id,
                 Code = typeData.Code,
                 NameAr = typeData.NameAr,
                 NameEn = typeData.NameEn,
@@ -1104,7 +918,7 @@ public static class AppDbContextSeed
         {
             var reviewStatus = new ReviewStatus
             {
-                Id = Guid.NewGuid(),
+                Id = statusData.Id,
                 Code = statusData.Code,
                 NameAr = statusData.NameAr,
                 NameEn = statusData.NameEn,

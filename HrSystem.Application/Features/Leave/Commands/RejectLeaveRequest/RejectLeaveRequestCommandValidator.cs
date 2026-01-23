@@ -1,6 +1,6 @@
 using FluentValidation;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using Microsoft.EntityFrameworkCore;
 
@@ -59,7 +59,7 @@ public class RejectLeaveRequestCommandValidator : AbstractValidator<RejectLeaveR
         var leaveRequest = await _context.LeaveRequests
             .FirstOrDefaultAsync(lr => lr.Id == leaveRequestId, cancellationToken);
 
-        return leaveRequest?.Status != LeaveStatus.Approved;
+        return leaveRequest?.LeaveStatusId != LeaveStatusIds.Approved;
     }
 
     private async Task<bool> NotBeAlreadyRejected(Guid leaveRequestId, CancellationToken cancellationToken)
@@ -67,7 +67,7 @@ public class RejectLeaveRequestCommandValidator : AbstractValidator<RejectLeaveR
         var leaveRequest = await _context.LeaveRequests
             .FirstOrDefaultAsync(lr => lr.Id == leaveRequestId, cancellationToken);
 
-        return leaveRequest?.Status != LeaveStatus.Rejected;
+        return leaveRequest?.LeaveStatusId != LeaveStatusIds.Rejected;
     }
 
     private async Task<bool> UserMustBeLinkedToEmployee(RejectLeaveRequestCommand command, CancellationToken cancellationToken)

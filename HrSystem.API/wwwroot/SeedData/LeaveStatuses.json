@@ -1,0 +1,44 @@
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "nameEn": "Pending",
+    "nameAr": "قيد الانتظار",
+    "description": "Awaiting manager approval",
+    "displayOrder": 1
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "nameEn": "Manager Approved",
+    "nameAr": "موافقة المدير",
+    "description": "Approved by manager, awaiting HR approval",
+    "displayOrder": 2
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000003",
+    "nameEn": "HR Approved",
+    "nameAr": "موافقة الموارد البشرية",
+    "description": "Approved by HR, awaiting final approval",
+    "displayOrder": 3
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000004",
+    "nameEn": "Approved",
+    "nameAr": "موافق عليه",
+    "description": "Fully approved and active",
+    "displayOrder": 4
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000005",
+    "nameEn": "Rejected",
+    "nameAr": "مرفوض",
+    "description": "Rejected by manager or HR",
+    "displayOrder": 5
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000006",
+    "nameEn": "Cancelled",
+    "nameAr": "ملغي",
+    "description": "Cancelled by employee",
+    "displayOrder": 6
+  }
+]

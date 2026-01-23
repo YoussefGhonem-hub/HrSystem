@@ -19,6 +19,8 @@ public class GetPerformanceReviewByIdQueryHandler : IRequestHandler<GetPerforman
         var review = await _context.PerformanceReviews
             .Include(r => r.Employee)
             .Include(r => r.Reviewer)
+            .Include(r => r.ReviewType)
+            .Include(r => r.Status)
             .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
         if (review == null)
@@ -36,9 +38,11 @@ public class GetPerformanceReviewByIdQueryHandler : IRequestHandler<GetPerforman
             ReviewPeriodStart = review.ReviewPeriodStart,
             ReviewPeriodEnd = review.ReviewPeriodEnd,
             ReviewDate = review.ReviewDate,
-            ReviewType = review.ReviewType,
+            ReviewTypeId = review.ReviewTypeId,
+            ReviewType = review.ReviewType?.NameEn,
             OverallRating = review.OverallRating,
-            Status = review.Status,
+            StatusId = review.StatusId,
+            Status = review.Status?.NameEn,
             StrengthsAr = review.StrengthsAr,
             StrengthsEn = review.StrengthsEn,
             WeaknessesAr = review.WeaknessesAr,
