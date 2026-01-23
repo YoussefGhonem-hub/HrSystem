@@ -1,31 +1,45 @@
 using ErrorOr;
+using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrSystem.Application.Features.Leave.Queries.GetPendingLeaveRequests;
+namespace HrSystem.Application.Features.Leave.Queries.GetLeaveRequests;
 
 /// <summary>
-/// Query to get leave requests pending approval by current user
-/// Returns requests where:
-/// - User is direct manager and status is Pending
-/// - User is HR Manager and status is ManagerApproved
+/// Query to get leave requests based on current user's role
+/// - Employee: Gets all their own leave requests
+/// - Department Manager: Gets pending requests from direct reports
+/// - HR Manager: Gets manager-approved requests waiting for HR approval
 /// </summary>
-public record GetPendingLeaveRequestsQuery : IRequest<ErrorOr<GenericResponse<List<LeaveRequestDto>>>>;
+public record GetLeaveRequestsQuery(
+    LeaveStatus? Status = null,
+    LeaveType? LeaveType = null,
+    DateTime? StartDateFrom = null,
+    DateTime? StartDateTo = null,
+    Guid? EmployeeId = null,
+    string? SortBy = null,
+    bool SortDescending = false,
+    int PageNumber = 1,
+    int PageSize = 10
+) : IRequest<ErrorOr<GenericResponse<PagedResult<LeaveRequestDto>>>>;
 
-public class GetPendingLeaveRequestsQueryHandler : IRequestHandler<GetPendingLeaveRequestsQuery, ErrorOr<GenericResponse<List<LeaveRequestDto>>>>
+public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuery, ErrorOr<GenericResponse<PagedResult<LeaveRequestDto>>>>
 {
     private readonly ApplicationDbContext _context;
 
-    public GetPendingLeaveRequestsQueryHandler(ApplicationDbContext context)
+    public GetLeaveRequestsQueryHandler(ApplicationDbContext context)
     {
         _context = context;
     }
 
-    public async Task<ErrorOr<GenericResponse<List<LeaveRequestDto>>>> Handle(GetPendingLeaveRequestsQuery request, CancellationToken cancellationToken)
+    public async Task<ErrorOr<GenericResponse<PagedResult<LeaveRequestDto>>>> Handle(
+        GetLeaveRequestsQuery request,
+        CancellationToken cancellationToken)
     {
         // Get current user's employee record
         var currentEmployee = await _context.Employees
@@ -34,10 +48,16 @@ public class GetPendingLeaveRequestsQueryHandler : IRequestHandler<GetPendingLea
         if (currentEmployee == null)
             return Error.Unauthorized("User.NotLinkedToEmployee", "Current user is not linked to an employee");
 
-        // Check if user has HR role
-        bool isHRManager = CurrentUser.Roles?.Contains("HR Manager") == true ||
-                          CurrentUser.Roles?.Contains("Admin") == true;
+        // Determine user's role
+        bool isHRManager = CurrentUser.Roles?.Contains(RoleNames.HRManager) == true ||
+                          CurrentUser.Roles?.Contains(RoleNames.Admin) == true;
+        
+        bool isDepartmentManager = CurrentUser.Roles?.Contains(RoleNames.DepartmentManager) == true ||
+                                   CurrentUser.Roles?.Contains(RoleNames.Manager) == true;
 
+        bool isEmployee = !isHRManager && !isDepartmentManager;
+
+        // Build query with includes
         var query = _context.LeaveRequests
             .Include(lr => lr.Employee)
                 .ThenInclude(e => e.Department)
@@ -48,26 +68,33 @@ public class GetPendingLeaveRequestsQueryHandler : IRequestHandler<GetPendingLea
             .Include(lr => lr.LeavePolicy)
             .AsQueryable();
 
-        // Filter based on user's role and position
-        if (isHRManager)
+        // Apply role-based filters
+        query = query.ApplyRoleBasedFilters(
+            currentEmployee.Id,
+            isHRManager,
+            isDepartmentManager,
+            isEmployee);
+
+        // Apply additional filters if provided
+        query = query.ApplyStatusFilter(request.Status);
+        query = query.ApplyLeaveTypeFilter(request.LeaveType);
+        query = query.ApplyDateRangeFilter(request.StartDateFrom, request.StartDateTo);
+        
+        // Allow HR/Managers to filter by specific employee if provided
+        if (!isEmployee && request.EmployeeId.HasValue)
         {
-            // HR Manager sees requests that are:
-            // 1. Manager approved and waiting for HR
-            // 2. Pending requests for employees without managers (direct reports to HR)
-            query = query.Where(lr =>
-                lr.Status == LeaveStatus.ManagerApproved ||
-                (lr.Status == LeaveStatus.Pending && lr.Employee.DirectManagerId == null));
-        }
-        else
-        {
-            // Regular managers see only pending requests from their direct reports
-            query = query.Where(lr =>
-                lr.Status == LeaveStatus.Pending &&
-                lr.Employee.DirectManagerId == currentEmployee.Id);
+            query = query.ApplyEmployeeFilter(request.EmployeeId);
         }
 
+        // Get total count before pagination
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply sorting and pagination
+        query = query.ApplySorting(request.SortBy, request.SortDescending);
+
         var leaveRequests = await query
-            .OrderBy(lr => lr.StartDate)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
             .Select(lr => new LeaveRequestDto
             {
                 Id = lr.Id,
@@ -93,11 +120,26 @@ public class GetPendingLeaveRequestsQueryHandler : IRequestHandler<GetPendingLea
                 DocumentUrl = lr.DocumentUrl,
                 CreatedDate = lr.CreatedDate,
                 RequiresHRApproval = lr.LeavePolicy.RequiresHRApproval,
-                CurrentApprovalLevel = lr.Status == LeaveStatus.Pending ? "Manager" : "HR"
+                CurrentApprovalLevel = lr.Status == LeaveStatus.Pending ? "Manager" : 
+                                     lr.Status == LeaveStatus.ManagerApproved ? "HR" : "Completed"
             })
             .ToListAsync(cancellationToken);
 
-        return GenericResponse<List<LeaveRequestDto>>.SuccessResult(leaveRequests, "Leave requests retrieved successfully");
+        var pagedResult = new PagedResult<LeaveRequestDto>
+        {
+            Items = leaveRequests,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize)
+        };
+
+        return new GenericResponse<PagedResult<LeaveRequestDto>>
+        {
+            Success = true,
+            Message = "Leave requests retrieved successfully",
+            Data = pagedResult
+        };
     }
 }
 
