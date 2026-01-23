@@ -14,11 +14,12 @@ public class OvertimeRequest : BaseAuditableEntity
     public DateTime Date { get; set; }
     public TimeSpan Hours { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected
+    public Guid StatusId { get; set; }
     public Guid? ApprovedBy { get; set; }
     public DateTime? ApprovedDate { get; set; }
     public string? ApprovalNotes { get; set; }
 
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;
+    public virtual OvertimeStatus Status { get; set; } = null!;
 }

@@ -1,0 +1,42 @@
+[
+  {
+    "code": "PENDING",
+    "nameAr": "قيد الانتظار",
+    "nameEn": "Pending",
+    "descriptionAr": "طلب العمل الإضافي قيد المراجعة",
+    "descriptionEn": "Overtime request is pending review",
+    "colorCode": "#FF9800",
+    "isActive": true,
+    "displayOrder": 1
+  },
+  {
+    "code": "APPROVED",
+    "nameAr": "موافق عليه",
+    "nameEn": "Approved",
+    "descriptionAr": "تمت الموافقة على طلب العمل الإضافي",
+    "descriptionEn": "Overtime request has been approved",
+    "colorCode": "#4CAF50",
+    "isActive": true,
+    "displayOrder": 2
+  },
+  {
+    "code": "REJECTED",
+    "nameAr": "مرفوض",
+    "nameEn": "Rejected",
+    "descriptionAr": "تم رفض طلب العمل الإضافي",
+    "descriptionEn": "Overtime request has been rejected",
+    "colorCode": "#F44336",
+    "isActive": true,
+    "displayOrder": 3
+  },
+  {
+    "code": "CANCELLED",
+    "nameAr": "ملغى",
+    "nameEn": "Cancelled",
+    "descriptionAr": "تم إلغاء طلب العمل الإضافي",
+    "descriptionEn": "Overtime request has been cancelled",
+    "colorCode": "#9E9E9E",
+    "isActive": true,
+    "displayOrder": 4
+  }
+]

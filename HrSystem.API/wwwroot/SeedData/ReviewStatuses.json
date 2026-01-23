@@ -1,0 +1,52 @@
+[
+  {
+    "code": "DRAFT",
+    "nameAr": "مسودة",
+    "nameEn": "Draft",
+    "descriptionAr": "التقييم قيد الإعداد",
+    "descriptionEn": "Review is being prepared",
+    "colorCode": "#9E9E9E",
+    "isActive": true,
+    "displayOrder": 1
+  },
+  {
+    "code": "SUBMITTED",
+    "nameAr": "مقدم",
+    "nameEn": "Submitted",
+    "descriptionAr": "تم تقديم التقييم للمراجعة",
+    "descriptionEn": "Review has been submitted",
+    "colorCode": "#2196F3",
+    "isActive": true,
+    "displayOrder": 2
+  },
+  {
+    "code": "APPROVED",
+    "nameAr": "موافق عليه",
+    "nameEn": "Approved",
+    "descriptionAr": "تمت الموافقة على التقييم",
+    "descriptionEn": "Review has been approved",
+    "colorCode": "#4CAF50",
+    "isActive": true,
+    "displayOrder": 3
+  },
+  {
+    "code": "COMPLETED",
+    "nameAr": "مكتمل",
+    "nameEn": "Completed",
+    "descriptionAr": "التقييم مكتمل ونهائي",
+    "descriptionEn": "Review is completed and finalized",
+    "colorCode": "#8BC34A",
+    "isActive": true,
+    "displayOrder": 4
+  },
+  {
+    "code": "REJECTED",
+    "nameAr": "مرفوض",
+    "nameEn": "Rejected",
+    "descriptionAr": "تم رفض التقييم",
+    "descriptionEn": "Review has been rejected",
+    "colorCode": "#F44336",
+    "isActive": true,
+    "displayOrder": 5
+  }
+]

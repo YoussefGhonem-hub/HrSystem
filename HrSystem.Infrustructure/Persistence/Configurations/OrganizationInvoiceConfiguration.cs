@@ -24,5 +24,10 @@ public class OrganizationInvoiceConfiguration : IEntityTypeConfiguration<Organiz
             .WithMany()
             .HasForeignKey(oi => oi.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(oi => oi.Status)
+            .WithMany(ist => ist.Invoices)
+            .HasForeignKey(oi => oi.StatusId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

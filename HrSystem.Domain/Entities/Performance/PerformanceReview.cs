@@ -17,9 +17,9 @@ public class PerformanceReview : BaseAuditableEntity
     public DateTime ReviewPeriodEnd { get; set; }
     public DateTime ReviewDate { get; set; }
     
-    public string ReviewType { get; set; } = string.Empty; // Annual, Quarterly, Probation, etc.
+    public Guid ReviewTypeId { get; set; }
     public decimal OverallRating { get; set; }
-    public string Status { get; set; } = "Draft"; // Draft, Submitted, Approved, Completed
+    public Guid StatusId { get; set; }
     
     public string? StrengthsAr { get; set; }
     public string? StrengthsEn { get; set; }
@@ -37,6 +37,8 @@ public class PerformanceReview : BaseAuditableEntity
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;
     public virtual Employee.Employee Reviewer { get; set; } = null!;
+    public virtual ReviewType ReviewType { get; set; } = null!;
+    public virtual ReviewStatus Status { get; set; } = null!;
     public virtual ICollection<KPIEvaluation> KPIEvaluations { get; set; } = new List<KPIEvaluation>();
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 }

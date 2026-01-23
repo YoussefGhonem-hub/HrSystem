@@ -8,9 +8,16 @@ public class GoalStatusConfiguration : IEntityTypeConfiguration<GoalStatus>
 {
     public void Configure(EntityTypeBuilder<GoalStatus> builder)
     {
-        builder.ToTable("GoalStatuses");
+        builder.ToTable("GoalStatuses", "Performance");
 
         builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.Code)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        builder.HasIndex(x => x.Code)
+            .IsUnique();
 
         builder.Property(x => x.NameAr)
             .IsRequired()

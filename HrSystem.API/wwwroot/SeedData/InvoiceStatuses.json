@@ -1,0 +1,52 @@
+[
+  {
+    "code": "PENDING",
+    "nameAr": "قيد الانتظار",
+    "nameEn": "Pending",
+    "descriptionAr": "الفاتورة قيد الانتظار",
+    "descriptionEn": "Invoice is pending",
+    "colorCode": "#FF9800",
+    "isActive": true,
+    "displayOrder": 1
+  },
+  {
+    "code": "PAID",
+    "nameAr": "مدفوعة",
+    "nameEn": "Paid",
+    "descriptionAr": "تم دفع الفاتورة بالكامل",
+    "descriptionEn": "Invoice has been paid in full",
+    "colorCode": "#4CAF50",
+    "isActive": true,
+    "displayOrder": 2
+  },
+  {
+    "code": "OVERDUE",
+    "nameAr": "متأخرة",
+    "nameEn": "Overdue",
+    "descriptionAr": "الفاتورة متأخرة عن موعد السداد",
+    "descriptionEn": "Invoice is past due date",
+    "colorCode": "#F44336",
+    "isActive": true,
+    "displayOrder": 3
+  },
+  {
+    "code": "PARTIALLY_PAID",
+    "nameAr": "مدفوعة جزئياً",
+    "nameEn": "Partially Paid",
+    "descriptionAr": "تم دفع جزء من الفاتورة",
+    "descriptionEn": "Invoice has been partially paid",
+    "colorCode": "#2196F3",
+    "isActive": true,
+    "displayOrder": 4
+  },
+  {
+    "code": "CANCELLED",
+    "nameAr": "ملغاة",
+    "nameEn": "Cancelled",
+    "descriptionAr": "تم إلغاء الفاتورة",
+    "descriptionEn": "Invoice has been cancelled",
+    "colorCode": "#9E9E9E",
+    "isActive": true,
+    "displayOrder": 5
+  }
+]

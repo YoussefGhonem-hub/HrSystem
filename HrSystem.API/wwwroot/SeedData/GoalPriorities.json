@@ -1,38 +1,42 @@
 [
   {
-    "id": "22222222-2222-2222-2222-222222222201",
+    "code": "LOW",
     "nameAr": "منخفضة",
     "nameEn": "Low",
-    "descriptionAr": "أولوية منخفضة - يمكن إنجازها عند توفر الوقت",
-    "descriptionEn": "Low priority - can be completed when time permits",
-    "displayOrder": 1,
-    "isActive": true
+    "descriptionAr": "أولوية منخفضة",
+    "descriptionEn": "Low priority",
+    "colorCode": "#4CAF50",
+    "isActive": true,
+    "displayOrder": 1
   },
   {
-    "id": "22222222-2222-2222-2222-222222222202",
+    "code": "MEDIUM",
     "nameAr": "متوسطة",
     "nameEn": "Medium",
-    "descriptionAr": "أولوية متوسطة - مهمة ولكن ليست عاجلة",
-    "descriptionEn": "Medium priority - important but not urgent",
-    "displayOrder": 2,
-    "isActive": true
+    "descriptionAr": "أولوية متوسطة",
+    "descriptionEn": "Medium priority",
+    "colorCode": "#FF9800",
+    "isActive": true,
+    "displayOrder": 2
   },
   {
-    "id": "22222222-2222-2222-2222-222222222203",
+    "code": "HIGH",
     "nameAr": "عالية",
     "nameEn": "High",
-    "descriptionAr": "أولوية عالية - تتطلب اهتماماً فورياً",
-    "descriptionEn": "High priority - requires immediate attention",
-    "displayOrder": 3,
-    "isActive": true
+    "descriptionAr": "أولوية عالية",
+    "descriptionEn": "High priority",
+    "colorCode": "#F44336",
+    "isActive": true,
+    "displayOrder": 3
   },
   {
-    "id": "22222222-2222-2222-2222-222222222204",
+    "code": "CRITICAL",
     "nameAr": "حرجة",
     "nameEn": "Critical",
-    "descriptionAr": "أولوية حرجة - عاجلة جداً ومهمة للغاية",
-    "descriptionEn": "Critical priority - very urgent and extremely important",
-    "displayOrder": 4,
-    "isActive": true
+    "descriptionAr": "أولوية حرجة",
+    "descriptionEn": "Critical priority",
+    "colorCode": "#9C27B0",
+    "isActive": true,
+    "displayOrder": 4
   }
 ]

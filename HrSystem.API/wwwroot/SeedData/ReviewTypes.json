@@ -1,0 +1,47 @@
+[
+  {
+    "code": "ANNUAL",
+    "nameAr": "التقييم السنوي",
+    "nameEn": "Annual Review",
+    "descriptionAr": "تقييم الأداء السنوي الشامل",
+    "descriptionEn": "Comprehensive annual performance review",
+    "isActive": true,
+    "displayOrder": 1
+  },
+  {
+    "code": "QUARTERLY",
+    "nameAr": "التقييم الربع سنوي",
+    "nameEn": "Quarterly Review",
+    "descriptionAr": "تقييم الأداء الربع سنوي",
+    "descriptionEn": "Quarterly performance review",
+    "isActive": true,
+    "displayOrder": 2
+  },
+  {
+    "code": "PROBATION",
+    "nameAr": "تقييم فترة التجربة",
+    "nameEn": "Probation Review",
+    "descriptionAr": "تقييم الموظف خلال فترة التجربة",
+    "descriptionEn": "Employee probation period review",
+    "isActive": true,
+    "displayOrder": 3
+  },
+  {
+    "code": "MIDYEAR",
+    "nameAr": "تقييم منتصف العام",
+    "nameEn": "Mid-Year Review",
+    "descriptionAr": "تقييم الأداء في منتصف العام",
+    "descriptionEn": "Mid-year performance review",
+    "isActive": true,
+    "displayOrder": 4
+  },
+  {
+    "code": "PROJECT",
+    "nameAr": "تقييم المشروع",
+    "nameEn": "Project Review",
+    "descriptionAr": "تقييم الأداء بعد انتهاء المشروع",
+    "descriptionEn": "Post-project performance review",
+    "isActive": true,
+    "displayOrder": 5
+  }
+]

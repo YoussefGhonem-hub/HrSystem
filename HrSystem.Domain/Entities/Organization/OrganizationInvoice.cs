@@ -22,7 +22,7 @@ public class OrganizationInvoice : BaseEntity
     public decimal PaidAmount { get; set; }
     public decimal RemainingAmount { get; set; }
     
-    public string Status { get; set; } = "Pending"; // Pending, Paid, Overdue, Cancelled
+    public Guid StatusId { get; set; }
     public DateTime? PaidDate { get; set; }
     public string? PaymentMethod { get; set; }
     public string? PaymentReference { get; set; }
@@ -34,5 +34,6 @@ public class OrganizationInvoice : BaseEntity
 
     // Navigation Properties
     public virtual Organization Organization { get; set; } = null!;
+    public virtual InvoiceStatus Status { get; set; } = null!;
     public virtual ICollection<OrganizationInvoiceItem> Items { get; set; } = new List<OrganizationInvoiceItem>();
 }

@@ -51,8 +51,12 @@ public static class AppDbContextSeed
             await SeedTaxBracketsAsync(context, seedDataPath);
             await SeedPublicHolidaysAsync(context, seedDataPath);
             await SeedWorkSchedulesAsync(context, seedDataPath);
+            await SeedReviewTypesAsync(context, seedDataPath);
+            await SeedReviewStatusesAsync(context, seedDataPath);
             await SeedGoalStatusesAsync(context, seedDataPath);
             await SeedGoalPrioritiesAsync(context, seedDataPath);
+            await SeedOvertimeStatusesAsync(context, seedDataPath);
+            await SeedInvoiceStatusesAsync(context, seedDataPath);
 
             Console.WriteLine("Database seeding completed successfully!");
         }
@@ -954,6 +958,18 @@ public static class AppDbContextSeed
         public bool IsActive { get; set; }
     }
 
+    private class StatusSeedData
+    {
+        public string Code { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public string NameEn { get; set; } = string.Empty;
+        public string? DescriptionAr { get; set; }
+        public string? DescriptionEn { get; set; }
+        public string? ColorCode { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
     private static async Task SeedGoalStatusesAsync(ApplicationDbContext context, string seedDataPath)
     {
         if (await context.GoalStatuses.AnyAsync()) return;
@@ -962,28 +978,31 @@ public static class AppDbContextSeed
         if (!File.Exists(filePath)) return;
 
         var json = await File.ReadAllTextAsync(filePath);
-        var statuses = JsonSerializer.Deserialize<List<GoalStatusSeedData>>(json, _jsonOptions);
+        var statuses = JsonSerializer.Deserialize<List<StatusSeedData>>(json, _jsonOptions);
 
         if (statuses == null) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
 
         foreach (var statusData in statuses)
         {
             var status = new GoalStatus
             {
-                Id = statusData.Id,
+                Id = Guid.NewGuid(),
+                Code = statusData.Code,
                 NameAr = statusData.NameAr,
                 NameEn = statusData.NameEn,
                 DescriptionAr = statusData.DescriptionAr,
                 DescriptionEn = statusData.DescriptionEn,
+                ColorCode = statusData.ColorCode,
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
-                CreatedDate = DateTimeOffset.UtcNow,
-                IsDeleted = false,
-                TenantId = context.Organizations.First().Id,
-                CreatedBy = context.Employees.First().Id
+                TenantId = organization.Id,
+                CreatedDate = DateTimeOffset.UtcNow
             };
 
-            context.GoalStatuses.Add(status);
+            await context.GoalStatuses.AddAsync(status);
         }
 
         await context.SaveChangesAsync();
@@ -998,31 +1017,185 @@ public static class AppDbContextSeed
         if (!File.Exists(filePath)) return;
 
         var json = await File.ReadAllTextAsync(filePath);
-        var priorities = JsonSerializer.Deserialize<List<GoalPrioritySeedData>>(json, _jsonOptions);
+        var priorities = JsonSerializer.Deserialize<List<StatusSeedData>>(json, _jsonOptions);
 
         if (priorities == null) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
 
         foreach (var priorityData in priorities)
         {
             var priority = new GoalPriority
             {
-                Id = priorityData.Id,
+                Id = Guid.NewGuid(),
+                Code = priorityData.Code,
                 NameAr = priorityData.NameAr,
                 NameEn = priorityData.NameEn,
                 DescriptionAr = priorityData.DescriptionAr,
                 DescriptionEn = priorityData.DescriptionEn,
+                ColorCode = priorityData.ColorCode,
                 DisplayOrder = priorityData.DisplayOrder,
                 IsActive = priorityData.IsActive,
-                CreatedDate = DateTimeOffset.UtcNow,
-                IsDeleted = false,
-                TenantId = context.Organizations.First().Id,
-                CreatedBy = context.Employees.First().Id
+                TenantId = organization.Id,
+                CreatedDate = DateTimeOffset.UtcNow
             };
 
-            context.GoalPriorities.Add(priority);
+            await context.GoalPriorities.AddAsync(priority);
         }
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {priorities.Count} goal priorities");
+    }
+
+    private static async Task SeedReviewTypesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.ReviewTypes.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "ReviewTypes.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var reviewTypes = JsonSerializer.Deserialize<List<StatusSeedData>>(json, _jsonOptions);
+
+        if (reviewTypes == null) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        foreach (var typeData in reviewTypes)
+        {
+            var reviewType = new ReviewType
+            {
+                Id = Guid.NewGuid(),
+                Code = typeData.Code,
+                NameAr = typeData.NameAr,
+                NameEn = typeData.NameEn,
+                DescriptionAr = typeData.DescriptionAr,
+                DescriptionEn = typeData.DescriptionEn,
+                DisplayOrder = typeData.DisplayOrder,
+                IsActive = typeData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.ReviewTypes.AddAsync(reviewType);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {reviewTypes.Count} review types");
+    }
+
+    private static async Task SeedReviewStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.ReviewStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "ReviewStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var reviewStatuses = JsonSerializer.Deserialize<List<StatusSeedData>>(json, _jsonOptions);
+
+        if (reviewStatuses == null) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        foreach (var statusData in reviewStatuses)
+        {
+            var reviewStatus = new ReviewStatus
+            {
+                Id = Guid.NewGuid(),
+                Code = statusData.Code,
+                NameAr = statusData.NameAr,
+                NameEn = statusData.NameEn,
+                DescriptionAr = statusData.DescriptionAr,
+                DescriptionEn = statusData.DescriptionEn,
+                ColorCode = statusData.ColorCode,
+                DisplayOrder = statusData.DisplayOrder,
+                IsActive = statusData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.ReviewStatuses.AddAsync(reviewStatus);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {reviewStatuses.Count} review statuses");
+    }
+
+    private static async Task SeedOvertimeStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.OvertimeStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "OvertimeStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var overtimeStatuses = JsonSerializer.Deserialize<List<StatusSeedData>>(json, _jsonOptions);
+
+        if (overtimeStatuses == null) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        foreach (var statusData in overtimeStatuses)
+        {
+            var overtimeStatus = new OvertimeStatus
+            {
+                Id = Guid.NewGuid(),
+                Code = statusData.Code,
+                NameAr = statusData.NameAr,
+                NameEn = statusData.NameEn,
+                DescriptionAr = statusData.DescriptionAr,
+                DescriptionEn = statusData.DescriptionEn,
+                ColorCode = statusData.ColorCode,
+                DisplayOrder = statusData.DisplayOrder,
+                IsActive = statusData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.OvertimeStatuses.AddAsync(overtimeStatus);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {overtimeStatuses.Count} overtime statuses");
+    }
+
+    private static async Task SeedInvoiceStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.InvoiceStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "InvoiceStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var invoiceStatuses = JsonSerializer.Deserialize<List<StatusSeedData>>(json, _jsonOptions);
+
+        if (invoiceStatuses == null) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        foreach (var statusData in invoiceStatuses)
+        {
+            var invoiceStatus = new InvoiceStatus
+            {
+                Id = Guid.NewGuid(),
+                Code = statusData.Code,
+                NameAr = statusData.NameAr,
+                NameEn = statusData.NameEn,
+                DescriptionAr = statusData.DescriptionAr,
+                DescriptionEn = statusData.DescriptionEn,
+                ColorCode = statusData.ColorCode,
+                DisplayOrder = statusData.DisplayOrder,
+                IsActive = statusData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.InvoiceStatuses.AddAsync(invoiceStatus);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {invoiceStatuses.Count} invoice statuses");
     }
 }

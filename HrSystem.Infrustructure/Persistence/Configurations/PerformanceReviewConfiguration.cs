@@ -21,5 +21,15 @@ public class PerformanceReviewConfiguration : IEntityTypeConfiguration<Performan
             .WithMany()
             .HasForeignKey(p => p.ReviewerId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(p => p.ReviewType)
+            .WithMany(rt => rt.PerformanceReviews)
+            .HasForeignKey(p => p.ReviewTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(p => p.Status)
+            .WithMany(rs => rs.PerformanceReviews)
+            .HasForeignKey(p => p.StatusId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
