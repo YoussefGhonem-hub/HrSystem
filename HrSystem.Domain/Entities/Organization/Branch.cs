@@ -1,4 +1,5 @@
 using HrSystem.Domain.Common;
+using HrSystem.Domain.Entities.Account;
 
 namespace HrSystem.Domain.Entities.Organization;
 
@@ -63,4 +64,5 @@ public class Branch : BaseAuditableEntity
     public virtual Employee.Employee? BranchManager { get; set; }
     public virtual ICollection<Employee.Department> Departments { get; set; } = new List<Employee.Department>();
     public virtual ICollection<Employee.Employee> Employees { get; set; } = new List<Employee.Employee>();
+    public virtual ICollection<UserBranchRole> UserBranchRoles { get; set; } = new List<UserBranchRole>();
 }

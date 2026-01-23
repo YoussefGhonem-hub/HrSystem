@@ -38,6 +38,11 @@ public class TokenService : ITokenService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
         };
 
+        if (user.OrganizationId != Guid.Empty)
+        {
+            claims.Add(new Claim("organization_id", user.OrganizationId.ToString()));
+        }
+
         if (!string.IsNullOrWhiteSpace(departmentName))
         {
             claims.Add(new Claim("department", departmentName));

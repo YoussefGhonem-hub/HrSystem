@@ -29,4 +29,5 @@ public class ApplicationUser : IdentityUser<Guid>
     // Navigation Properties
     public virtual Organization.Organization Organization { get; set; } = null!;
     public virtual Employee.Employee? Employee { get; set; }
+    public virtual ICollection<UserBranchRole> BranchRoles { get; set; } = new List<UserBranchRole>();
 }

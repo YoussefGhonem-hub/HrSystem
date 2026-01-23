@@ -1,0 +1,286 @@
+using ErrorOr;
+using HrSystem.Domain.Entities.Account;
+using HrSystem.Domain.Entities.Organization;
+using HrSystem.Infrustructure.Persistence;
+using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using MediatR;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace HrSystem.Application.Features.Organizations.Commands.CreateOrganizationWithAdmin;
+
+public record CreateOrganizationWithAdminCommand(
+    OrganizationInput Organization,
+    List<BranchInput> Branches,
+    AdminUserInput AdminUser
+) : IRequest<ErrorOr<GenericResponse<OrganizationOnboardingDto>>>;
+
+public record OrganizationInput(
+    string NameAr,
+    string NameEn,
+    string Code,
+    Guid? SubscriptionPlanId,
+    string? LogoUrl,
+    string? CommercialRegistrationNumber,
+    string? TaxRegistrationNumber,
+    string? LegalEntityType,
+    string? Email,
+    string? PhoneNumber,
+    string? Website,
+    string? AddressAr,
+    string? AddressEn,
+    string? City,
+    string? Country,
+    string? PostalCode,
+    string? TimeZone,
+    string? Currency,
+    string? WeekStartDay,
+    bool IsTrialPeriod = false,
+    int TrialDays = 0
+);
+
+public record BranchInput(
+    string NameAr,
+    string NameEn,
+    string Code,
+    Guid CountryId,
+    string? Description,
+    string? City,
+    string? AddressAr,
+    string? AddressEn,
+    string? PostalCode,
+    double? Latitude,
+    double? Longitude,
+    string? PhoneNumber,
+    string? Email,
+    string? Fax,
+    string? TimeZone,
+    string? Currency,
+    string? Language,
+    bool IsHeadquarter,
+    DateTime? OpeningDate
+);
+
+public record AdminUserInput(
+    string Email,
+    string FullName,
+    string Password,
+    string? UserName
+);
+
+public record OrganizationOnboardingDto
+{
+    public Guid OrganizationId { get; init; }
+    public string OrganizationCode { get; init; } = string.Empty;
+    public Guid AdminUserId { get; init; }
+    public string AdminEmail { get; init; } = string.Empty;
+    public List<BranchSummaryDto> Branches { get; init; } = new();
+}
+
+public record BranchSummaryDto
+{
+    public Guid BranchId { get; init; }
+    public string NameEn { get; init; } = string.Empty;
+    public string Code { get; init; } = string.Empty;
+    public bool IsHeadquarter { get; init; }
+}
+
+public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateOrganizationWithAdminCommand, ErrorOr<GenericResponse<OrganizationOnboardingDto>>>
+{
+    private readonly ApplicationDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
+
+    public CreateOrganizationWithAdminCommandHandler(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager)
+    {
+        _context = context;
+        _userManager = userManager;
+        _roleManager = roleManager;
+    }
+
+    public async Task<ErrorOr<GenericResponse<OrganizationOnboardingDto>>> Handle(
+        CreateOrganizationWithAdminCommand request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Branches == null || request.Branches.Count == 0)
+        {
+            return Error.Validation("Organization.BranchesRequired", "At least one branch is required");
+        }
+
+        var orgCodeExists = await _context.Organizations
+            .AnyAsync(o => o.Code == request.Organization.Code, cancellationToken);
+
+        if (orgCodeExists)
+        {
+            return Error.Conflict("Organization.CodeExists", "Organization code already exists");
+        }
+
+        var adminExists = await _userManager.FindByEmailAsync(request.AdminUser.Email);
+        if (adminExists != null)
+        {
+            return Error.Conflict("User.EmailExists", "Admin email already exists");
+        }
+
+        if (!await _roleManager.RoleExistsAsync(RoleNames.OrganizationAdmin))
+        {
+            return Error.NotFound("Role.NotFound", "OrganizationAdmin role not found");
+        }
+
+        SubscriptionPlan? plan = null;
+        if (request.Organization.SubscriptionPlanId.HasValue)
+        {
+            plan = await _context.SubscriptionPlans
+                .FirstOrDefaultAsync(p => p.Id == request.Organization.SubscriptionPlanId.Value, cancellationToken);
+
+            if (plan == null)
+            {
+                return Error.NotFound("SubscriptionPlan.NotFound", "Subscription plan not found");
+            }
+        }
+
+        var now = DateTime.UtcNow;
+        var organization = new Organization
+        {
+            Id = Guid.NewGuid(),
+            Code = request.Organization.Code,
+            NameAr = request.Organization.NameAr,
+            NameEn = request.Organization.NameEn,
+            LogoUrl = request.Organization.LogoUrl,
+            CommercialRegistrationNumber = request.Organization.CommercialRegistrationNumber,
+            TaxRegistrationNumber = request.Organization.TaxRegistrationNumber,
+            LegalEntityType = request.Organization.LegalEntityType,
+            Email = request.Organization.Email,
+            PhoneNumber = request.Organization.PhoneNumber,
+            Website = request.Organization.Website,
+            AddressAr = request.Organization.AddressAr,
+            AddressEn = request.Organization.AddressEn,
+            City = request.Organization.City,
+            Country = request.Organization.Country,
+            PostalCode = request.Organization.PostalCode,
+            SubscriptionPlanId = plan?.Id,
+            SubscriptionStartDate = now,
+            SubscriptionEndDate = request.Organization.TrialDays > 0 ? now.AddDays(request.Organization.TrialDays) : null,
+            IsActive = true,
+            IsTrialPeriod = request.Organization.IsTrialPeriod,
+            TrialEndDate = request.Organization.TrialDays > 0 ? now.AddDays(request.Organization.TrialDays) : null,
+            TimeZone = request.Organization.TimeZone ?? "Egypt Standard Time",
+            Currency = request.Organization.Currency ?? "EGP",
+            WeekStartDay = request.Organization.WeekStartDay
+        };
+
+        var branchCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var branchInput in request.Branches)
+        {
+            if (!branchCodes.Add(branchInput.Code))
+            {
+                return Error.Validation("Branch.DuplicateCode", "Duplicate branch code in request");
+            }
+        }
+
+        var existingCodes = await _context.Branches
+            .Where(b => branchCodes.Contains(b.Code))
+            .Select(b => b.Code)
+            .ToListAsync(cancellationToken);
+
+        if (existingCodes.Count > 0)
+        {
+            return Error.Conflict("Branch.CodeExists", $"Branch code(s) already exist: {string.Join(", ", existingCodes)}");
+        }
+
+        var branches = request.Branches.Select(input => new Branch
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organization.Id,
+            TenantId = organization.Id,
+            NameAr = input.NameAr,
+            NameEn = input.NameEn,
+            Code = input.Code,
+            Description = input.Description,
+            CountryId = input.CountryId,
+            City = input.City,
+            AddressAr = input.AddressAr,
+            AddressEn = input.AddressEn,
+            PostalCode = input.PostalCode,
+            Latitude = input.Latitude,
+            Longitude = input.Longitude,
+            PhoneNumber = input.PhoneNumber,
+            Email = input.Email,
+            Fax = input.Fax,
+            TimeZone = input.TimeZone ?? organization.TimeZone,
+            Currency = input.Currency ?? organization.Currency,
+            Language = input.Language,
+            IsHeadquarter = input.IsHeadquarter,
+            IsActive = true,
+            OpeningDate = input.OpeningDate,
+            CreatedDate = DateTimeOffset.UtcNow
+        }).ToList();
+
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = string.IsNullOrWhiteSpace(request.AdminUser.UserName) ? request.AdminUser.Email : request.AdminUser.UserName,
+            Email = request.AdminUser.Email,
+            EmailConfirmed = true,
+            FullName = request.AdminUser.FullName,
+            IsActive = true,
+            OrganizationId = organization.Id,
+            CreatedDate = DateTimeOffset.UtcNow
+        };
+
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        await _context.Organizations.AddAsync(organization, cancellationToken);
+        await _context.Branches.AddRangeAsync(branches, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var createUserResult = await _userManager.CreateAsync(user, request.AdminUser.Password);
+        if (!createUserResult.Succeeded)
+        {
+            return Error.Validation("User.CreateFailed", string.Join("; ", createUserResult.Errors.Select(e => e.Description)));
+        }
+
+        var roleResult = await _userManager.AddToRoleAsync(user, RoleNames.OrganizationAdmin);
+        if (!roleResult.Succeeded)
+        {
+            return Error.Validation("User.RoleAssignFailed", string.Join("; ", roleResult.Errors.Select(e => e.Description)));
+        }
+
+        var branchRoles = branches.Select(branch => new UserBranchRole
+        {
+            UserId = user.Id,
+            BranchId = branch.Id,
+            RoleName = RoleNames.OrganizationAdmin
+        });
+
+        await _context.UserBranchRoles.AddRangeAsync(branchRoles, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await tx.CommitAsync(cancellationToken);
+
+        var dto = new OrganizationOnboardingDto
+        {
+            OrganizationId = organization.Id,
+            OrganizationCode = organization.Code,
+            AdminUserId = user.Id,
+            AdminEmail = user.Email ?? string.Empty,
+            Branches = branches.Select(b => new BranchSummaryDto
+            {
+                BranchId = b.Id,
+                NameEn = b.NameEn,
+                Code = b.Code,
+                IsHeadquarter = b.IsHeadquarter
+            }).ToList()
+        };
+
+        return new GenericResponse<OrganizationOnboardingDto>
+        {
+            Success = true,
+            Message = "Organization created successfully",
+            Data = dto
+        };
+    }
+}
