@@ -1,7 +1,10 @@
 using HrSystem.API.Controllers.Shared;
+using HrSystem.API.Controllers.Requests;
 using HrSystem.Application.Features.Attendance.Commands.CreateAttendance;
 using HrSystem.Application.Features.Attendance.Commands.DeleteAttendance;
+using HrSystem.Application.Features.Attendance.Commands.EnrollEmployeeBiometric;
 using HrSystem.Application.Features.Attendance.Commands.UpdateAttendance;
+using HrSystem.Application.Features.Attendance.Commands.VerifyBiometricAttendance;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendanceById;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendancesList;
 using HrSystem.Domain.Enums;
@@ -124,6 +127,56 @@ public class AttendanceController : APIBaseController
     public async Task<IActionResult> DeleteAttendance(Guid id)
     {
         var command = new DeleteAttendanceCommand(id);
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Enroll biometric template for an employee (HR or owner)
+    /// </summary>
+    [HttpPost("biometrics/enroll")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> EnrollBiometric([FromBody] EnrollEmployeeBiometricRequest request)
+    {
+        var command = new EnrollEmployeeBiometricCommand(
+            request.EmployeeId,
+            request.BiometricType,
+            request.TemplateBase64,
+            request.Provider,
+            request.DeviceId,
+            request.IsActive);
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Verify biometric and record attendance (check-in/out)
+    /// </summary>
+    [HttpPost("biometrics/verify")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> VerifyBiometric([FromBody] VerifyBiometricAttendanceRequest request)
+    {
+        var command = new VerifyBiometricAttendanceCommand(
+            request.EmployeeId,
+            request.BiometricType,
+            request.PunchType,
+            request.TemplateBase64,
+            request.DeviceId,
+            request.EventTime);
+
         var result = await _mediator.Send(command);
 
         return result.Match(

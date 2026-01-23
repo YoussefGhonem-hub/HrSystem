@@ -38,6 +38,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     // Attendance
     public DbSet<HrSystem.Domain.Entities.Attendance.Attendance> Attendances => Set<HrSystem.Domain.Entities.Attendance.Attendance>();
+    public DbSet<HrSystem.Domain.Entities.Attendance.EmployeeBiometric> EmployeeBiometrics => Set<HrSystem.Domain.Entities.Attendance.EmployeeBiometric>();
     public DbSet<HrSystem.Domain.Entities.Attendance.WorkSchedule> WorkSchedules => Set<HrSystem.Domain.Entities.Attendance.WorkSchedule>();
     public DbSet<HrSystem.Domain.Entities.Attendance.EmployeeWorkSchedule> EmployeeWorkSchedules => Set<HrSystem.Domain.Entities.Attendance.EmployeeWorkSchedule>();
     public DbSet<HrSystem.Domain.Entities.Attendance.PublicHoliday> PublicHolidays => Set<HrSystem.Domain.Entities.Attendance.PublicHoliday>();
