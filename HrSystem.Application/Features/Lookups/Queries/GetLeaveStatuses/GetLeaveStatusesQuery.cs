@@ -4,7 +4,7 @@ using HrSystem.Shared.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrSystem.Application.Features.Leave.Queries.GetLeaveStatuses;
+namespace HrSystem.Application.Features.Lookups.Queries.GetLeaveStatuses;
 
 /// <summary>
 /// Query to get all active leave statuses for dropdown

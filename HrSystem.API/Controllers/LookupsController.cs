@@ -1,13 +1,17 @@
 using HrSystem.API.Controllers.Shared;
-using HrSystem.Application.Features.Leave.Queries.GetLeaveStatuses;
-using HrSystem.Application.Features.Leave.Queries.GetLeaveTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetAttendanceStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetContractTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetCountries;
 using HrSystem.Application.Features.Lookups.Queries.GetEmployeeStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetGenders;
+using HrSystem.Application.Features.Lookups.Queries.GetInvoiceStatuses;
+using HrSystem.Application.Features.Lookups.Queries.GetLeaveStatuses;
+using HrSystem.Application.Features.Lookups.Queries.GetLeaveTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetMaritalStatuses;
+using HrSystem.Application.Features.Lookups.Queries.GetOvertimeStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetPayrollStatuses;
+using HrSystem.Application.Features.Performance.Queries.GetGoalPriorities;
+using HrSystem.Application.Features.Performance.Queries.GetGoalStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetReviewStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetReviewTypes;
 using MediatR;
@@ -74,6 +78,36 @@ public class LookupsController : APIBaseController
     public async Task<IActionResult> GetReviewStatuses()
     {
         var result = await _mediator.Send(new GetReviewStatusesQuery());
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get all active goal statuses for dropdown
+    /// </summary>
+    [HttpGet("goal-statuses")]
+    public async Task<IActionResult> GetGoalStatuses()
+    {
+        var result = await _mediator.Send(new GetGoalStatusesQuery());
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get all active goal priorities for dropdown
+    /// </summary>
+    [HttpGet("goal-priorities")]
+    /// <summary>
+    /// Get all active overtime statuses for dropdown
+    /// </summary>
+    [HttpGet("overtime-statuses")]
+    public async Task<IActionResult> GetOvertimeStatuses()
+    {
+        var result = await _mediator.Send(new GetOvertimeStatusesQuery());
+        return result.Match(Ok, Problem);
+    }
+
+    public async Task<IActionResult> GetGoalPriorities()
+    {
+        var result = await _mediator.Send(new GetGoalPrioritiesQuery());
         return result.Match(Ok, Problem);
     }
 
@@ -152,6 +186,16 @@ public class LookupsController : APIBaseController
     #endregion
 
     #region Organization Module
+
+    /// <summary>
+    /// Get all active invoice statuses for dropdown
+    /// </summary>
+    [HttpGet("invoice-statuses")]
+    public async Task<IActionResult> GetInvoiceStatuses()
+    {
+        var result = await _mediator.Send(new GetInvoiceStatusesQuery());
+        return result.Match(Ok, Problem);
+    }
 
     /// <summary>
     /// Get all active countries for dropdown

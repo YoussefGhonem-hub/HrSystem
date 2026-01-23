@@ -1,5 +1,6 @@
 [
   {
+    "id": "00000000-0000-0000-000c-000000000001",
     "code": "PENDING",
     "nameAr": "قيد الانتظار",
     "nameEn": "Pending",
@@ -10,6 +11,7 @@
     "displayOrder": 1
   },
   {
+    "id": "00000000-0000-0000-000c-000000000002",
     "code": "APPROVED",
     "nameAr": "موافق عليه",
     "nameEn": "Approved",
@@ -20,6 +22,7 @@
     "displayOrder": 2
   },
   {
+    "id": "00000000-0000-0000-000c-000000000003",
     "code": "REJECTED",
     "nameAr": "مرفوض",
     "nameEn": "Rejected",
@@ -30,6 +33,7 @@
     "displayOrder": 3
   },
   {
+    "id": "00000000-0000-0000-000c-000000000004",
     "code": "CANCELLED",
     "nameAr": "ملغى",
     "nameEn": "Cancelled",

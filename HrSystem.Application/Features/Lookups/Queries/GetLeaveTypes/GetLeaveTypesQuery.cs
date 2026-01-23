@@ -4,7 +4,7 @@ using HrSystem.Shared.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrSystem.Application.Features.Leave.Queries.GetLeaveTypes;
+namespace HrSystem.Application.Features.Lookups.Queries.GetLeaveTypes;
 
 /// <summary>
 /// Query to get all active leave types for dropdown

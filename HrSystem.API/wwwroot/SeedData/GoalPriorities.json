@@ -1,5 +1,6 @@
 [
   {
+    "id": "00000000-0000-0000-000e-000000000001",
     "code": "LOW",
     "nameAr": "منخفضة",
     "nameEn": "Low",
@@ -10,6 +11,7 @@
     "displayOrder": 1
   },
   {
+    "id": "00000000-0000-0000-000e-000000000002",
     "code": "MEDIUM",
     "nameAr": "متوسطة",
     "nameEn": "Medium",
@@ -20,6 +22,7 @@
     "displayOrder": 2
   },
   {
+    "id": "00000000-0000-0000-000e-000000000003",
     "code": "HIGH",
     "nameAr": "عالية",
     "nameEn": "High",
@@ -30,6 +33,7 @@
     "displayOrder": 3
   },
   {
+    "id": "00000000-0000-0000-000e-000000000004",
     "code": "CRITICAL",
     "nameAr": "حرجة",
     "nameEn": "Critical",
