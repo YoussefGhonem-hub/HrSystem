@@ -95,6 +95,12 @@ public class LookupsController : APIBaseController
     /// Get all active goal priorities for dropdown
     /// </summary>
     [HttpGet("goal-priorities")]
+    public async Task<IActionResult> GetGoalPriorities()
+    {
+        var result = await _mediator.Send(new GetGoalPrioritiesQuery());
+        return result.Match(Ok, Problem);
+    }
+
     /// <summary>
     /// Get all active overtime statuses for dropdown
     /// </summary>
@@ -102,12 +108,6 @@ public class LookupsController : APIBaseController
     public async Task<IActionResult> GetOvertimeStatuses()
     {
         var result = await _mediator.Send(new GetOvertimeStatusesQuery());
-        return result.Match(Ok, Problem);
-    }
-
-    public async Task<IActionResult> GetGoalPriorities()
-    {
-        var result = await _mediator.Send(new GetGoalPrioritiesQuery());
         return result.Match(Ok, Problem);
     }
 

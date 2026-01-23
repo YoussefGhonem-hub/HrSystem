@@ -1,4 +1,7 @@
-﻿using HrSystem.Infrustructure.Persistence;
+﻿using HrSystem.Domain.Entities.Account;
+using HrSystem.Infrustructure.Identity;
+using HrSystem.Infrustructure.Persistence;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +20,18 @@ public static class ServicesRegistrationExtensions
         {
             opts.UseSqlServer(connectionString);
         });
+
+        services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
+
+        services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+            {
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
+
+        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
 
         return services;
