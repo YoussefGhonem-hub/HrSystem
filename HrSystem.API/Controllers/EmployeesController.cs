@@ -1,11 +1,13 @@
 using HrSystem.API.Controllers.Shared;
 using HrSystem.API.Controllers.Requests;
+using HrSystem.Application.Features.Employees.Commands.AddEmployeeSalary;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Employees.Commands.DeleteEmployee;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
 using HrSystem.Application.Features.Employees.Commands.UploadEmployeeDocument;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeDocuments;
+using HrSystem.Application.Features.Employees.Queries.GetEmployeeSalaries;
 using HrSystem.Application.Features.Employees.Queries.GetMyDocuments;
 using HrSystem.Application.Features.Employees.Queries.GetMyProfile;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeesList;
@@ -164,6 +166,45 @@ public class EmployeesController : APIBaseController
             request.Description,
             request.ExpiryDate,
             request.File);
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get salaries for a specific employee (HR or owner)
+    /// </summary>
+    [HttpGet("{id:guid}/salaries")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetEmployeeSalaries(Guid id)
+    {
+        var result = await _mediator.Send(new GetEmployeeSalariesQuery(id));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Add salary for a specific employee (HR or owner)
+    /// </summary>
+    [HttpPost("{id:guid}/salaries")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AddEmployeeSalary(Guid id, [FromBody] AddEmployeeSalaryRequest request)
+    {
+        var command = new AddEmployeeSalaryCommand(
+            id,
+            request.BasicSalary,
+            request.EffectiveDate,
+            request.Notes);
 
         var result = await _mediator.Send(command);
 

@@ -4,6 +4,7 @@ using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.DeleteEmpl
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.UpdateEmployeeAsset;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Queries.GetEmployeeAssetById;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Queries.GetEmployeeAssetsList;
+using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Queries.GetMyAssetsList;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,41 @@ public class EmployeeAssetsController : APIBaseController
     {
         var query = new GetEmployeeAssetsListQuery(
             employeeId,
+            assetType,
+            status == "Returned" ? true : status == "Assigned" ? false : null,
+            assignedDateFrom,
+            assignedDateTo,
+            sortBy,
+            isDescending,
+            pageNumber,
+            pageSize);
+
+        var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get assets for the currently logged-in employee
+    /// </summary>
+    [HttpGet("me")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyAssets(
+        [FromQuery] string? assetType = null,
+        [FromQuery] string? status = null,
+        [FromQuery] DateTime? assignedDateFrom = null,
+        [FromQuery] DateTime? assignedDateTo = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool isDescending = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var query = new GetMyAssetsListQuery(
             assetType,
             status == "Returned" ? true : status == "Assigned" ? false : null,
             assignedDateFrom,
