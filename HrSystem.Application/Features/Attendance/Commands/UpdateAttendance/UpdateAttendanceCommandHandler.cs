@@ -27,7 +27,7 @@ public class UpdateAttendanceCommandHandler : IRequestHandler<UpdateAttendanceCo
 
         attendance.CheckInTime = request.CheckInTime;
         attendance.CheckOutTime = request.CheckOutTime;
-        attendance.Status = request.Status;
+        attendance.StatusId = request.StatusId;
         attendance.DeviceId = request.DeviceId;
         attendance.CheckInDeviceId = request.CheckInDeviceId;
         attendance.CheckOutDeviceId = request.CheckOutDeviceId;
@@ -55,6 +55,7 @@ public class UpdateAttendanceCommandHandler : IRequestHandler<UpdateAttendanceCo
 
         var updatedAttendance = await _context.Attendances
             .Include(a => a.Employee)
+            .Include(a => a.Status)
             .FirstAsync(a => a.Id == attendance.Id, cancellationToken);
 
         var dto = new AttendanceDto
@@ -66,7 +67,9 @@ public class UpdateAttendanceCommandHandler : IRequestHandler<UpdateAttendanceCo
             Date = updatedAttendance.Date,
             CheckInTime = updatedAttendance.CheckInTime,
             CheckOutTime = updatedAttendance.CheckOutTime,
-            Status = updatedAttendance.Status,
+            StatusId = updatedAttendance.StatusId,
+            StatusNameEn = updatedAttendance.Status?.NameEn,
+            StatusNameAr = updatedAttendance.Status?.NameAr,
             DeviceId = updatedAttendance.DeviceId,
             CheckInDeviceId = updatedAttendance.CheckInDeviceId,
             CheckOutDeviceId = updatedAttendance.CheckOutDeviceId,

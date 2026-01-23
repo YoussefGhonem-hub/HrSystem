@@ -1,0 +1,56 @@
+[
+  {
+    "id": "00000000-0000-0000-0008-000000000001",
+    "nameEn": "Active",
+    "nameAr": "نشط",
+    "description": "Actively employed",
+    "colorCode": "#4CAF50",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0008-000000000002",
+    "nameEn": "Probation",
+    "nameAr": "تحت التجربة",
+    "description": "On probation period",
+    "colorCode": "#FF9800",
+    "displayOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0008-000000000003",
+    "nameEn": "On Leave",
+    "nameAr": "في إجازة",
+    "description": "Currently on leave",
+    "colorCode": "#2196F3",
+    "displayOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0008-000000000004",
+    "nameEn": "Suspended",
+    "nameAr": "موقوف",
+    "description": "Suspended from work",
+    "colorCode": "#F44336",
+    "displayOrder": 4,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0008-000000000005",
+    "nameEn": "Terminated",
+    "nameAr": "مفصول",
+    "description": "Employment terminated",
+    "colorCode": "#9E9E9E",
+    "displayOrder": 5,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0008-000000000006",
+    "nameEn": "Resigned",
+    "nameAr": "مستقيل",
+    "description": "Resigned from position",
+    "colorCode": "#757575",
+    "displayOrder": 6,
+    "isActive": true
+  }
+]

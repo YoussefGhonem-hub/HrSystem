@@ -50,6 +50,7 @@ public class UpdateBranchCommandHandler : IRequestHandler<UpdateBranchCommand, E
             .Include(b => b.BranchManager)
             .Include(b => b.Employees)
             .Include(b => b.Departments)
+            .Include(b => b.Country)
             .FirstAsync(b => b.Id == branch.Id, cancellationToken);
 
         var dto = new BranchDto
@@ -59,7 +60,9 @@ public class UpdateBranchCommandHandler : IRequestHandler<UpdateBranchCommand, E
             NameEn = updatedBranch.NameEn,
             Code = updatedBranch.Code,
             Description = updatedBranch.Description,
-            Country = updatedBranch.Country,
+            CountryId = updatedBranch.CountryId,
+            CountryNameEn = updatedBranch.Country?.NameEn,
+            CountryNameAr = updatedBranch.Country?.NameAr,
             City = updatedBranch.City,
             AddressAr = updatedBranch.AddressAr,
             AddressEn = updatedBranch.AddressEn,

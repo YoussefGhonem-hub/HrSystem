@@ -1,0 +1,47 @@
+[
+  {
+    "id": "00000000-0000-0000-0009-000000000001",
+    "nameEn": "Draft",
+    "nameAr": "مسودة",
+    "description": "Payroll is being prepared",
+    "colorCode": "#9E9E9E",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0009-000000000002",
+    "nameEn": "Pending",
+    "nameAr": "قيد الانتظار",
+    "description": "Payroll pending approval",
+    "colorCode": "#FF9800",
+    "displayOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0009-000000000003",
+    "nameEn": "Approved",
+    "nameAr": "موافق عليه",
+    "description": "Payroll approved",
+    "colorCode": "#2196F3",
+    "displayOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0009-000000000004",
+    "nameEn": "Processed",
+    "nameAr": "تمت المعالجة",
+    "description": "Payroll has been processed",
+    "colorCode": "#4CAF50",
+    "displayOrder": 4,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0009-000000000005",
+    "nameEn": "Paid",
+    "nameAr": "مدفوع",
+    "description": "Payroll has been paid",
+    "colorCode": "#8BC34A",
+    "displayOrder": 5,
+    "isActive": true
+  }
+]

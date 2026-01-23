@@ -19,6 +19,7 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
     {
         var query = _context.Attendances
             .Include(a => a.Employee)
+            .Include(a => a.Status)
             .AsQueryable();
 
         // Apply filters
@@ -26,7 +27,7 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
             request.EmployeeId,
             request.FromDate,
             request.ToDate,
-            request.Status,
+            request.StatusId,
             request.IsLate,
             request.IsOvertime);
 
@@ -50,7 +51,9 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
             Date = a.Date,
             CheckInTime = a.CheckInTime,
             CheckOutTime = a.CheckOutTime,
-            Status = a.Status,
+            StatusId = a.StatusId,
+            StatusNameEn = a.Status?.NameEn,
+            StatusNameAr = a.Status?.NameAr,
             WorkedHours = a.WorkedHours,
             IsLate = a.IsLate,
             IsEarlyLeave = a.IsEarlyLeave,

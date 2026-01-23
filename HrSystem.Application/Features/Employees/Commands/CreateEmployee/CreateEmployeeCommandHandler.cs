@@ -1,9 +1,9 @@
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Domain.Entities.Employee;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,8 +34,8 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             NationalId = request.NationalId,
             PassportNumber = request.PassportNumber,
             DateOfBirth = request.DateOfBirth,
-            Gender = request.Gender,
-            MaritalStatus = request.MaritalStatus,
+            GenderId = request.GenderId,
+            MaritalStatusId = request.MaritalStatusId,
             Email = request.Email,
             PhoneNumber = request.PhoneNumber,
             MobileNumber = request.MobileNumber,
@@ -47,11 +47,11 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             JobTitleId = request.JobTitleId,
             DirectManagerId = request.DirectManagerId,
             BranchId = request.BranchId,
-            ContractType = request.ContractType,
+            ContractTypeId = request.ContractTypeId,
             HiringDate = request.HiringDate,
             ProbationPeriodMonths = request.ProbationPeriodMonths,
             ProbationEndDate = probationEndDate,
-            Status = EmployeeStatus.Active,
+            StatusId = EmployeeStatusIds.Active,
             TenantId = Guid.NewGuid() // Should come from CurrentUser.OrganizationId
         };
 
@@ -64,6 +64,10 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             .Include(e => e.JobTitle)
             .Include(e => e.DirectManager)
             .Include(e => e.Branch)
+            .Include(e => e.Gender)
+            .Include(e => e.MaritalStatus)
+            .Include(e => e.ContractType)
+            .Include(e => e.Status)
             .FirstAsync(e => e.Id == employee.Id, cancellationToken);
 
         var dto = new EmployeeDto
@@ -79,8 +83,12 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             NationalId = createdEmployee.NationalId,
             PassportNumber = createdEmployee.PassportNumber,
             DateOfBirth = createdEmployee.DateOfBirth,
-            Gender = createdEmployee.Gender,
-            MaritalStatus = createdEmployee.MaritalStatus,
+            GenderId = createdEmployee.GenderId,
+            GenderNameEn = createdEmployee.Gender?.NameEn,
+            GenderNameAr = createdEmployee.Gender?.NameAr,
+            MaritalStatusId = createdEmployee.MaritalStatusId,
+            MaritalStatusNameEn = createdEmployee.MaritalStatus?.NameEn,
+            MaritalStatusNameAr = createdEmployee.MaritalStatus?.NameAr,
             Email = createdEmployee.Email,
             PhoneNumber = createdEmployee.PhoneNumber,
             MobileNumber = createdEmployee.MobileNumber,
@@ -98,11 +106,15 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             DirectManagerName = createdEmployee.DirectManager?.FullNameEn,
             BranchId = createdEmployee.BranchId,
             BranchName = createdEmployee.Branch?.NameEn,
-            ContractType = createdEmployee.ContractType,
+            ContractTypeId = createdEmployee.ContractTypeId,
+            ContractTypeNameEn = createdEmployee.ContractType?.NameEn,
+            ContractTypeNameAr = createdEmployee.ContractType?.NameAr,
             HiringDate = createdEmployee.HiringDate,
             ProbationPeriodMonths = createdEmployee.ProbationPeriodMonths,
             ProbationEndDate = createdEmployee.ProbationEndDate,
-            Status = createdEmployee.Status,
+            StatusId = createdEmployee.StatusId,
+            StatusNameEn = createdEmployee.Status?.NameEn,
+            StatusNameAr = createdEmployee.Status?.NameAr,
             CreatedDate = createdEmployee.CreatedDate.DateTime
         };
 

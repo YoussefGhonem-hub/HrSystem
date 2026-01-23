@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using Mapster;
@@ -13,7 +12,7 @@ public record GetBranchesListQuery(
     int PageNumber = 1,
     int PageSize = 10,
     string? SearchTerm = null,
-    Country? Country = null,
+    Guid? CountryId = null,
     bool? IsActive = null,
     string? SortBy = null,
     bool SortDescending = false
@@ -33,7 +32,7 @@ public class GetBranchesListQueryHandler : IRequestHandler<GetBranchesListQuery,
             .Include(b => b.Employees)
             .AsQueryable();
 
-        query = query.ApplyFilters(request.SearchTerm, request.Country, request.IsActive);
+        query = query.ApplyFilters(request.SearchTerm, request.CountryId, request.IsActive);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

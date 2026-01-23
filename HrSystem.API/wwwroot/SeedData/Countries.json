@@ -1,0 +1,112 @@
+[
+  {
+    "Id": "0000000a-0000-0000-0000-000000000001",
+    "NameEn": "Egypt",
+    "NameAr": "مصر",
+    "Code": "EG",
+    "Currency": "EGP",
+    "TimeZone": "Egypt Standard Time",
+    "PhoneCode": "+20",
+    "DisplayOrder": 1,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000002",
+    "NameEn": "Saudi Arabia",
+    "NameAr": "المملكة العربية السعودية",
+    "Code": "SA",
+    "Currency": "SAR",
+    "TimeZone": "Arab Standard Time",
+    "PhoneCode": "+966",
+    "DisplayOrder": 2,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000003",
+    "NameEn": "United Arab Emirates",
+    "NameAr": "الإمارات العربية المتحدة",
+    "Code": "AE",
+    "Currency": "AED",
+    "TimeZone": "Arabian Standard Time",
+    "PhoneCode": "+971",
+    "DisplayOrder": 3,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000004",
+    "NameEn": "Kuwait",
+    "NameAr": "الكويت",
+    "Code": "KW",
+    "Currency": "KWD",
+    "TimeZone": "Arab Standard Time",
+    "PhoneCode": "+965",
+    "DisplayOrder": 4,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000005",
+    "NameEn": "Bahrain",
+    "NameAr": "البحرين",
+    "Code": "BH",
+    "Currency": "BHD",
+    "TimeZone": "Arab Standard Time",
+    "PhoneCode": "+973",
+    "DisplayOrder": 5,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000006",
+    "NameEn": "Oman",
+    "NameAr": "عمان",
+    "Code": "OM",
+    "Currency": "OMR",
+    "TimeZone": "Arabian Standard Time",
+    "PhoneCode": "+968",
+    "DisplayOrder": 6,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000007",
+    "NameEn": "Qatar",
+    "NameAr": "قطر",
+    "Code": "QA",
+    "Currency": "QAR",
+    "TimeZone": "Arab Standard Time",
+    "PhoneCode": "+974",
+    "DisplayOrder": 7,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000008",
+    "NameEn": "Jordan",
+    "NameAr": "الأردن",
+    "Code": "JO",
+    "Currency": "JOD",
+    "TimeZone": "Jordan Standard Time",
+    "PhoneCode": "+962",
+    "DisplayOrder": 8,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000009",
+    "NameEn": "Lebanon",
+    "NameAr": "لبنان",
+    "Code": "LB",
+    "Currency": "LBP",
+    "TimeZone": "Middle East Standard Time",
+    "PhoneCode": "+961",
+    "DisplayOrder": 9,
+    "IsActive": true
+  },
+  {
+    "Id": "0000000a-0000-0000-0000-000000000010",
+    "NameEn": "Iraq",
+    "NameAr": "العراق",
+    "Code": "IQ",
+    "Currency": "IQD",
+    "TimeZone": "Arabic Standard Time",
+    "PhoneCode": "+964",
+    "DisplayOrder": 10,
+    "IsActive": true
+  }
+]

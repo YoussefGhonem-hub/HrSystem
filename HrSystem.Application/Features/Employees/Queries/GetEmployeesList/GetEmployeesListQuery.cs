@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
-using HrSystem.Domain.Enums;
 using HrSystem.Shared.Common;
 using MediatR;
 
@@ -10,7 +9,7 @@ public record GetEmployeesListQuery(
     int PageNumber = 1,
     int PageSize = 10,
     string? SearchTerm = null,
-    EmployeeStatus? Status = null,
+    Guid? StatusId = null,
     Guid? DepartmentId = null,
     Guid? BranchId = null,
     Guid? JobTitleId = null,

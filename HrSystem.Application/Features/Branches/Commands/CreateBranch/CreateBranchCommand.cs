@@ -1,7 +1,6 @@
 using ErrorOr;
 using HrSystem.Application.Features.Branches.Queries.GetBranchById;
 using HrSystem.Domain.Entities.Organization;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -14,7 +13,7 @@ public record CreateBranchCommand(
     string NameEn,
     string Code,
     string? Description,
-    Country Country,
+    Guid CountryId,
     string? City,
     string? AddressAr,
     string? AddressEn,
@@ -48,7 +47,7 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, E
             NameEn = request.NameEn,
             Code = request.Code,
             Description = request.Description,
-            Country = request.Country,
+            CountryId = request.CountryId,
             City = request.City,
             AddressAr = request.AddressAr,
             AddressEn = request.AddressEn,
@@ -76,6 +75,7 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, E
             .Include(b => b.BranchManager)
             .Include(b => b.Employees)
             .Include(b => b.Departments)
+            .Include(b => b.Country)
             .FirstAsync(b => b.Id == branch.Id, cancellationToken);
 
         var dto = new BranchDto
@@ -85,7 +85,9 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, E
             NameEn = createdBranch.NameEn,
             Code = createdBranch.Code,
             Description = createdBranch.Description,
-            Country = createdBranch.Country,
+            CountryId = createdBranch.CountryId,
+            CountryNameEn = createdBranch.Country?.NameEn,
+            CountryNameAr = createdBranch.Country?.NameAr,
             City = createdBranch.City,
             AddressAr = createdBranch.AddressAr,
             AddressEn = createdBranch.AddressEn,

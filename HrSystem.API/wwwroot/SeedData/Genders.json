@@ -1,0 +1,16 @@
+[
+  {
+    "id": "00000000-0000-0000-0006-000000000001",
+    "nameEn": "Male",
+    "nameAr": "ذكر",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0006-000000000002",
+    "nameEn": "Female",
+    "nameAr": "أنثى",
+    "displayOrder": 2,
+    "isActive": true
+  }
+]

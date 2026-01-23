@@ -33,7 +33,7 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         employee.FirstNameEn = request.FirstNameEn;
         employee.LastNameEn = request.LastNameEn;
         employee.PassportNumber = request.PassportNumber;
-        employee.MaritalStatus = request.MaritalStatus;
+        employee.MaritalStatusId = request.MaritalStatusId;
         employee.Email = request.Email;
         employee.PhoneNumber = request.PhoneNumber;
         employee.MobileNumber = request.MobileNumber;
@@ -45,8 +45,8 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         employee.JobTitleId = request.JobTitleId;
         employee.DirectManagerId = request.DirectManagerId;
         employee.BranchId = request.BranchId;
-        employee.ContractType = request.ContractType;
-        employee.Status = request.Status;
+        employee.ContractTypeId = request.ContractTypeId;
+        employee.StatusId = request.StatusId;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -56,6 +56,10 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             .Include(e => e.JobTitle)
             .Include(e => e.DirectManager)
             .Include(e => e.Branch)
+            .Include(e => e.Gender)
+            .Include(e => e.MaritalStatus)
+            .Include(e => e.ContractType)
+            .Include(e => e.Status)
             .FirstAsync(e => e.Id == employee.Id, cancellationToken);
 
         var dto = new EmployeeDto
@@ -71,8 +75,12 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             NationalId = updatedEmployee.NationalId,
             PassportNumber = updatedEmployee.PassportNumber,
             DateOfBirth = updatedEmployee.DateOfBirth,
-            Gender = updatedEmployee.Gender,
-            MaritalStatus = updatedEmployee.MaritalStatus,
+            GenderId = updatedEmployee.GenderId,
+            GenderNameEn = updatedEmployee.Gender?.NameEn,
+            GenderNameAr = updatedEmployee.Gender?.NameAr,
+            MaritalStatusId = updatedEmployee.MaritalStatusId,
+            MaritalStatusNameEn = updatedEmployee.MaritalStatus?.NameEn,
+            MaritalStatusNameAr = updatedEmployee.MaritalStatus?.NameAr,
             Email = updatedEmployee.Email,
             PhoneNumber = updatedEmployee.PhoneNumber,
             MobileNumber = updatedEmployee.MobileNumber,
@@ -90,11 +98,15 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             DirectManagerName = updatedEmployee.DirectManager?.FullNameEn,
             BranchId = updatedEmployee.BranchId,
             BranchName = updatedEmployee.Branch?.NameEn,
-            ContractType = updatedEmployee.ContractType,
+            ContractTypeId = updatedEmployee.ContractTypeId,
+            ContractTypeNameEn = updatedEmployee.ContractType?.NameEn,
+            ContractTypeNameAr = updatedEmployee.ContractType?.NameAr,
             HiringDate = updatedEmployee.HiringDate,
             ProbationPeriodMonths = updatedEmployee.ProbationPeriodMonths,
             ProbationEndDate = updatedEmployee.ProbationEndDate,
-            Status = updatedEmployee.Status,
+            StatusId = updatedEmployee.StatusId,
+            StatusNameEn = updatedEmployee.Status?.NameEn,
+            StatusNameAr = updatedEmployee.Status?.NameAr,
             CreatedDate = updatedEmployee.CreatedDate.DateTime
         };
 

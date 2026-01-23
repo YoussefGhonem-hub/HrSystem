@@ -30,7 +30,7 @@ public class GetEmployeesListQueryHandler : IRequestHandler<GetEmployeesListQuer
         // Apply filters
         query = query.ApplyFilters(
             request.SearchTerm,
-            request.Status,
+            request.StatusId,
             request.DepartmentId,
             request.BranchId,
             request.JobTitleId,

@@ -49,6 +49,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<HrSystem.Domain.Entities.Leave.LeaveStatus> LeaveStatuses => Set<HrSystem.Domain.Entities.Leave.LeaveStatus>();
     public DbSet<HrSystem.Domain.Entities.Leave.LeaveType> LeaveTypes => Set<HrSystem.Domain.Entities.Leave.LeaveType>();
 
+    // Lookup Tables
+    public DbSet<HrSystem.Domain.Entities.Attendance.AttendanceStatus> AttendanceStatuses => Set<HrSystem.Domain.Entities.Attendance.AttendanceStatus>();
+    public DbSet<HrSystem.Domain.Entities.Employee.ContractType> ContractTypes => Set<HrSystem.Domain.Entities.Employee.ContractType>();
+    public DbSet<HrSystem.Domain.Entities.Employee.Gender> Genders => Set<HrSystem.Domain.Entities.Employee.Gender>();
+    public DbSet<HrSystem.Domain.Entities.Employee.MaritalStatus> MaritalStatuses => Set<HrSystem.Domain.Entities.Employee.MaritalStatus>();
+    public DbSet<HrSystem.Domain.Entities.Employee.EmployeeStatus> EmployeeStatuses => Set<HrSystem.Domain.Entities.Employee.EmployeeStatus>();
+    public DbSet<HrSystem.Domain.Entities.Payroll.PayrollStatus> PayrollStatuses => Set<HrSystem.Domain.Entities.Payroll.PayrollStatus>();
+    public DbSet<HrSystem.Domain.Entities.Organization.Country> Countries => Set<HrSystem.Domain.Entities.Organization.Country>();
+
     // Performance Management
     public DbSet<HrSystem.Domain.Entities.Performance.PerformanceReview> PerformanceReviews => Set<HrSystem.Domain.Entities.Performance.PerformanceReview>();
     public DbSet<HrSystem.Domain.Entities.Performance.ReviewType> ReviewTypes => Set<HrSystem.Domain.Entities.Performance.ReviewType>();

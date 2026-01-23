@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
-using HrSystem.Domain.Enums;
 using HrSystem.Shared.Common;
 using MediatR;
 
@@ -13,7 +12,7 @@ public record UpdateEmployeeCommand(
     string FirstNameEn,
     string LastNameEn,
     string? PassportNumber,
-    MaritalStatus MaritalStatus,
+    Guid MaritalStatusId,
     string Email,
     string PhoneNumber,
     string? MobileNumber,
@@ -25,6 +24,6 @@ public record UpdateEmployeeCommand(
     Guid JobTitleId,
     Guid? DirectManagerId,
     Guid? BranchId,
-    ContractType ContractType,
-    EmployeeStatus Status
+    Guid ContractTypeId,
+    Guid StatusId
 ) : IRequest<ErrorOr<GenericResponse<EmployeeDto>>>;

@@ -9,8 +9,8 @@ public class UpdateAttendanceCommandValidator : AbstractValidator<UpdateAttendan
         RuleFor(x => x.Id)
             .NotEmpty().WithMessage("Attendance ID is required");
 
-        RuleFor(x => x.Status)
-            .IsInEnum().WithMessage("Invalid attendance status");
+        RuleFor(x => x.StatusId)
+            .NotEmpty().WithMessage("Status is required");
 
         RuleFor(x => x.CheckOutTime)
             .GreaterThan(x => x.CheckInTime)

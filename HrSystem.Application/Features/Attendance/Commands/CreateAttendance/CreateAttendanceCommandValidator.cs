@@ -21,8 +21,8 @@ public class CreateAttendanceCommandValidator : AbstractValidator<CreateAttendan
             .LessThanOrEqualTo(DateTime.Today).WithMessage("Date cannot be in the future")
             .MustAsync(BeUniqueAttendance).WithMessage("Attendance record already exists for this employee on this date");
 
-        RuleFor(x => x.Status)
-            .IsInEnum().WithMessage("Invalid attendance status");
+        RuleFor(x => x.StatusId)
+            .NotEmpty().WithMessage("Status is required");
 
         RuleFor(x => x.CheckOutTime)
             .GreaterThan(x => x.CheckInTime)

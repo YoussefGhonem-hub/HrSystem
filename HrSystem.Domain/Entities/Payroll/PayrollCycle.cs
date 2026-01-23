@@ -1,5 +1,4 @@
 using HrSystem.Domain.Common;
-using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Payroll;
 
@@ -18,7 +17,7 @@ public class PayrollCycle : BaseAuditableEntity
     public DateTime PeriodStartDate { get; set; }
     public DateTime PeriodEndDate { get; set; }
     public DateTime? PaymentDate { get; set; }
-    public PayrollStatus Status { get; set; }
+    public Guid StatusId { get; set; }
     public decimal TotalGrossSalary { get; set; }
     public decimal TotalNetSalary { get; set; }
     public decimal TotalDeductions { get; set; }
@@ -28,4 +27,5 @@ public class PayrollCycle : BaseAuditableEntity
 
     // Navigation Properties
     public virtual ICollection<Payslip> Payslips { get; set; } = new List<Payslip>();
+    public virtual PayrollStatus Status { get; set; } = null!;
 }

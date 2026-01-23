@@ -1,0 +1,30 @@
+[
+  {
+    "id": "00000000-0000-0000-0007-000000000001",
+    "nameEn": "Single",
+    "nameAr": "أعزب",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0007-000000000002",
+    "nameEn": "Married",
+    "nameAr": "متزوج",
+    "displayOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0007-000000000003",
+    "nameEn": "Divorced",
+    "nameAr": "مطلق",
+    "displayOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0007-000000000004",
+    "nameEn": "Widowed",
+    "nameAr": "أرمل",
+    "displayOrder": 4,
+    "isActive": true
+  }
+]

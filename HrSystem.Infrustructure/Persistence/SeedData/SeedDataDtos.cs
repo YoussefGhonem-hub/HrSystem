@@ -104,7 +104,7 @@ public class SeedDataDtos
         public string NameEn { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public int Country { get; set; }
+        public string CountryId { get; set; } = string.Empty;
         public string? City { get; set; }
         public string? AddressAr { get; set; }
         public string? AddressEn { get; set; }
@@ -132,8 +132,8 @@ public class SeedDataDtos
         public string NationalId { get; set; } = string.Empty;
         public string? PassportNumber { get; set; }
         public string DateOfBirth { get; set; } = string.Empty;
-        public int Gender { get; set; }
-        public int MaritalStatus { get; set; }
+        public string GenderId { get; set; } = string.Empty;
+        public string MaritalStatusId { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public string? MobileNumber { get; set; }
@@ -144,8 +144,8 @@ public class SeedDataDtos
         public string DepartmentCode { get; set; } = string.Empty;
         public string JobTitleCode { get; set; } = string.Empty;
         public string BranchCode { get; set; } = string.Empty;
-        public int ContractType { get; set; }
-        public int Status { get; set; }
+        public string ContractTypeId { get; set; } = string.Empty;
+        public string StatusId { get; set; } = string.Empty;
         public string HiringDate { get; set; } = string.Empty;
         public int ProbationPeriodMonths { get; set; }
         public string? DirectManagerCode { get; set; }
@@ -280,6 +280,80 @@ public class SeedDataDtos
         public string? DescriptionAr { get; set; }
         public string? DescriptionEn { get; set; }
         public string? ColorCode { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class AttendanceStatusSeedData
+    {
+        public Guid Id { get; set; }
+        public string NameEn { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ColorCode { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class ContractTypeSeedData
+    {
+        public Guid Id { get; set; }
+        public string NameEn { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class GenderSeedData
+    {
+        public Guid Id { get; set; }
+        public string NameEn { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class MaritalStatusSeedData
+    {
+        public Guid Id { get; set; }
+        public string NameEn { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class EmployeeStatusSeedData
+    {
+        public Guid Id { get; set; }
+        public string NameEn { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ColorCode { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class PayrollStatusSeedData
+    {
+        public Guid Id { get; set; }
+        public string NameEn { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ColorCode { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class CountrySeedData
+    {
+        public Guid Id { get; set; }
+        public string NameEn { get; set; } = string.Empty;
+        public string NameAr { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
+        public string? Currency { get; set; }
+        public string? TimeZone { get; set; }
+        public string? PhoneCode { get; set; }
         public int DisplayOrder { get; set; }
         public bool IsActive { get; set; }
     }

@@ -18,6 +18,7 @@ public class GetAttendanceByIdQueryHandler : IRequestHandler<GetAttendanceByIdQu
     {
         var attendance = await _context.Attendances
             .Include(a => a.Employee)
+            .Include(a => a.Status)
             .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken);
 
         if (attendance == null)
@@ -34,7 +35,9 @@ public class GetAttendanceByIdQueryHandler : IRequestHandler<GetAttendanceByIdQu
             Date = attendance.Date,
             CheckInTime = attendance.CheckInTime,
             CheckOutTime = attendance.CheckOutTime,
-            Status = attendance.Status,
+            StatusId = attendance.StatusId,
+            StatusNameEn = attendance.Status?.NameEn,
+            StatusNameAr = attendance.Status?.NameAr,
             DeviceId = attendance.DeviceId,
             CheckInDeviceId = attendance.CheckInDeviceId,
             CheckOutDeviceId = attendance.CheckOutDeviceId,

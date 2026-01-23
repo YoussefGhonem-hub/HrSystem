@@ -24,8 +24,8 @@ public class Employee : BaseAuditableEntity
     public string NationalId { get; set; } = string.Empty;
     public string? PassportNumber { get; set; }
     public DateTime DateOfBirth { get; set; }
-    public Gender Gender { get; set; }
-    public MaritalStatus MaritalStatus { get; set; }
+    public Guid GenderId { get; set; }
+    public Guid MaritalStatusId { get; set; }
     
     // Contact Information
     public string Email { get; set; } = string.Empty;
@@ -41,8 +41,8 @@ public class Employee : BaseAuditableEntity
     public Guid JobTitleId { get; set; }
     public Guid? DirectManagerId { get; set; }
     public Guid? BranchId { get; set; } // Branch assignment for multi-branch organizations
-    public ContractType ContractType { get; set; }
-    public EmployeeStatus Status { get; set; }
+    public Guid ContractTypeId { get; set; }
+    public Guid StatusId { get; set; }
     
     public DateTime HiringDate { get; set; }
     public DateTime? ProbationEndDate { get; set; }
@@ -55,6 +55,10 @@ public class Employee : BaseAuditableEntity
     public string? ProfilePictureUrl { get; set; }
     
     // Navigation Properties
+    public virtual Gender Gender { get; set; } = null!;
+    public virtual MaritalStatus MaritalStatus { get; set; } = null!;
+    public virtual ContractType ContractType { get; set; } = null!;
+    public virtual EmployeeStatus Status { get; set; } = null!;
     public virtual Department Department { get; set; } = null!;
     public virtual JobTitle JobTitle { get; set; } = null!;
     public virtual Employee? DirectManager { get; set; }

@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendanceById;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -13,7 +12,7 @@ public record CreateAttendanceCommand(
     DateTime Date,
     TimeSpan? CheckInTime,
     TimeSpan? CheckOutTime,
-    AttendanceStatus Status,
+    Guid StatusId,
     string? DeviceId,
     string? CheckInDeviceId,
     string? CheckOutDeviceId,
@@ -43,7 +42,7 @@ public class CreateAttendanceCommandHandler : IRequestHandler<CreateAttendanceCo
             Date = request.Date.Date, // Store only date part
             CheckInTime = request.CheckInTime,
             CheckOutTime = request.CheckOutTime,
-            Status = request.Status,
+            StatusId = request.StatusId,
             DeviceId = request.DeviceId,
             CheckInDeviceId = request.CheckInDeviceId,
             CheckOutDeviceId = request.CheckOutDeviceId,
@@ -57,6 +56,7 @@ public class CreateAttendanceCommandHandler : IRequestHandler<CreateAttendanceCo
 
         var createdAttendance = await _context.Attendances
             .Include(a => a.Employee)
+            .Include(a => a.Status)
             .FirstAsync(a => a.Id == attendance.Id, cancellationToken);
 
         var dto = new AttendanceDto
@@ -68,7 +68,9 @@ public class CreateAttendanceCommandHandler : IRequestHandler<CreateAttendanceCo
             Date = createdAttendance.Date,
             CheckInTime = createdAttendance.CheckInTime,
             CheckOutTime = createdAttendance.CheckOutTime,
-            Status = createdAttendance.Status,
+            StatusId = createdAttendance.StatusId,
+            StatusNameEn = createdAttendance.Status?.NameEn,
+            StatusNameAr = createdAttendance.Status?.NameAr,
             DeviceId = createdAttendance.DeviceId,
             CheckInDeviceId = createdAttendance.CheckInDeviceId,
             CheckOutDeviceId = createdAttendance.CheckOutDeviceId,

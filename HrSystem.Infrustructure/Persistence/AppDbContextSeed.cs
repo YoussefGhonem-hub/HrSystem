@@ -5,7 +5,6 @@ using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Payroll;
 using HrSystem.Domain.Entities.Performance;
-using HrSystem.Domain.Enums;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -41,9 +40,15 @@ public static class AppDbContextSeed
             await SeedRolesAsync(roleManager, seedDataPath);
             await SeedSubscriptionPlansAsync(context, seedDataPath);
             await SeedOrganizationAsync(context, seedDataPath);
+            await SeedCountriesAsync(context, seedDataPath);
             await SeedBranchesAsync(context, seedDataPath);
             await SeedDepartmentsAsync(context, seedDataPath);
             await SeedJobTitlesAsync(context, seedDataPath);
+            await SeedAttendanceStatusesAsync(context, seedDataPath);
+            await SeedContractTypesAsync(context, seedDataPath);
+            await SeedGendersAsync(context, seedDataPath);
+            await SeedMaritalStatusesAsync(context, seedDataPath);
+            await SeedEmployeeStatusesAsync(context, seedDataPath);
             await SeedEmployeesAsync(context, userManager, seedDataPath);
             await SeedLeaveStatusesAsync(context, seedDataPath);
             await SeedLeaveTypesAsync(context, seedDataPath);
@@ -54,6 +59,7 @@ public static class AppDbContextSeed
             await SeedTaxBracketsAsync(context, seedDataPath);
             await SeedPublicHolidaysAsync(context, seedDataPath);
             await SeedWorkSchedulesAsync(context, seedDataPath);
+            await SeedPayrollStatusesAsync(context, seedDataPath);
             await SeedReviewTypesAsync(context, seedDataPath);
             await SeedReviewStatusesAsync(context, seedDataPath);
             await SeedGoalStatusesAsync(context, seedDataPath);
@@ -224,7 +230,7 @@ public static class AppDbContextSeed
                 NameEn = branchData.NameEn,
                 Code = branchData.Code,
                 Description = branchData.Description,
-                Country = (Country)branchData.Country,
+                CountryId = Guid.Parse(branchData.CountryId),
                 City = branchData.City,
                 AddressAr = branchData.AddressAr,
                 AddressEn = branchData.AddressEn,
@@ -375,8 +381,8 @@ public static class AppDbContextSeed
                 NationalId = empData.NationalId,
                 PassportNumber = empData.PassportNumber,
                 DateOfBirth = DateTime.Parse(empData.DateOfBirth),
-                Gender = (Gender)empData.Gender,
-                MaritalStatus = (MaritalStatus)empData.MaritalStatus,
+                GenderId = Guid.Parse(empData.GenderId),
+                MaritalStatusId = Guid.Parse(empData.MaritalStatusId),
                 Email = empData.Email,
                 PhoneNumber = empData.PhoneNumber,
                 MobileNumber = empData.MobileNumber,
@@ -387,8 +393,8 @@ public static class AppDbContextSeed
                 DepartmentId = department.Id,
                 JobTitleId = jobTitle.Id,
                 BranchId = branch.Id,
-                ContractType = (ContractType)empData.ContractType,
-                Status = (EmployeeStatus)empData.Status,
+                ContractTypeId = Guid.Parse(empData.ContractTypeId),
+                StatusId = Guid.Parse(empData.StatusId),
                 HiringDate = DateTime.Parse(empData.HiringDate),
                 ProbationPeriodMonths = empData.ProbationPeriodMonths,
                 TenantId = organization.Id,
@@ -1011,5 +1017,233 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {invoiceStatuses.Count} invoice statuses");
+    }
+
+    private static async Task SeedAttendanceStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.AttendanceStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "AttendanceStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var statuses = JsonSerializer.Deserialize<List<AttendanceStatusSeedData>>(json, _jsonOptions);
+
+        if (statuses == null) return;
+
+        foreach (var statusData in statuses)
+        {
+            var status = new HrSystem.Domain.Entities.Attendance.AttendanceStatus
+            {
+                Id = statusData.Id,
+                NameEn = statusData.NameEn,
+                NameAr = statusData.NameAr,
+                Description = statusData.Description,
+                ColorCode = statusData.ColorCode,
+                DisplayOrder = statusData.DisplayOrder,
+                IsActive = statusData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.AttendanceStatuses.AddAsync(status);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {statuses.Count} attendance statuses");
+    }
+
+    private static async Task SeedContractTypesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.ContractTypes.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "ContractTypes.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var types = JsonSerializer.Deserialize<List<ContractTypeSeedData>>(json, _jsonOptions);
+
+        if (types == null) return;
+
+        foreach (var typeData in types)
+        {
+            var type = new HrSystem.Domain.Entities.Employee.ContractType
+            {
+                Id = typeData.Id,
+                NameEn = typeData.NameEn,
+                NameAr = typeData.NameAr,
+                Description = typeData.Description,
+                DisplayOrder = typeData.DisplayOrder,
+                IsActive = typeData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.ContractTypes.AddAsync(type);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {types.Count} contract types");
+    }
+
+    private static async Task SeedGendersAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.Genders.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "Genders.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var genders = JsonSerializer.Deserialize<List<GenderSeedData>>(json, _jsonOptions);
+
+        if (genders == null) return;
+
+        foreach (var genderData in genders)
+        {
+            var gender = new HrSystem.Domain.Entities.Employee.Gender
+            {
+                Id = genderData.Id,
+                NameEn = genderData.NameEn,
+                NameAr = genderData.NameAr,
+                DisplayOrder = genderData.DisplayOrder,
+                IsActive = genderData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.Genders.AddAsync(gender);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {genders.Count} genders");
+    }
+
+    private static async Task SeedMaritalStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.MaritalStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "MaritalStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var statuses = JsonSerializer.Deserialize<List<MaritalStatusSeedData>>(json, _jsonOptions);
+
+        if (statuses == null) return;
+
+        foreach (var statusData in statuses)
+        {
+            var status = new HrSystem.Domain.Entities.Employee.MaritalStatus
+            {
+                Id = statusData.Id,
+                NameEn = statusData.NameEn,
+                NameAr = statusData.NameAr,
+                DisplayOrder = statusData.DisplayOrder,
+                IsActive = statusData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.MaritalStatuses.AddAsync(status);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {statuses.Count} marital statuses");
+    }
+
+    private static async Task SeedEmployeeStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.EmployeeStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "EmployeeStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var statuses = JsonSerializer.Deserialize<List<EmployeeStatusSeedData>>(json, _jsonOptions);
+
+        if (statuses == null) return;
+
+        foreach (var statusData in statuses)
+        {
+            var status = new HrSystem.Domain.Entities.Employee.EmployeeStatus
+            {
+                Id = statusData.Id,
+                NameEn = statusData.NameEn,
+                NameAr = statusData.NameAr,
+                Description = statusData.Description,
+                ColorCode = statusData.ColorCode,
+                DisplayOrder = statusData.DisplayOrder,
+                IsActive = statusData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.EmployeeStatuses.AddAsync(status);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {statuses.Count} employee statuses");
+    }
+
+    private static async Task SeedPayrollStatusesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.PayrollStatuses.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "PayrollStatuses.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var statuses = JsonSerializer.Deserialize<List<PayrollStatusSeedData>>(json, _jsonOptions);
+
+        if (statuses == null) return;
+
+        foreach (var statusData in statuses)
+        {
+            var status = new HrSystem.Domain.Entities.Payroll.PayrollStatus
+            {
+                Id = statusData.Id,
+                NameEn = statusData.NameEn,
+                NameAr = statusData.NameAr,
+                Description = statusData.Description,
+                ColorCode = statusData.ColorCode,
+                DisplayOrder = statusData.DisplayOrder,
+                IsActive = statusData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.PayrollStatuses.AddAsync(status);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {statuses.Count} payroll statuses");
+    }
+
+    private static async Task SeedCountriesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        if (await context.Countries.AnyAsync()) return;
+
+        var filePath = Path.Combine(seedDataPath, "Countries.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var countries = JsonSerializer.Deserialize<List<CountrySeedData>>(json, _jsonOptions);
+
+        if (countries == null) return;
+
+        foreach (var countryData in countries)
+        {
+            var country = new HrSystem.Domain.Entities.Organization.Country
+            {
+                Id = countryData.Id,
+                NameEn = countryData.NameEn,
+                NameAr = countryData.NameAr,
+                Code = countryData.Code,
+                Currency = countryData.Currency,
+                TimeZone = countryData.TimeZone,
+                PhoneCode = countryData.PhoneCode,
+                DisplayOrder = countryData.DisplayOrder,
+                IsActive = countryData.IsActive,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await context.Countries.AddAsync(country);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {countries.Count} countries");
     }
 }

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "00000000-0000-0000-0005-000000000001",
+    "nameEn": "Permanent",
+    "nameAr": "دائم",
+    "description": "Full-time permanent employment",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0005-000000000002",
+    "nameEn": "Temporary",
+    "nameAr": "مؤقت",
+    "description": "Temporary employment",
+    "displayOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0005-000000000003",
+    "nameEn": "Part Time",
+    "nameAr": "دوام جزئي",
+    "description": "Part-time employment",
+    "displayOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0005-000000000004",
+    "nameEn": "Contract",
+    "nameAr": "تعاقد",
+    "description": "Contract-based employment",
+    "displayOrder": 4,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0005-000000000005",
+    "nameEn": "Internship",
+    "nameAr": "تدريب",
+    "description": "Internship program",
+    "displayOrder": 5,
+    "isActive": true
+  }
+]

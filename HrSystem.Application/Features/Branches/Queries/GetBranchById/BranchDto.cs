@@ -1,5 +1,3 @@
-using HrSystem.Domain.Enums;
-
 namespace HrSystem.Application.Features.Branches.Queries.GetBranchById;
 
 public record BranchDto
@@ -9,7 +7,9 @@ public record BranchDto
     public string NameEn { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public Country Country { get; init; }
+    public Guid CountryId { get; init; }
+    public string? CountryNameEn { get; init; }
+    public string? CountryNameAr { get; init; }
     public string? City { get; init; }
     public string? AddressAr { get; init; }
     public string? AddressEn { get; init; }

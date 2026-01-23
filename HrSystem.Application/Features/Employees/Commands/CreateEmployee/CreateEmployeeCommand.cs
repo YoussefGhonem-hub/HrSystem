@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
-using HrSystem.Domain.Enums;
 using HrSystem.Shared.Common;
 using MediatR;
 
@@ -15,8 +14,8 @@ public record CreateEmployeeCommand(
     string NationalId,
     string? PassportNumber,
     DateTime DateOfBirth,
-    Gender Gender,
-    MaritalStatus MaritalStatus,
+    Guid GenderId,
+    Guid MaritalStatusId,
     string Email,
     string PhoneNumber,
     string? MobileNumber,
@@ -28,7 +27,7 @@ public record CreateEmployeeCommand(
     Guid JobTitleId,
     Guid? DirectManagerId,
     Guid? BranchId,
-    ContractType ContractType,
+    Guid ContractTypeId,
     DateTime HiringDate,
     int ProbationPeriodMonths
 ) : IRequest<ErrorOr<GenericResponse<EmployeeDto>>>;

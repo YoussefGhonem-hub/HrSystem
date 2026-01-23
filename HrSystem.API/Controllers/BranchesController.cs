@@ -32,7 +32,7 @@ public class BranchesController : APIBaseController
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? searchTerm = null,
-        [FromQuery] Country? country = null,
+        [FromQuery] Guid? countryId = null,
         [FromQuery] bool? isActive = null,
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDescending = false)
@@ -41,7 +41,7 @@ public class BranchesController : APIBaseController
             pageNumber,
             pageSize,
             searchTerm,
-            country,
+            countryId,
             isActive,
             sortBy,
             sortDescending);

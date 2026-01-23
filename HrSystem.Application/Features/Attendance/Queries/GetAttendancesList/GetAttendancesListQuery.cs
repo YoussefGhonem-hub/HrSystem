@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
-using HrSystem.Domain.Enums;
 using HrSystem.Shared.Common;
 using MediatR;
 
@@ -10,7 +9,7 @@ public record GetAttendancesListQuery(
     Guid? EmployeeId = null,
     DateTime? FromDate = null,
     DateTime? ToDate = null,
-    AttendanceStatus? Status = null,
+    Guid? StatusId = null,
     bool? IsLate = null,
     bool? IsOvertime = null,
     string? SortBy = null,

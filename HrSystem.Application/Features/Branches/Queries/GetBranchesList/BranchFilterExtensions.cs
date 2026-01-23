@@ -1,5 +1,4 @@
 using HrSystem.Domain.Entities.Organization;
-using HrSystem.Domain.Enums;
 using System.Linq.Expressions;
 
 namespace HrSystem.Application.Features.Branches.Queries.GetBranchesList;
@@ -9,7 +8,7 @@ public static class BranchFilterExtensions
     public static IQueryable<Branch> ApplyFilters(
         this IQueryable<Branch> query,
         string? searchTerm,
-        Country? country,
+        Guid? countryId,
         bool? isActive)
     {
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -21,8 +20,8 @@ public static class BranchFilterExtensions
                 b.Code.ToLower().Contains(search));
         }
 
-        if (country.HasValue)
-            query = query.Where(b => b.Country == country.Value);
+        if (countryId.HasValue)
+            query = query.Where(b => b.CountryId == countryId.Value);
 
         if (isActive.HasValue)
             query = query.Where(b => b.IsActive == isActive.Value);

@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendanceById;
-using HrSystem.Domain.Enums;
 using HrSystem.Shared.Common;
 using MediatR;
 
@@ -10,7 +9,7 @@ public record UpdateAttendanceCommand(
     Guid Id,
     TimeSpan? CheckInTime,
     TimeSpan? CheckOutTime,
-    AttendanceStatus Status,
+    Guid StatusId,
     string? DeviceId,
     string? CheckInDeviceId,
     string? CheckOutDeviceId,

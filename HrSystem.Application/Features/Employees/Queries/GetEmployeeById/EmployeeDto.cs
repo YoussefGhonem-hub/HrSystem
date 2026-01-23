@@ -13,8 +13,12 @@ public record EmployeeDto
     public string NationalId { get; init; } = string.Empty;
     public string? PassportNumber { get; init; }
     public DateTime DateOfBirth { get; init; }
-    public HrSystem.Domain.Enums.Gender Gender { get; init; }
-    public HrSystem.Domain.Enums.MaritalStatus MaritalStatus { get; init; }
+    public Guid GenderId { get; init; }
+    public string? GenderNameEn { get; init; }
+    public string? GenderNameAr { get; init; }
+    public Guid MaritalStatusId { get; init; }
+    public string? MaritalStatusNameEn { get; init; }
+    public string? MaritalStatusNameAr { get; init; }
     public string Email { get; init; } = string.Empty;
     public string PhoneNumber { get; init; } = string.Empty;
     public string? MobileNumber { get; init; }
@@ -32,8 +36,12 @@ public record EmployeeDto
     public string? DirectManagerName { get; init; }
     public Guid? BranchId { get; init; }
     public string? BranchName { get; init; }
-    public HrSystem.Domain.Enums.ContractType ContractType { get; init; }
-    public HrSystem.Domain.Enums.EmployeeStatus Status { get; init; }
+    public Guid ContractTypeId { get; init; }
+    public string? ContractTypeNameEn { get; init; }
+    public string? ContractTypeNameAr { get; init; }
+    public Guid StatusId { get; init; }
+    public string? StatusNameEn { get; init; }
+    public string? StatusNameAr { get; init; }
     public DateTime HiringDate { get; init; }
     public DateTime? ProbationEndDate { get; init; }
     public int ProbationPeriodMonths { get; init; }

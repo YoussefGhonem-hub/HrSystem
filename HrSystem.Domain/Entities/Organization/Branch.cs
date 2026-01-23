@@ -1,5 +1,4 @@
 using HrSystem.Domain.Common;
-using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Organization;
 
@@ -22,7 +21,7 @@ public class Branch : BaseAuditableEntity
     public Guid OrganizationId { get; set; }
     
     // Location Information
-    public Country Country { get; set; } = Country.Egypt;
+    public Guid CountryId { get; set; }
     public string? City { get; set; }
     public string? AddressAr { get; set; }
     public string? AddressEn { get; set; }
@@ -60,6 +59,7 @@ public class Branch : BaseAuditableEntity
     
     // Navigation Properties
     public virtual Organization Organization { get; set; } = null!;
+    public virtual Country Country { get; set; } = null!;
     public virtual Employee.Employee? BranchManager { get; set; }
     public virtual ICollection<Employee.Department> Departments { get; set; } = new List<Employee.Department>();
     public virtual ICollection<Employee.Employee> Employees { get; set; } = new List<Employee.Employee>();

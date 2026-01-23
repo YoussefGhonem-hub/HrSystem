@@ -1,5 +1,3 @@
-using HrSystem.Domain.Enums;
-
 namespace HrSystem.Application.Features.Attendance.Queries.GetAttendanceById;
 
 public record AttendanceDto
@@ -11,7 +9,9 @@ public record AttendanceDto
     public DateTime Date { get; init; }
     public TimeSpan? CheckInTime { get; init; }
     public TimeSpan? CheckOutTime { get; init; }
-    public AttendanceStatus Status { get; init; }
+    public Guid StatusId { get; init; }
+    public string? StatusNameEn { get; init; }
+    public string? StatusNameAr { get; init; }
     public string? DeviceId { get; init; }
     public string? CheckInDeviceId { get; init; }
     public string? CheckOutDeviceId { get; init; }

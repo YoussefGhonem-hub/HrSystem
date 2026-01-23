@@ -16,7 +16,7 @@ public class Attendance : BaseAuditableEntity
     public DateTime Date { get; set; }
     public TimeSpan? CheckInTime { get; set; }
     public TimeSpan? CheckOutTime { get; set; }
-    public AttendanceStatus Status { get; set; }
+    public Guid StatusId { get; set; }
     
     // Biometric/Device Info
     public string? DeviceId { get; set; }
@@ -39,4 +39,5 @@ public class Attendance : BaseAuditableEntity
 
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;
+    public virtual AttendanceStatus Status { get; set; } = null!;
 }

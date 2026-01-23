@@ -1,0 +1,65 @@
+[
+  {
+    "id": "00000000-0000-0000-0004-000000000001",
+    "nameEn": "Present",
+    "nameAr": "حاضر",
+    "description": "Employee present at work",
+    "colorCode": "#4CAF50",
+    "displayOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0004-000000000002",
+    "nameEn": "Absent",
+    "nameAr": "غائب",
+    "description": "Employee absent from work",
+    "colorCode": "#F44336",
+    "displayOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0004-000000000003",
+    "nameEn": "Late",
+    "nameAr": "متأخر",
+    "description": "Employee arrived late",
+    "colorCode": "#FF9800",
+    "displayOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0004-000000000004",
+    "nameEn": "Early Leave",
+    "nameAr": "مغادرة مبكرة",
+    "description": "Employee left early",
+    "colorCode": "#FFC107",
+    "displayOrder": 4,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0004-000000000005",
+    "nameEn": "On Leave",
+    "nameAr": "في إجازة",
+    "description": "Employee on approved leave",
+    "colorCode": "#2196F3",
+    "displayOrder": 5,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0004-000000000006",
+    "nameEn": "Holiday",
+    "nameAr": "عطلة رسمية",
+    "description": "Public holiday",
+    "colorCode": "#9C27B0",
+    "displayOrder": 6,
+    "isActive": true
+  },
+  {
+    "id": "00000000-0000-0000-0004-000000000007",
+    "nameEn": "Weekend",
+    "nameAr": "عطلة نهاية الأسبوع",
+    "description": "Weekend day",
+    "colorCode": "#607D8B",
+    "displayOrder": 7,
+    "isActive": true
+  }
+]

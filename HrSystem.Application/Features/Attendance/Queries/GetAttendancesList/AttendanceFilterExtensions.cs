@@ -1,5 +1,3 @@
-using HrSystem.Domain.Enums;
-
 namespace HrSystem.Application.Features.Attendance.Queries.GetAttendancesList;
 
 public static class AttendanceFilterExtensions
@@ -9,7 +7,7 @@ public static class AttendanceFilterExtensions
         Guid? employeeId,
         DateTime? fromDate,
         DateTime? toDate,
-        AttendanceStatus? status,
+        Guid? statusId,
         bool? isLate,
         bool? isOvertime)
     {
@@ -28,9 +26,9 @@ public static class AttendanceFilterExtensions
             query = query.Where(a => a.Date <= toDate.Value.Date);
         }
 
-        if (status.HasValue)
+        if (statusId.HasValue)
         {
-            query = query.Where(a => a.Status == status.Value);
+            query = query.Where(a => a.StatusId == statusId.Value);
         }
 
         if (isLate.HasValue)

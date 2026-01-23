@@ -1,5 +1,4 @@
 using HrSystem.Domain.Entities.Employee;
-using HrSystem.Domain.Enums;
 using System.Linq.Expressions;
 
 namespace HrSystem.Application.Features.Employees.Queries.GetEmployeesList;
@@ -9,7 +8,7 @@ public static class EmployeeFilterExtensions
     public static IQueryable<Employee> ApplyFilters(
         this IQueryable<Employee> query,
         string? searchTerm,
-        EmployeeStatus? status,
+        Guid? statusId,
         Guid? departmentId,
         Guid? branchId,
         Guid? jobTitleId,
@@ -27,8 +26,8 @@ public static class EmployeeFilterExtensions
                 e.Email.ToLower().Contains(search));
         }
 
-        if (status.HasValue)
-            query = query.Where(e => e.Status == status.Value);
+        if (statusId.HasValue)
+            query = query.Where(e => e.StatusId == statusId.Value);
 
         if (departmentId.HasValue)
             query = query.Where(e => e.DepartmentId == departmentId.Value);

@@ -1,6 +1,7 @@
 using ErrorOr;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,7 +29,7 @@ public class DeleteEmployeeCommandHandler : IRequestHandler<DeleteEmployeeComman
         }
 
         // Soft delete by setting status to Terminated
-        employee.Status = Domain.Enums.EmployeeStatus.Terminated;
+        employee.StatusId = EmployeeStatusIds.Terminated;
         employee.TerminationDate = DateTime.UtcNow;
         employee.TerminationReason = "Deleted by system administrator";
 
