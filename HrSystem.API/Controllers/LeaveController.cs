@@ -2,6 +2,7 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Leave.Commands.ApproveLeaveRequest;
 using HrSystem.Application.Features.Leave.Commands.RejectLeaveRequest;
 using HrSystem.Application.Features.Leave.Queries.GetLeaveRequests;
+using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -51,6 +52,22 @@ public class LeaveController : APIBaseController
             pageSize);
 
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get leave balances for the currently logged-in user
+    /// </summary>
+    [HttpGet("my-balances")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyLeaveBalances([FromQuery] int? year = null)
+    {
+        var result = await _mediator.Send(new GetMyLeaveBalancesQuery(year));
 
         return result.Match(
             response => Ok(response),

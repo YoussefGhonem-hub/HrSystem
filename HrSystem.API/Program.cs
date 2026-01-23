@@ -1,6 +1,7 @@
 using HrSystem.Application;
 using HrSystem.Infrustructure;
 using HrSystem.Infrustructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -74,6 +75,12 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 app.UseMiddleware<HrSystem.API.Middleware.ExceptionMiddleware>();
