@@ -6,6 +6,7 @@ using HrSystem.Application.Features.Attendance.Commands.UpdateAttendance;
 using HrSystem.Application.Features.Attendance.Commands.VerifyBiometricAttendance;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendanceById;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendancesList;
+using HrSystem.Application.Features.Attendance.Queries.GetAttendanceDashboard;
 using HrSystem.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -55,6 +56,22 @@ public class AttendanceController : APIBaseController
             pageSize);
 
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get attendance dashboard statistics for a date (defaults to today)
+    /// </summary>
+    [HttpGet("dashboard")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetAttendanceDashboard([FromQuery] DateTime? date = null)
+    {
+        var result = await _mediator.Send(new GetAttendanceDashboardQuery(date));
 
         return result.Match(
             response => Ok(response),
