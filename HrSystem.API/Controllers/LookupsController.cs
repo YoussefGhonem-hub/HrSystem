@@ -14,6 +14,7 @@ using HrSystem.Application.Features.Performance.Queries.GetGoalPriorities;
 using HrSystem.Application.Features.Performance.Queries.GetGoalStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetReviewStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetReviewTypes;
+using HrSystem.Application.Features.Lookups.Queries.GetEmployeesLookup;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -204,6 +205,20 @@ public class LookupsController : APIBaseController
     public async Task<IActionResult> GetCountries()
     {
         var result = await _mediator.Send(new GetCountriesQuery());
+        return result.Match(Ok, Problem);
+    }
+
+    #endregion
+
+    #region Employees Lookup
+
+    /// <summary>
+    /// Get all employees (non-paginated) for dropdowns
+    /// </summary>
+    [HttpGet("employees")]
+    public async Task<IActionResult> GetEmployees()
+    {
+        var result = await _mediator.Send(new GetEmployeesLookupQuery());
         return result.Match(Ok, Problem);
     }
 
