@@ -2,6 +2,7 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Departments.Commands.CreateDepartment;
 using HrSystem.Application.Features.Departments.Commands.DeleteDepartment;
 using HrSystem.Application.Features.Departments.Commands.UpdateDepartment;
+using HrSystem.Application.Features.Departments.Commands.AssignDepartmentManager;
 using HrSystem.Application.Features.Departments.Queries.GetDepartmentById;
 using HrSystem.Application.Features.Departments.Queries.GetDepartmentsList;
 using MediatR;
@@ -115,6 +116,28 @@ public class DepartmentsController : APIBaseController
     public async Task<IActionResult> DeleteDepartment(Guid id)
     {
         var command = new DeleteDepartmentCommand(id);
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Assign a department manager for a specific department within a branch
+    /// </summary>
+    [HttpPost("{id:guid}/manager")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AssignDepartmentManager(Guid id, [FromBody] AssignDepartmentManagerCommand command)
+    {
+        if (id != command.DepartmentId)
+        {
+            return BadRequest("ID mismatch");
+        }
+
         var result = await _mediator.Send(command);
 
         return result.Match(

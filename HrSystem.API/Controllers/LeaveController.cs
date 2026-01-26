@@ -1,4 +1,5 @@
 using HrSystem.API.Controllers.Shared;
+using HrSystem.Application.Features.Leave.Commands.CreateLeaveRequest;
 using HrSystem.Application.Features.Leave.Commands.ApproveLeaveRequest;
 using HrSystem.Application.Features.Leave.Commands.RejectLeaveRequest;
 using HrSystem.Application.Features.Leave.Queries.GetLeaveRequestById;
@@ -54,6 +55,23 @@ public class LeaveController : APIBaseController
             pageSize);
 
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Create a new leave request
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CreateLeaveRequest([FromBody] CreateLeaveRequestCommand command)
+    {
+        var result = await _mediator.Send(command);
 
         return result.Match(
             response => Ok(response),

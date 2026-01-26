@@ -124,6 +124,14 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 | PUT | `/api/EmployeeAssets/{id}` | Update asset |
 | DELETE | `/api/EmployeeAssets/{id}` | Delete asset |
 
+### Payroll
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/Payroll/my-salary` | Get gross and net salary for current user |
+| GET | `/api/Payroll/my-loans` | Get current user's loans (paginated) |
+| GET | `/api/Payroll/my-loans/{loanId}` | Get loan details for current user |
+| GET | `/api/Payroll/my-payslips` | Get current user's payslips (paginated, filter by year) |
+| GET | `/api/Payroll/my-payslips/{payslipId}` | Get full payslip details for current user |
 ## 🔍 Common Query Parameters
 
 All list endpoints support:

@@ -1,6 +1,7 @@
 using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Payroll.Queries.GetMyLoans;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslips;
+using HrSystem.Application.Features.Payroll.Queries.GetMyPayslipDetails;
 using HrSystem.Application.Features.Payroll.Queries.GetMySalarySummary;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -81,6 +82,23 @@ public class PayrollController : APIBaseController
         [FromQuery] int pageSize = 10)
     {
         var result = await _mediator.Send(new GetMyPayslipsQuery(year, pageNumber, pageSize));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get payslip full details for the currently logged-in user
+    /// </summary>
+    [HttpGet("my-payslips/{payslipId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyPayslipDetails(Guid payslipId)
+    {
+        var result = await _mediator.Send(new GetMyPayslipDetailsQuery(payslipId));
 
         return result.Match(
             response => Ok(response),

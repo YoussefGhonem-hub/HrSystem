@@ -2,7 +2,6 @@ using ErrorOr;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -16,11 +15,10 @@ public record CreateUserWithBranchRolesCommand(
     string Password,
     string? UserName,
     Guid? OrganizationId,
-    List<BranchRoleAssignment> BranchRoles,
-    List<string>? GlobalRoles = null
+    List<BranchRoleAssignment> BranchRoles
 ) : IRequest<ErrorOr<GenericResponse<UserWithBranchRolesDto>>>;
 
-public record BranchRoleAssignment(Guid BranchId, List<string> Roles);
+public record BranchRoleAssignment(Guid BranchId, List<Guid> RoleIds);
 
 public record UserWithBranchRolesDto
 {
@@ -92,38 +90,24 @@ public class CreateUserWithBranchRolesCommandHandler : IRequestHandler<CreateUse
             return Error.Validation("Branch.Invalid", "One or more branches are invalid for this organization");
         }
 
-        var allRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (request.GlobalRoles != null)
-        {
-            foreach (var role in request.GlobalRoles)
-            {
-                if (!RoleNames.IsValid(role))
-                {
-                    return Error.Validation("Role.Invalid", $"Invalid role: {role}");
-                }
-
-                allRoles.Add(role);
-            }
-        }
-
+        // Resolve and validate role IDs to role names
+        var resolvedRoleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var assignment in request.BranchRoles)
         {
-            foreach (var role in assignment.Roles)
+            if (assignment.RoleIds == null || assignment.RoleIds.Count == 0)
             {
-                if (!RoleNames.IsValid(role))
+                return Error.Validation("Role.Empty", "Each branch assignment must include at least one role ID");
+            }
+
+            foreach (var roleId in assignment.RoleIds)
+            {
+                var roleEntity = await _roleManager.FindByIdAsync(roleId.ToString());
+                if (roleEntity == null)
                 {
-                    return Error.Validation("Role.Invalid", $"Invalid role: {role}");
+                    return Error.NotFound("Role.NotFound", $"Role not found for ID: {roleId}");
                 }
 
-                allRoles.Add(role);
-            }
-        }
-
-        foreach (var role in allRoles)
-        {
-            if (!await _roleManager.RoleExistsAsync(role))
-            {
-                return Error.NotFound("Role.NotFound", $"Role not found: {role}");
+                resolvedRoleNames.Add(roleEntity.Name!);
             }
         }
 
@@ -147,9 +131,9 @@ public class CreateUserWithBranchRolesCommandHandler : IRequestHandler<CreateUse
             return Error.Validation("User.CreateFailed", string.Join("; ", createResult.Errors.Select(e => e.Description)));
         }
 
-        foreach (var role in allRoles)
+        foreach (var roleName in resolvedRoleNames)
         {
-            var roleResult = await _userManager.AddToRoleAsync(user, role);
+            var roleResult = await _userManager.AddToRoleAsync(user, roleName);
             if (!roleResult.Succeeded)
             {
                 return Error.Validation("User.RoleAssignFailed", string.Join("; ", roleResult.Errors.Select(e => e.Description)));
@@ -159,13 +143,19 @@ public class CreateUserWithBranchRolesCommandHandler : IRequestHandler<CreateUse
         var userBranchRoles = new List<UserBranchRole>();
         foreach (var assignment in request.BranchRoles)
         {
-            foreach (var role in assignment.Roles.Distinct(StringComparer.OrdinalIgnoreCase))
+            foreach (var roleId in assignment.RoleIds.Distinct())
             {
+                var roleEntity = await _roleManager.FindByIdAsync(roleId.ToString());
+                if (roleEntity == null)
+                {
+                    return Error.NotFound("Role.NotFound", $"Role not found for ID: {roleId}");
+                }
+
                 userBranchRoles.Add(new UserBranchRole
                 {
                     UserId = user.Id,
                     BranchId = assignment.BranchId,
-                    RoleName = role
+                    RoleName = roleEntity.Name!
                 });
             }
         }

@@ -1,5 +1,4 @@
 using HrSystem.API.Controllers.Shared;
-using HrSystem.API.Controllers.Requests;
 using HrSystem.Application.Features.Attendance.Commands.CreateAttendance;
 using HrSystem.Application.Features.Attendance.Commands.DeleteAttendance;
 using HrSystem.Application.Features.Attendance.Commands.EnrollEmployeeBiometric;
@@ -142,16 +141,8 @@ public class AttendanceController : APIBaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> EnrollBiometric([FromBody] EnrollEmployeeBiometricRequest request)
+    public async Task<IActionResult> EnrollBiometric([FromBody] EnrollEmployeeBiometricCommand command)
     {
-        var command = new EnrollEmployeeBiometricCommand(
-            request.EmployeeId,
-            request.BiometricType,
-            request.TemplateBase64,
-            request.Provider,
-            request.DeviceId,
-            request.IsActive);
-
         var result = await _mediator.Send(command);
 
         return result.Match(
@@ -167,16 +158,8 @@ public class AttendanceController : APIBaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> VerifyBiometric([FromBody] VerifyBiometricAttendanceRequest request)
+    public async Task<IActionResult> VerifyBiometric([FromBody] VerifyBiometricAttendanceCommand command)
     {
-        var command = new VerifyBiometricAttendanceCommand(
-            request.EmployeeId,
-            request.BiometricType,
-            request.PunchType,
-            request.TemplateBase64,
-            request.DeviceId,
-            request.EventTime);
-
         var result = await _mediator.Send(command);
 
         return result.Match(

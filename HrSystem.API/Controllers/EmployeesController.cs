@@ -1,5 +1,5 @@
 using HrSystem.API.Controllers.Shared;
-using HrSystem.API.Controllers.Requests;
+using HrSystem.Application.Features.Employees.Commands.AssignDirectManager;
 using HrSystem.Application.Features.Employees.Commands.AddEmployeeSalary;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Employees.Commands.DeleteEmployee;
@@ -23,12 +23,10 @@ namespace HrSystem.API.Controllers;
 public class EmployeesController : APIBaseController
 {
     private readonly ISender _mediator;
-
     public EmployeesController(ISender mediator)
     {
         _mediator = mediator;
     }
-
     /// <summary>
     /// Get a paginated list of employees with filters and sorting
     /// </summary>
@@ -60,16 +58,11 @@ public class EmployeesController : APIBaseController
             sortDescending);
 
         var result = await _mediator.Send(query);
-
         return result.Match(
             response => Ok(response),
             errors => Problem(errors)
         );
     }
-
-    /// <summary>
-    /// Get employee by ID
-    /// </summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -90,7 +83,6 @@ public class EmployeesController : APIBaseController
     [HttpGet("me")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyProfile()
     {
         var result = await _mediator.Send(new GetMyProfileQuery());
@@ -157,15 +149,12 @@ public class EmployeesController : APIBaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UploadEmployeeDocument(Guid id, [FromForm] UploadEmployeeDocumentRequest request)
+    public async Task<IActionResult> UploadEmployeeDocument(Guid id, [FromForm] UploadEmployeeDocumentCommand command)
     {
-        var command = new UploadEmployeeDocumentCommand(
-            id,
-            request.DocumentTypeId,
-            request.DocumentName,
-            request.Description,
-            request.ExpiryDate,
-            request.File);
+        if (id != command.EmployeeId)
+        {
+            return BadRequest("ID mismatch");
+        }
 
         var result = await _mediator.Send(command);
 
@@ -198,13 +187,12 @@ public class EmployeesController : APIBaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> AddEmployeeSalary(Guid id, [FromBody] AddEmployeeSalaryRequest request)
+    public async Task<IActionResult> AddEmployeeSalary(Guid id, [FromBody] AddEmployeeSalaryCommand command)
     {
-        var command = new AddEmployeeSalaryCommand(
-            id,
-            request.BasicSalary,
-            request.EffectiveDate,
-            request.Notes);
+        if (id != command.EmployeeId)
+        {
+            return BadRequest("ID mismatch");
+        }
 
         var result = await _mediator.Send(command);
 
@@ -226,6 +214,22 @@ public class EmployeesController : APIBaseController
 
         return result.Match(
             response => CreatedAtAction(nameof(GetEmployeeById), new { id = response.Data!.Id }, response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Assign direct manager to an existing employee (command as parameter)
+    /// </summary>
+    [HttpPost("direct-manager")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AssignDirectManager([FromBody] AssignDirectManagerCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
             errors => Problem(errors)
         );
     }
