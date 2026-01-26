@@ -1,5 +1,6 @@
 using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Users.Commands.ActivateAccount;
+using HrSystem.Application.Features.Users.Commands.ChangeUserRole;
 using HrSystem.Application.Features.Users.Commands.CreateUserWithBranchRoles;
 using HrSystem.Application.Features.Users.Commands.DeactivateAccount;
 using HrSystem.Application.Features.Users.Commands.UpdateUser;
@@ -141,6 +142,27 @@ public class UsersController : APIBaseController
     public async Task<IActionResult> ActivateAccount(Guid id)
     {
         var result = await _mediator.Send(new ActivateAccountCommand(id));
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Change user roles for a specific branch
+    /// </summary>
+    [HttpPut("{id:guid}/roles")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangeUserRole(Guid id, [FromBody] ChangeUserRoleCommand command)
+    {
+        if (id != command.UserId)
+        {
+            return BadRequest("User ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
         return result.Match(
             response => Ok(response),
             errors => Problem(errors)
