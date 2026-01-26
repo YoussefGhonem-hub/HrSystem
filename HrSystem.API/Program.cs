@@ -13,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddHttpContextAccessor();
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -83,6 +84,9 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     dbContext.Database.Migrate();
+    // Initialize CurrentUser accessor with the app's IHttpContextAccessor
+    var accessor = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
+    HrSystem.Shared.CurrentUser.CurrentUser.Initialize(accessor);
 }
 
 // Configure the HTTP request pipeline.

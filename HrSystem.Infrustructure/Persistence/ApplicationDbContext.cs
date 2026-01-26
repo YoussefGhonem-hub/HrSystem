@@ -98,6 +98,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
         // Apply Multi-Tenancy Global Query Filter
         ApplyMultiTenancyFilter(modelBuilder);
+
+        // Apply Branch-level Global Query Filter for non-organization admins
+        ApplyBranchScopeFilter(modelBuilder);
     }
 
     private void ApplyMultiTenancyFilter(ModelBuilder modelBuilder)
@@ -121,6 +124,46 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
                 entityType.SetQueryFilter(lambda);
             }
+        }
+    }
+
+    private void ApplyBranchScopeFilter(ModelBuilder modelBuilder)
+    {
+        // Only apply branch filter for non-organization admins and when BranchId is present
+        if (CurrentUser.IsOrganizationAdmin)
+            return;
+
+        var branchId = CurrentUser.BranchId;
+        if (!branchId.HasValue)
+            return;
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            // Skip entity types that already have a query filter referencing BranchId to avoid conflicts
+            var clrType = entityType.ClrType;
+            var branchProp = clrType.GetProperty("BranchId");
+            if (branchProp == null)
+                continue;
+
+            // Build expression: (e) => e.BranchId == branchId
+            var parameter = System.Linq.Expressions.Expression.Parameter(clrType, "e");
+            var property = System.Linq.Expressions.Expression.Property(parameter, branchProp);
+            var value = System.Linq.Expressions.Expression.Constant(branchId.Value, branchProp.PropertyType);
+
+            // If BranchId is nullable Guid on the entity, convert constant to nullable
+            System.Linq.Expressions.Expression equalExpression;
+            if (Nullable.GetUnderlyingType(branchProp.PropertyType) != null)
+            {
+                var nullableValue = System.Linq.Expressions.Expression.Convert(value, branchProp.PropertyType);
+                equalExpression = System.Linq.Expressions.Expression.Equal(property, nullableValue);
+            }
+            else
+            {
+                equalExpression = System.Linq.Expressions.Expression.Equal(property, value);
+            }
+
+            var lambda = System.Linq.Expressions.Expression.Lambda(equalExpression, parameter);
+            entityType.SetQueryFilter(lambda);
         }
     }
 

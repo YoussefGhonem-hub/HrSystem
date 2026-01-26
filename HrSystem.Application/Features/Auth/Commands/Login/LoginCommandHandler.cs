@@ -57,6 +57,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
         Guid? jobTitleId = null;
         Guid? directManagerId = null;
         string? departmentName = null;
+        Guid? branchId = null;
 
         if (user.EmployeeId.HasValue)
         {
@@ -71,7 +72,17 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                 jobTitleId = employee.JobTitleId;
                 directManagerId = employee.DirectManagerId;
                 departmentName = employee.Department?.NameEn ?? employee.Department?.NameAr;
+                branchId = employee.BranchId;
             }
+        }
+
+        // Fallback: resolve branch from user-branch role mapping if not set on employee
+        if (!branchId.HasValue)
+        {
+            branchId = await _context.UserBranchRoles
+                .Where(ubr => ubr.UserId == user.Id)
+                .Select(ubr => (Guid?)ubr.BranchId)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         // Generate JWT token with custom claims
@@ -81,7 +92,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
             departmentName,
             employeeId,
             jobTitleId,
-            directManagerId);
+            directManagerId,
+            branchId);
 
         var response = new LoginResponse(
             AccessToken: accessToken,

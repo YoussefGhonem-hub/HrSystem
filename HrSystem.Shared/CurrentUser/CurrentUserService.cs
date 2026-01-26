@@ -21,6 +21,7 @@ public static class CurrentUser
     private const string RoleClaim = ClaimTypes.Role;
     private const string AudienceClaim = "aud";
     private const string OrganizationIdClaim = "organization_id"; // Custom claim for multi-tenancy
+    private const string BranchIdClaim = "branch_id"; // Branch claim for multi-branch scoping
     private const string EmployeeIdClaim = "employee_id"; // Employee ID claim
     private const string JobTitleIdClaim = "job_title_id"; // Job Title ID claim
     private const string DirectManagerIdClaim = "direct_manager_id"; // Direct Manager ID claim
@@ -85,6 +86,15 @@ public static class CurrentUser
         }
     }
 
+    public static Guid? BranchId
+    {
+        get
+        {
+            var raw = GetClaimValue(BranchIdClaim) ?? GetClaimValue("BranchId");
+            return Guid.TryParse(raw, out var branchId) ? branchId : null;
+        }
+    }
+
     public static Guid? EmployeeId
     {
         get
@@ -119,6 +129,7 @@ public static class CurrentUser
     public static string Email => GetClaimValue(EmailClaim) ?? GetClaimValue(ClaimTypes.Email) ?? string.Empty;
     public static string Name => GetClaimValue(NameClaim) ?? UserName;
     public static IReadOnlyList<string> Roles => GetRoles();
+    public static bool IsOrganizationAdmin => Roles.Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) || string.Equals(r, "OrganizationAdmin", StringComparison.OrdinalIgnoreCase));
     public static IReadOnlyList<string> Permissions => GetPermissions();
     public static IReadOnlyList<string> Audiences => GetAudiences();
     public static bool IsAuthenticated => HttpContextAccessor?.HttpContext?.User?.Identity?.IsAuthenticated == true;

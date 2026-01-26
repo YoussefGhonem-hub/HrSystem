@@ -10,8 +10,8 @@ namespace HrSystem.Infrustructure.Identity;
 
 public interface ITokenService
 {
-    string GenerateToken(ApplicationUser user, IList<string> roles, string? departmentName = null, Guid? employeeId = null, Guid? jobTitleId = null, Guid? directManagerId = null);
-    (string AccessToken, DateTime ExpiresAtUtc) GenerateAccessToken(ApplicationUser user, IList<string> roles, string? departmentName = null, Guid? employeeId = null, Guid? jobTitleId = null, Guid? directManagerId = null);
+    string GenerateToken(ApplicationUser user, IList<string> roles, string? departmentName = null, Guid? employeeId = null, Guid? jobTitleId = null, Guid? directManagerId = null, Guid? branchId = null);
+    (string AccessToken, DateTime ExpiresAtUtc) GenerateAccessToken(ApplicationUser user, IList<string> roles, string? departmentName = null, Guid? employeeId = null, Guid? jobTitleId = null, Guid? directManagerId = null, Guid? branchId = null);
 }
 
 public class TokenService : ITokenService
@@ -20,7 +20,7 @@ public class TokenService : ITokenService
 
     public TokenService(IOptions<JwtSettings> settings) => _settings = settings.Value;
 
-    public (string AccessToken, DateTime ExpiresAtUtc) GenerateAccessToken(ApplicationUser user, IList<string> roles, string? departmentName = null, Guid? employeeId = null, Guid? jobTitleId = null, Guid? directManagerId = null)
+    public (string AccessToken, DateTime ExpiresAtUtc) GenerateAccessToken(ApplicationUser user, IList<string> roles, string? departmentName = null, Guid? employeeId = null, Guid? jobTitleId = null, Guid? directManagerId = null, Guid? branchId = null)
     {
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(_settings.DurationInMinutes);
@@ -41,6 +41,11 @@ public class TokenService : ITokenService
         if (user.OrganizationId != Guid.Empty)
         {
             claims.Add(new Claim("organization_id", user.OrganizationId.ToString()));
+        }
+
+        if (branchId.HasValue)
+        {
+            claims.Add(new Claim("branch_id", branchId.Value.ToString()));
         }
 
         if (!string.IsNullOrWhiteSpace(departmentName))
@@ -83,6 +88,6 @@ public class TokenService : ITokenService
         return (new JwtSecurityTokenHandler().WriteToken(token), expires);
     }
 
-    public string GenerateToken(ApplicationUser user, IList<string> roles, string? departmentName = null, Guid? employeeId = null, Guid? jobTitleId = null, Guid? directManagerId = null)
-        => GenerateAccessToken(user, roles, departmentName, employeeId, jobTitleId, directManagerId).AccessToken;
+    public string GenerateToken(ApplicationUser user, IList<string> roles, string? departmentName = null, Guid? employeeId = null, Guid? jobTitleId = null, Guid? directManagerId = null, Guid? branchId = null)
+        => GenerateAccessToken(user, roles, departmentName, employeeId, jobTitleId, directManagerId, branchId).AccessToken;
 }
