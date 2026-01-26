@@ -1,11 +1,16 @@
 using HrSystem.API.Controllers.Shared;
+using HrSystem.Application.Features.Leave.Commands.CreateLeavePolicy;
 using HrSystem.Application.Features.Leave.Commands.CreateLeaveRequest;
 using HrSystem.Application.Features.Leave.Commands.ApproveLeaveRequest;
+using HrSystem.Application.Features.Leave.Commands.DeleteLeavePolicy;
 using HrSystem.Application.Features.Leave.Commands.RejectLeaveRequest;
+using HrSystem.Application.Features.Leave.Commands.UpdateLeavePolicy;
 using HrSystem.Application.Features.Leave.Queries.GetLeaveRequestById;
 using HrSystem.Application.Features.Leave.Queries.GetLeaveRequests;
 using HrSystem.Application.Features.Leave.Queries.GetMyLeaveDashboard;
 using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
+using HrSystem.Application.Features.Leave.Queries.GetLeavePolicies;
+using HrSystem.Application.Features.Leave.Queries.GetLeavePolicyById;
 using HrSystem.Application.Features.Leave.Queries.Hr.GetHrLeaveSummary;
 using HrSystem.Application.Features.Leave.Queries.Hr.GetHrLeaveRequests;
 using HrSystem.Application.Features.Leave.Queries.Manager.GetManagerLeaveOverview;
@@ -329,4 +334,96 @@ public class LeaveController : APIBaseController
             errors => Problem(errors)
         );
     }
+
+    #region Leave Policies (Balance Settings)
+
+    /// <summary>
+    /// Get all leave policies (balance settings)
+    /// </summary>
+    [HttpGet("policies")]
+    [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetLeavePolicies()
+    {
+        var result = await _mediator.Send(new GetLeavePoliciesQuery());
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get leave policy by ID
+    /// </summary>
+    [HttpGet("policies/{id:guid}")]
+    [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLeavePolicyById(Guid id)
+    {
+        var result = await _mediator.Send(new GetLeavePolicyByIdQuery(id));
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Create a new leave policy (balance settings)
+    /// </summary>
+    [HttpPost("policies")]
+    [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateLeavePolicy([FromBody] CreateLeavePolicyCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => CreatedAtAction(nameof(GetLeavePolicyById), new { id = response.Data!.Id }, response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update an existing leave policy (balance settings)
+    /// </summary>
+    [HttpPut("policies/{id:guid}")]
+    [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateLeavePolicy(Guid id, [FromBody] UpdateLeavePolicyCommand command)
+    {
+        if (id != command.Id)
+        {
+            return BadRequest("ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Delete a leave policy (balance settings)
+    /// </summary>
+    [HttpDelete("policies/{id:guid}")]
+    [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteLeavePolicy(Guid id)
+    {
+        var result = await _mediator.Send(new DeleteLeavePolicyCommand(id));
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    #endregion
 }
