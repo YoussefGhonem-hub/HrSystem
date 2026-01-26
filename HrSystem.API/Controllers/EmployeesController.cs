@@ -8,6 +8,7 @@ using HrSystem.Application.Features.Employees.Commands.UploadEmployeeDocument;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeDocuments;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeSalaries;
+using HrSystem.Application.Features.Employees.Queries.GetEmployeeDetails;
 using HrSystem.Application.Features.Employees.Queries.GetMyDocuments;
 using HrSystem.Application.Features.Employees.Queries.GetMyProfile;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeesList;
@@ -70,6 +71,22 @@ public class EmployeesController : APIBaseController
     {
         var query = new GetEmployeeByIdQuery(id);
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get full employee details (personal info, job info, latest payroll summary, recent attendance, leave balances, documents, assets)
+    /// </summary>
+    [HttpGet("{id:guid}/details")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetEmployeeDetails(Guid id, [FromQuery] int attendanceRecentCount = 10, [FromQuery] int? leaveBalanceYear = null)
+    {
+        var result = await _mediator.Send(new GetEmployeeDetailsQuery(id, attendanceRecentCount, leaveBalanceYear));
 
         return result.Match(
             response => Ok(response),

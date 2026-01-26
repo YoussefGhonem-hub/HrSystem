@@ -4,6 +4,7 @@ using HrSystem.Application.Features.Payroll.Queries.GetMyPayslips;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslipDetails;
 using HrSystem.Application.Features.Payroll.Queries.GetMySalarySummary;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollSummary;
+using HrSystem.Application.Features.Payroll.Queries.GetPayslipsList;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,43 @@ public class PayrollController : APIBaseController
     public async Task<IActionResult> GetMySalary([FromQuery] int? year = null, [FromQuery] int? month = null)
     {
         var result = await _mediator.Send(new GetMySalarySummaryQuery(year, month));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get payroll payslip history with filters and pagination
+    /// - HR/Admin can filter by employee; others restricted to own data
+    /// </summary>
+    [HttpGet("history")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetPayslipsHistory(
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] int? year = null,
+        [FromQuery] int? month = null,
+        [FromQuery] bool? isPaid = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await _mediator.Send(new GetPayslipsListQuery(
+            employeeId,
+            year,
+            month,
+            isPaid,
+            fromDate,
+            toDate,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize));
 
         return result.Match(
             response => Ok(response),

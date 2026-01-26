@@ -64,6 +64,44 @@ public class AttendanceController : APIBaseController
     }
 
     /// <summary>
+    /// Alias: Attendance history with filters and pagination
+    /// </summary>
+    [HttpGet("history")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetAttendanceHistory(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] Guid? statusId = null,
+        [FromQuery] bool? isLate = null,
+        [FromQuery] bool? isOvertime = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false)
+    {
+        var query = new GetAttendancesListQuery(
+            employeeId,
+            startDate,
+            endDate,
+            statusId,
+            isLate,
+            isOvertime,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize);
+
+        var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
     /// Get attendance dashboard statistics for a date (defaults to today)
     /// </summary>
     [HttpGet("dashboard")]

@@ -41,6 +41,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 |--------|----------|-------------|
 | GET | `/api/Employees` | Get paginated list |
 | GET | `/api/Employees/{id}` | Get employee by ID |
+| GET | `/api/Employees/{id}/details` | Get aggregated employee profile (personal, job, payroll, attendance, leave, documents, assets) |
 | POST | `/api/Employees` | Create employee |
 | PUT | `/api/Employees/{id}` | Update employee |
 | DELETE | `/api/Employees/{id}` | Delete employee |
@@ -77,6 +78,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 |--------|----------|-------------|
 | GET | `/api/Attendance` | Get paginated list |
 | GET | `/api/Attendance/{id}` | Get attendance by ID |
+| GET | `/api/Attendance/dashboard` | Get attendance dashboard counts for a specific date |
+| GET | `/api/Attendance/history` | Get attendance history (paginated with advanced filters) |
 | POST | `/api/Attendance` | Create attendance record |
 | PUT | `/api/Attendance/{id}` | Update attendance |
 | DELETE | `/api/Attendance/{id}` | Delete attendance |
@@ -84,6 +87,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### Leave Management
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/Leave/hr/summary` | HR summary metrics (roles: OrganizationAdmin, HRManager, HRSpecialist) |
+| GET | `/api/Leave/hr/requests` | HR branch leave requests (roles: OrganizationAdmin, HRManager, HRSpecialist) |
+| GET | `/api/Leave/manager/overview` | Department manager overview (roles: OrganizationAdmin, DepartmentManager) |
+| GET | `/api/Leave/my-requests` | Current user's leave requests |
+| GET | `/api/Leave/history` | Leave requests history (paginated with advanced filters) |
 | GET | `/api/Leave/pending` | Get pending leave requests |
 | POST | `/api/Leave/{id}/approve` | Approve leave request |
 | POST | `/api/Leave/{id}/reject` | Reject leave request |
@@ -132,6 +140,14 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 | GET | `/api/Payroll/my-loans/{loanId}` | Get loan details for current user |
 | GET | `/api/Payroll/my-payslips` | Get current user's payslips (paginated, filter by year) |
 | GET | `/api/Payroll/my-payslips/{payslipId}` | Get full payslip details for current user |
+| GET | `/api/Payroll/summary` | Payroll dashboard summary (employees paid, gross, deductions, net) |
+| GET | `/api/Payroll/history` | Payslips history (paginated with advanced filters; role-aware) |
+
+### Lookups
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/Lookups/employees` | Non-paginated employees list for dropdowns |
+| GET | `/api/Lookups/departments` | Non-paginated departments list for dropdowns |
 ## 🔍 Common Query Parameters
 
 All list endpoints support:
@@ -355,5 +371,5 @@ For issues or questions:
 
 ---
 
-**Last Updated:** January 23, 2026
+**Last Updated:** January 26, 2026
 **API Version:** 1.0

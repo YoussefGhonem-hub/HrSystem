@@ -67,6 +67,42 @@ public class LeaveController : APIBaseController
     }
 
     /// <summary>
+    /// Alias: Leave requests history with filters and pagination
+    /// </summary>
+    [HttpGet("history")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetLeaveRequestsHistory(
+        [FromQuery] Guid? statusId = null,
+        [FromQuery] Guid? leaveTypeId = null,
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null,
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var query = new GetLeaveRequestsQuery(
+            statusId,
+            leaveTypeId,
+            startDateFrom,
+            startDateTo,
+            employeeId,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize);
+
+        var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
     /// Create a new leave request
     /// </summary>
     [HttpPost]
