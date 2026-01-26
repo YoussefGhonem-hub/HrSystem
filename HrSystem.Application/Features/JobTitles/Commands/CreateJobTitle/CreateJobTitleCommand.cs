@@ -3,6 +3,7 @@ using HrSystem.Application.Features.JobTitles.Queries.GetJobTitleById;
 using HrSystem.Domain.Entities.Employee;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,7 +36,7 @@ public class CreateJobTitleCommandHandler : IRequestHandler<CreateJobTitleComman
             Level = request.Level,
             MinSalary = request.MinSalary,
             MaxSalary = request.MaxSalary,
-            TenantId = Guid.NewGuid() // Should come from CurrentUser.OrganizationId
+            BranchId = CurrentUser.BranchId
         };
 
         _context.JobTitles.Add(jobTitle);

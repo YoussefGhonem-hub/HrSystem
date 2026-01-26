@@ -96,20 +96,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
         modelBuilder.GetOnlyNotDeletedEntities();
 
-        // Apply Multi-Tenancy Global Query Filter
-        ApplyMultiTenancyFilter(modelBuilder);
-
-        // Apply Branch-level Global Query Filter for non-organization admins
-        ApplyBranchScopeFilter(modelBuilder);
+        // Apply Multi-Tenancy + Branch Global Query Filters
+        ApplyScopedFilters(modelBuilder);
     }
 
-    private void ApplyMultiTenancyFilter(ModelBuilder modelBuilder)
+    private void ApplyScopedFilters(ModelBuilder modelBuilder)
     {
         // Get current organization ID from CurrentUser
         var organizationId = CurrentUser.OrganizationId;
-
-        if (!organizationId.HasValue)
-            return;
+        var isOrgAdmin = CurrentUser.IsOrganizationAdmin;
+        var branchId = CurrentUser.BranchId;
 
         // Apply filter to all entities that inherit from BaseAuditableEntity (they have TenantId)
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -118,52 +114,44 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             {
                 var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "e");
                 var property = System.Linq.Expressions.Expression.Property(parameter, nameof(BaseAuditableEntity.TenantId));
-                var organizationValue = System.Linq.Expressions.Expression.Constant(organizationId.Value);
-                var equalExpression = System.Linq.Expressions.Expression.Equal(property, organizationValue);
-                var lambda = System.Linq.Expressions.Expression.Lambda(equalExpression, parameter);
+                System.Linq.Expressions.Expression tenantPredicate;
+                if (organizationId.HasValue)
+                {
+                    var organizationValue = System.Linq.Expressions.Expression.Constant(organizationId.Value);
+                    tenantPredicate = System.Linq.Expressions.Expression.Equal(property, organizationValue);
+                }
+                else
+                {
+                    // No organization id -> allow all (e => true)
+                    tenantPredicate = System.Linq.Expressions.Expression.Constant(true);
+                }
 
+                // Optional branch predicate when entity has BranchId and user is not org admin
+                var branchProp = entityType.ClrType.GetProperty("BranchId");
+                System.Linq.Expressions.Expression finalPredicate = tenantPredicate;
+
+                if (!isOrgAdmin && branchProp != null && branchId.HasValue)
+                {
+                    var branchProperty = System.Linq.Expressions.Expression.Property(parameter, branchProp);
+                    var branchConst = System.Linq.Expressions.Expression.Constant(branchId.Value, branchProp.PropertyType);
+
+                    System.Linq.Expressions.Expression branchPredicate;
+                    if (Nullable.GetUnderlyingType(branchProp.PropertyType) != null)
+                    {
+                        var nullableBranchConst = System.Linq.Expressions.Expression.Convert(branchConst, branchProp.PropertyType);
+                        branchPredicate = System.Linq.Expressions.Expression.Equal(branchProperty, nullableBranchConst);
+                    }
+                    else
+                    {
+                        branchPredicate = System.Linq.Expressions.Expression.Equal(branchProperty, branchConst);
+                    }
+
+                    finalPredicate = System.Linq.Expressions.Expression.AndAlso(tenantPredicate, branchPredicate);
+                }
+
+                var lambda = System.Linq.Expressions.Expression.Lambda(finalPredicate, parameter);
                 entityType.SetQueryFilter(lambda);
             }
-        }
-    }
-
-    private void ApplyBranchScopeFilter(ModelBuilder modelBuilder)
-    {
-        // Only apply branch filter for non-organization admins and when BranchId is present
-        if (CurrentUser.IsOrganizationAdmin)
-            return;
-
-        var branchId = CurrentUser.BranchId;
-        if (!branchId.HasValue)
-            return;
-
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            // Skip entity types that already have a query filter referencing BranchId to avoid conflicts
-            var clrType = entityType.ClrType;
-            var branchProp = clrType.GetProperty("BranchId");
-            if (branchProp == null)
-                continue;
-
-            // Build expression: (e) => e.BranchId == branchId
-            var parameter = System.Linq.Expressions.Expression.Parameter(clrType, "e");
-            var property = System.Linq.Expressions.Expression.Property(parameter, branchProp);
-            var value = System.Linq.Expressions.Expression.Constant(branchId.Value, branchProp.PropertyType);
-
-            // If BranchId is nullable Guid on the entity, convert constant to nullable
-            System.Linq.Expressions.Expression equalExpression;
-            if (Nullable.GetUnderlyingType(branchProp.PropertyType) != null)
-            {
-                var nullableValue = System.Linq.Expressions.Expression.Convert(value, branchProp.PropertyType);
-                equalExpression = System.Linq.Expressions.Expression.Equal(property, nullableValue);
-            }
-            else
-            {
-                equalExpression = System.Linq.Expressions.Expression.Equal(property, value);
-            }
-
-            var lambda = System.Linq.Expressions.Expression.Lambda(equalExpression, parameter);
-            entityType.SetQueryFilter(lambda);
         }
     }
 
@@ -178,6 +166,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         var now = DateTimeOffset.UtcNow;
         var userId = CurrentUser.Id;
         var organizationId = CurrentUser.OrganizationId;
+        var branchId = CurrentUser.BranchId;
 
         foreach (var entry in ChangeTracker.Entries())
         {
@@ -189,6 +178,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                     if (auditable.CreatedDate == default) auditable.CreatedDate = now;
                     if (auditable.CreatedBy == Guid.Empty && userId.HasValue) auditable.CreatedBy = userId.Value;
                     if (auditable.TenantId == Guid.Empty && organizationId.HasValue) auditable.TenantId = organizationId.Value;
+                    // Auto-assign BranchId on entities that have it
+                    var branchProp = entry.Entity.GetType().GetProperty("BranchId");
+                    if (branchProp != null && branchId.HasValue)
+                    {
+                        var currentValue = branchProp.GetValue(entry.Entity);
+                        var isDefault = currentValue is null || (currentValue is Guid g && g == Guid.Empty);
+                        if (isDefault)
+                        {
+                            // Convert Guid to nullable Guid if needed
+                            object valueToSet = branchId.Value;
+                            if (Nullable.GetUnderlyingType(branchProp.PropertyType) != null)
+                            {
+                                valueToSet = (Guid?)branchId.Value;
+                            }
+                            branchProp.SetValue(entry.Entity, valueToSet);
+                        }
+                    }
                     auditable.IsDeleted = false;
                     break;
 

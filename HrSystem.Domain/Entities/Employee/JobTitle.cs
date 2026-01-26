@@ -17,6 +17,10 @@ public class JobTitle : BaseAuditableEntity
     public decimal MinSalary { get; set; }
     public decimal MaxSalary { get; set; }
 
+    // Branch scope
+    public Guid? BranchId { get; set; }
+    public virtual Organization.Branch? Branch { get; set; }
+
     // Navigation properties
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
 }
