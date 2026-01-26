@@ -15,6 +15,7 @@ using HrSystem.Application.Features.Performance.Queries.GetGoalStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetReviewStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetReviewTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetEmployeesLookup;
+using HrSystem.Application.Features.Lookups.Queries.GetDepartmentLookup;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -137,6 +138,16 @@ public class LookupsController : APIBaseController
     public async Task<IActionResult> GetContractTypes()
     {
         var result = await _mediator.Send(new GetContractTypesQuery());
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get all departments (non-paginated) for dropdown
+    /// </summary>
+    [HttpGet("departments")]
+    public async Task<IActionResult> GetDepartments()
+    {
+        var result = await _mediator.Send(new GetDepartmentLookupQuery());
         return result.Match(Ok, Problem);
     }
 
