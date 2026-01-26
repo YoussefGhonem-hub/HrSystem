@@ -1,5 +1,7 @@
 using HrSystem.API.Controllers.Shared;
+using HrSystem.Application.Features.Users.Commands.ActivateAccount;
 using HrSystem.Application.Features.Users.Commands.CreateUserWithBranchRoles;
+using HrSystem.Application.Features.Users.Commands.DeactivateAccount;
 using HrSystem.Application.Features.Users.Commands.UpdateUser;
 using HrSystem.Application.Features.Users.Queries.GetUsersList;
 using HrSystem.Application.Features.Users.Queries.GetUserById;
@@ -107,6 +109,38 @@ public class UsersController : APIBaseController
         }
 
         var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Deactivate user account
+    /// </summary>
+    [HttpPost("{id:guid}/deactivate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeactivateAccount(Guid id)
+    {
+        var result = await _mediator.Send(new DeactivateAccountCommand(id));
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Activate user account
+    /// </summary>
+    [HttpPost("{id:guid}/activate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ActivateAccount(Guid id)
+    {
+        var result = await _mediator.Send(new ActivateAccountCommand(id));
         return result.Match(
             response => Ok(response),
             errors => Problem(errors)
