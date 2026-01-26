@@ -8,8 +8,7 @@ using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Storage.AWS3.Extensions;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.Employees.Commands.UploadEmployeeDocument;
 
@@ -25,12 +24,12 @@ public record UploadEmployeeDocumentCommand(
 public class UploadEmployeeDocumentCommandHandler : IRequestHandler<UploadEmployeeDocumentCommand, ErrorOr<GenericResponse<DocumentItemDto>>>
 {
     private readonly ApplicationDbContext _context;
-    private readonly IConfiguration _configuration;
+    private readonly IStorageService _storageService;
 
-    public UploadEmployeeDocumentCommandHandler(ApplicationDbContext context, IConfiguration configuration)
+    public UploadEmployeeDocumentCommandHandler(ApplicationDbContext context, IStorageService storageService)
     {
         _context = context;
-        _configuration = configuration;
+        _storageService = storageService;
     }
 
     public async Task<ErrorOr<GenericResponse<DocumentItemDto>>> Handle(
@@ -67,11 +66,15 @@ public class UploadEmployeeDocumentCommandHandler : IRequestHandler<UploadEmploy
             return Error.NotFound("Documents.TypeNotFound", "Document type not found");
         }
 
-        var stored = await _configuration.UploadToS3Async(request.File, cancellationToken);
+        // Upload to Amazon S3
+        var stored = await _storageService.Upload(request.File, cancellationToken);
         if (string.IsNullOrWhiteSpace(stored.Key))
         {
             return Error.Failure("Documents.UploadFailed", "File upload failed");
         }
+
+        // Generate presigned URL from S3
+        var fileUrl = await _storageService.DownloadFileUrl(stored.Key, cancellationToken);
 
         var document = new EmployeeDocument
         {
@@ -79,7 +82,7 @@ public class UploadEmployeeDocumentCommandHandler : IRequestHandler<UploadEmploy
             DocumentTypeId = documentType.Id,
             DocumentName = string.IsNullOrWhiteSpace(request.DocumentName) ? documentType.NameEn : request.DocumentName!,
             FilePath = stored.Key,
-            FileUrl = await _configuration.GetPreSignedUrlAsync(stored.Key),
+            FileUrl = fileUrl,
             Description = request.Description,
             ExpiryDate = request.ExpiryDate,
             FileSize = request.File.Length,

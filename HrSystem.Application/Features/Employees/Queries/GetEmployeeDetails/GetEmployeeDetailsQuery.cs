@@ -6,6 +6,7 @@ using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.Employees.Queries.GetEmployeeDetails;
 
@@ -15,10 +16,12 @@ public record GetEmployeeDetailsQuery(Guid EmployeeId, int AttendanceRecentCount
 public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetailsQuery, ErrorOr<GenericResponse<EmployeeDetailsDto>>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public GetEmployeeDetailsQueryHandler(ApplicationDbContext context)
+    public GetEmployeeDetailsQueryHandler(ApplicationDbContext context, IStorageService storageService)
     {
         _context = context;
+        _storageService = storageService;
     }
 
     public async Task<ErrorOr<GenericResponse<EmployeeDetailsDto>>> Handle(GetEmployeeDetailsQuery request, CancellationToken cancellationToken)
@@ -263,7 +266,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
 
     private async Task<List<EmployeeDocumentDto>> GetEmployeeDocumentsAsync(Guid employeeId, CancellationToken cancellationToken)
     {
-        return await _context.EmployeeDocuments
+        var documents = await _context.EmployeeDocuments
             .Include(d => d.DocumentType)
             .Where(d => d.EmployeeId == employeeId)
             .OrderByDescending(d => d.CreatedDate)
@@ -277,6 +280,17 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 ExpiryDate = d.ExpiryDate
             })
             .ToListAsync(cancellationToken);
+
+        // Generate presigned URLs from S3
+        foreach (var doc in documents)
+        {
+            if (!string.IsNullOrEmpty(doc.FileUrl))
+            {
+                doc.FileUrl = await _storageService.DownloadFileUrl(doc.FileUrl, cancellationToken);
+            }
+        }
+
+        return documents;
     }
 
     private async Task<List<EmployeeAssetDto>> GetEmployeeAssetsAsync(Guid employeeId, CancellationToken cancellationToken)
