@@ -6,6 +6,7 @@ using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Payroll;
 using HrSystem.Domain.Entities.Performance;
 using HrSystem.Domain.Enums;
+using HrSystem.Shared.Constants;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,23 @@ public static class AppDbContextSeed
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
+    };
+
+    private static readonly Dictionary<string, string> RoleAliasMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Admin"] = RoleNames.OrganizationAdmin,
+        ["OrganizationAdmin"] = RoleNames.OrganizationAdmin,
+        ["Organization Admin"] = RoleNames.OrganizationAdmin,
+        ["HRManager"] = RoleNames.HRManager,
+        ["HR Manager"] = RoleNames.HRManager,
+        ["HRSpecialist"] = RoleNames.HRSpecialist,
+        ["HR Specialist"] = RoleNames.HRSpecialist,
+        ["IT Manager"] = RoleNames.DepartmentManager,
+        ["Finance Manager"] = RoleNames.DepartmentManager,
+        ["Operations Manager"] = RoleNames.DepartmentManager,
+        ["Department Manager"] = RoleNames.DepartmentManager,
+        ["Dept Manager"] = RoleNames.DepartmentManager,
+        ["Employee"] = RoleNames.Employee
     };
 
     public static async Task SeedAsync(
@@ -41,9 +59,9 @@ public static class AppDbContextSeed
             await SeedRolesAsync(roleManager, seedDataPath);
             await SeedSubscriptionPlansAsync(context, seedDataPath);
             await SeedOrganizationAsync(context, seedDataPath);
-            await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
             await SeedCountriesAsync(context, seedDataPath);
             await SeedBranchesAsync(context, seedDataPath);
+            await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
             await SeedDepartmentsAsync(context, seedDataPath);
             await SeedJobTitlesAsync(context, seedDataPath);
             await SeedAttendanceStatusesAsync(context, seedDataPath);
@@ -51,7 +69,7 @@ public static class AppDbContextSeed
             await SeedGendersAsync(context, seedDataPath);
             await SeedMaritalStatusesAsync(context, seedDataPath);
             await SeedEmployeeStatusesAsync(context, seedDataPath);
-            await SeedEmployeesAsync(context, userManager, seedDataPath);
+            await SeedEmployeesAsync(context, userManager, roleManager, seedDataPath);
             await SeedEmployeeDocumentTypesAsync(context, seedDataPath);
             await SeedLeaveStatusesAsync(context, seedDataPath);
             await SeedLeaveTypesAsync(context, seedDataPath);
@@ -217,6 +235,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var branches = await context.Branches.ToListAsync();
+        var defaultBranch = branches.FirstOrDefault(b => b.IsHeadquarter) ?? branches.FirstOrDefault();
+
         var filePath = Path.Combine(seedDataPath, "Roles.json");
         if (!File.Exists(filePath)) return;
 
@@ -224,6 +245,8 @@ public static class AppDbContextSeed
         var roles = JsonSerializer.Deserialize<List<RoleSeedData>>(json, _jsonOptions);
 
         if (roles == null || roles.Count == 0) return;
+
+        var branchRoleAdded = false;
 
         foreach (var roleData in roles)
         {
@@ -271,7 +294,18 @@ public static class AppDbContextSeed
                 await userManager.AddToRoleAsync(user, roleData.Name);
             }
 
+            if (defaultBranch != null)
+            {
+                var assigned = await EnsureUserBranchRoleAsync(context, user.Id, defaultBranch.Id, roleData.Name);
+                branchRoleAdded = branchRoleAdded || assigned;
+            }
+
             Console.WriteLine($"Ensured role user for: {roleData.Name}");
+        }
+
+        if (branchRoleAdded)
+        {
+            await context.SaveChangesAsync();
         }
     }
 
@@ -404,7 +438,7 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded {jobTitles.Count} job titles");
     }
 
-    private static async Task SeedEmployeesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, string seedDataPath)
+    private static async Task SeedEmployeesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, string seedDataPath)
     {
         if (await context.Employees.AnyAsync()) return;
 
@@ -489,10 +523,38 @@ public static class AppDbContextSeed
             };
 
             var result = await userManager.CreateAsync(user, "Password@123");
-            if (result.Succeeded && !string.IsNullOrEmpty(empData.Role))
+            if (!result.Succeeded)
             {
-                await userManager.AddToRoleAsync(user, empData.Role);
-                Console.WriteLine($"Created user: {empData.Email} with role: {empData.Role}");
+                Console.WriteLine($"Failed to create user for employee {empData.EmployeeCode}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+            else if (!string.IsNullOrWhiteSpace(empData.Role))
+            {
+                var normalizedRole = NormalizeRoleName(empData.Role);
+                if (!string.IsNullOrEmpty(normalizedRole))
+                {
+                    var roleExists = await roleManager.RoleExistsAsync(normalizedRole);
+                    if (roleExists)
+                    {
+                        var assignResult = await userManager.AddToRoleAsync(user, normalizedRole);
+                        if (!assignResult.Succeeded)
+                        {
+                            Console.WriteLine($"Failed to assign role {normalizedRole} to {empData.Email}: {string.Join(", ", assignResult.Errors.Select(e => e.Description))}");
+                        }
+                        else
+                        {
+                            await EnsureUserBranchRoleAsync(context, user.Id, branch.Id, normalizedRole);
+                            Console.WriteLine($"Created user: {empData.Email} with role: {normalizedRole}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Role {normalizedRole} not found for employee {empData.EmployeeCode}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Unknown role '{empData.Role}' for employee {empData.EmployeeCode}; skipping assignment");
+                }
             }
 
             employee.UserId = user.Id;
@@ -902,6 +964,44 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {schedules.Count} work schedules");
+    }
+
+    private static string? NormalizeRoleName(string? roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            return null;
+        }
+
+        var trimmed = roleName.Trim();
+        if (RoleAliasMap.TryGetValue(trimmed, out var canonical))
+        {
+            return canonical;
+        }
+
+        var compressed = trimmed.Replace(" ", string.Empty);
+        canonical = RoleNames.All.FirstOrDefault(r => r.Equals(trimmed, StringComparison.OrdinalIgnoreCase)
+            || r.Equals(compressed, StringComparison.OrdinalIgnoreCase));
+        return canonical;
+    }
+
+    private static async Task<bool> EnsureUserBranchRoleAsync(ApplicationDbContext context, Guid userId, Guid branchId, string roleName)
+    {
+        var exists = await context.UserBranchRoles
+            .AnyAsync(ubr => ubr.UserId == userId && ubr.BranchId == branchId && ubr.RoleName == roleName);
+        if (exists)
+        {
+            return false;
+        }
+
+        await context.UserBranchRoles.AddAsync(new UserBranchRole
+        {
+            UserId = userId,
+            BranchId = branchId,
+            RoleName = roleName
+        });
+
+        return true;
     }
 
     // Seed Data DTOs

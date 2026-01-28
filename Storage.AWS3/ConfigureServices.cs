@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Storage.AWS3.Services;
 
@@ -13,3 +14,4 @@ public static class ConfigureServices
         return services;
     }
 }
+

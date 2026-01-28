@@ -1,6 +1,9 @@
 using HrSystem.Application;
+using HrSystem.Domain.Entities.Account;
 using HrSystem.Infrustructure;
 using HrSystem.Infrustructure.Persistence;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Storage.AWS3;
@@ -82,10 +85,17 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    dbContext.Database.Migrate();
+    var services = scope.ServiceProvider;
+    var dbContext = services.GetRequiredService<ApplicationDbContext>();
+    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleManager = services.GetRequiredService<RoleManager<ApplicationRole>>();
+    var env = services.GetRequiredService<IWebHostEnvironment>();
+
+    await dbContext.Database.MigrateAsync();
+    await AppDbContextSeed.SeedAsync(dbContext, userManager, roleManager, env);
+
     // Initialize CurrentUser accessor with the app's IHttpContextAccessor
-    var accessor = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
+    var accessor = services.GetRequiredService<IHttpContextAccessor>();
     HrSystem.Shared.CurrentUser.CurrentUser.Initialize(accessor);
 }
 
