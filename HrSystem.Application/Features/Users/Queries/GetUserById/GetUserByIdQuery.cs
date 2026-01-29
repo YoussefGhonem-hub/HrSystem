@@ -66,7 +66,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, ErrorOr
                     .Where(ubr => ubr.UserId == u.Id)
                     .Select(ubr => new UserBranchRoleDto
                     {
-                        BranchId = ubr.BranchId,
+                        BranchId = ubr.BranchId ?? Guid.Empty,
                         RoleName = ubr.RoleName
                     }).ToList()
             })

@@ -40,7 +40,6 @@ public class Employee : BaseAuditableEntity
     public Guid DepartmentId { get; set; }
     public Guid JobTitleId { get; set; }
     public Guid? DirectManagerId { get; set; }
-    public Guid? BranchId { get; set; } // Branch assignment for multi-branch organizations
     public Guid ContractTypeId { get; set; }
     public Guid StatusId { get; set; }
     

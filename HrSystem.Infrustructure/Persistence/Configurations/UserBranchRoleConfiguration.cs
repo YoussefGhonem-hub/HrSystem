@@ -14,6 +14,9 @@ public class UserBranchRoleConfiguration : IEntityTypeConfiguration<UserBranchRo
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(x => x.BranchId)
+            .IsRequired();
+
         builder.HasIndex(x => new { x.UserId, x.BranchId, x.RoleName })
             .IsUnique();
 

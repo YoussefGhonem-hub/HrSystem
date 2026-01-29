@@ -1,3 +1,4 @@
+using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Domain.Entities.Attendance;
 using HrSystem.Domain.Entities.Employee;
@@ -10,6 +11,7 @@ using HrSystem.Shared.Constants;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Text.Json;
 using static HrSystem.Infrustructure.Persistence.SeedData.SeedDataDtos;
 
@@ -87,6 +89,7 @@ public static class AppDbContextSeed
             await SeedGoalPrioritiesAsync(context, seedDataPath);
             await SeedOvertimeStatusesAsync(context, seedDataPath);
             await SeedInvoiceStatusesAsync(context, seedDataPath);
+            await EnsureDefaultScopeForSeedData(context);
 
             Console.WriteLine("Database seeding completed successfully!");
         }
@@ -127,18 +130,30 @@ public static class AppDbContextSeed
 
     private static async Task SeedSubscriptionPlansAsync(ApplicationDbContext context, string seedDataPath)
     {
-        if (await context.SubscriptionPlans.AnyAsync()) return;
-
         var filePath = Path.Combine(seedDataPath, "SubscriptionPlans.json");
         if (!File.Exists(filePath)) return;
 
         var json = await File.ReadAllTextAsync(filePath);
         var plans = JsonSerializer.Deserialize<List<SubscriptionPlanSeedData>>(json, _jsonOptions);
 
-        if (plans == null) return;
+        if (plans == null || plans.Count == 0) return;
+
+        var existingCodes = new HashSet<string>(
+            await context.SubscriptionPlans
+                .IgnoreQueryFilters()
+                .Select(p => p.Code)
+                .ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+
+        var addedCount = 0;
 
         foreach (var planData in plans)
         {
+            if (string.IsNullOrWhiteSpace(planData.Code) || existingCodes.Contains(planData.Code))
+            {
+                continue;
+            }
+
             var plan = new SubscriptionPlan
             {
                 Id = Guid.NewGuid(),
@@ -166,10 +181,15 @@ public static class AppDbContextSeed
             };
 
             await context.SubscriptionPlans.AddAsync(plan);
+            existingCodes.Add(plan.Code);
+            addedCount++;
         }
 
-        await context.SaveChangesAsync();
-        Console.WriteLine($"Seeded {plans.Count} subscription plans");
+        if (addedCount > 0)
+        {
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Seeded {addedCount} subscription plans");
+        }
     }
 
     private static async Task SeedOrganizationAsync(ApplicationDbContext context, string seedDataPath)
@@ -187,9 +207,11 @@ public static class AppDbContextSeed
         var plan = await context.SubscriptionPlans.FirstOrDefaultAsync(p => p.Code == orgData.SubscriptionPlanCode);
         if (plan == null) return;
 
+        var organizationId = Guid.NewGuid();
+
         var organization = new Organization
         {
-            Id = Guid.NewGuid(),
+            Id = organizationId,
             Code = orgData.Code,
             NameAr = orgData.NameAr,
             NameEn = orgData.NameEn,
@@ -218,7 +240,8 @@ public static class AppDbContextSeed
             TimeZone = orgData.TimeZone,
             Currency = orgData.Currency,
             WeekStartDay = orgData.WeekStartDay,
-            CreatedDate = DateTimeOffset.UtcNow
+            CreatedDate = DateTimeOffset.UtcNow,
+            TenantId = organizationId
         };
 
         await context.Organizations.AddAsync(organization);
@@ -356,6 +379,8 @@ public static class AppDbContextSeed
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
+            branch.BranchId = branch.Id;
+
             await context.Branches.AddAsync(branch);
         }
 
@@ -416,6 +441,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var titleData in jobTitles)
         {
             var jobTitle = new JobTitle
@@ -428,6 +456,7 @@ public static class AppDbContextSeed
                 MinSalary = titleData.MinSalary,
                 MaxSalary = titleData.MaxSalary,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -593,6 +622,12 @@ public static class AppDbContextSeed
 
         if (statuses == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in statuses)
         {
             var status = new HrSystem.Domain.Entities.Leave.LeaveStatus
@@ -602,6 +637,8 @@ public static class AppDbContextSeed
                 NameAr = statusData.NameAr,
                 Description = statusData.Description,
                 DisplayOrder = statusData.DisplayOrder,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -624,6 +661,12 @@ public static class AppDbContextSeed
 
         if (types == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var typeData in types)
         {
             var leaveType = new HrSystem.Domain.Entities.Leave.LeaveType
@@ -636,6 +679,8 @@ public static class AppDbContextSeed
                 ColorCode = typeData.ColorCode,
                 DisplayOrder = typeData.DisplayOrder,
                 IsActive = typeData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -661,6 +706,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var policyData in policies)
         {
             var policy = new LeavePolicy
@@ -680,6 +728,7 @@ public static class AppDbContextSeed
                 RequiresDocument = policyData.RequiresDocument,
                 Description = policyData.Description,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -705,6 +754,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var allowanceData in allowances)
         {
             var allowance = new AllowanceType
@@ -716,6 +768,7 @@ public static class AppDbContextSeed
                 IsTaxable = allowanceData.IsTaxable,
                 IsSubjectToInsurance = allowanceData.IsSubjectToInsurance,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -741,6 +794,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var deductionData in deductions)
         {
             var deduction = new DeductionType
@@ -751,6 +807,7 @@ public static class AppDbContextSeed
                 Description = deductionData.Description,
                 IsRecurring = deductionData.IsRecurring,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -773,6 +830,12 @@ public static class AppDbContextSeed
 
         if (documentTypes == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var docType in documentTypes)
         {
             var entity = new EmployeeDocumentType
@@ -784,6 +847,8 @@ public static class AppDbContextSeed
                 CategoryKey = ParseDocumentCategory(docType.CategoryKey),
                 DisplayOrder = docType.DisplayOrder,
                 IsActive = docType.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -809,6 +874,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var rateData in rates)
         {
             var rate = new SocialInsuranceRate
@@ -822,6 +890,7 @@ public static class AppDbContextSeed
                 IsActive = rateData.IsActive,
                 Description = rateData.Description,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -859,6 +928,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var bracketData in brackets)
         {
             var bracket = new TaxBracket
@@ -872,6 +944,7 @@ public static class AppDbContextSeed
                 IsActive = bracketData.IsActive,
                 Description = bracketData.Description,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -897,6 +970,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var holidayData in holidays)
         {
             var holiday = new PublicHoliday
@@ -909,6 +985,7 @@ public static class AppDbContextSeed
                 IsRecurring = holidayData.IsRecurring,
                 Description = holidayData.Description,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -934,6 +1011,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var scheduleData in schedules)
         {
             var schedule = new WorkSchedule
@@ -956,6 +1036,7 @@ public static class AppDbContextSeed
                 IsFriday = scheduleData.IsFriday,
                 IsDefault = scheduleData.IsDefault,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1004,6 +1085,88 @@ public static class AppDbContextSeed
         return true;
     }
 
+    private static async Task EnsureDefaultScopeForSeedData(ApplicationDbContext context)
+    {
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null)
+        {
+            return;
+        }
+
+        var defaultBranch = await context.Branches
+            .OrderByDescending(b => b.IsHeadquarter)
+            .ThenBy(b => b.CreatedDate)
+            .FirstOrDefaultAsync()
+            ?? await context.Branches.FirstOrDefaultAsync();
+
+        if (defaultBranch == null)
+        {
+            return;
+        }
+
+        var scopeUpdated = false;
+
+        var setMethod = typeof(DbContext).GetMethod(nameof(DbContext.Set), new[] { typeof(Type) });
+        if (setMethod == null)
+        {
+            return;
+        }
+
+        foreach (var entityType in context.Model.GetEntityTypes())
+        {
+            if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                continue;
+            }
+
+            var set = setMethod.Invoke(context, new object[] { entityType.ClrType }) as IQueryable;
+            if (set == null)
+            {
+                continue;
+            }
+
+            var needsScope = await set.Cast<BaseEntity>()
+                .Where(e => e.TenantId == Guid.Empty || !e.BranchId.HasValue || e.BranchId == Guid.Empty)
+                .ToListAsync();
+
+            if (needsScope.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var entity in needsScope)
+            {
+                if (entity.TenantId == Guid.Empty)
+                {
+                    entity.TenantId = organization.Id;
+                }
+
+                if (!entity.BranchId.HasValue || entity.BranchId == Guid.Empty)
+                {
+                    entity.BranchId = defaultBranch.Id;
+                }
+            }
+
+            scopeUpdated = true;
+        }
+
+        if (scopeUpdated)
+        {
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static async Task<Guid?> GetDefaultBranchIdAsync(ApplicationDbContext context)
+    {
+        var branch = await context.Branches
+            .OrderByDescending(b => b.IsHeadquarter)
+            .ThenBy(b => b.CreatedDate)
+            .FirstOrDefaultAsync()
+            ?? await context.Branches.FirstOrDefaultAsync();
+
+        return branch?.Id;
+    }
+
     // Seed Data DTOs
 
     private static async Task SeedGoalStatusesAsync(ApplicationDbContext context, string seedDataPath)
@@ -1021,6 +1184,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in statuses)
         {
             var status = new GoalStatus
@@ -1035,6 +1201,7 @@ public static class AppDbContextSeed
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1060,6 +1227,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var priorityData in priorities)
         {
             var priority = new GoalPriority
@@ -1074,6 +1244,7 @@ public static class AppDbContextSeed
                 DisplayOrder = priorityData.DisplayOrder,
                 IsActive = priorityData.IsActive,
                 TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1099,6 +1270,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var typeData in reviewTypes)
         {
             var reviewType = new ReviewType
@@ -1111,6 +1285,8 @@ public static class AppDbContextSeed
                 DescriptionEn = typeData.DescriptionEn,
                 DisplayOrder = typeData.DisplayOrder,
                 IsActive = typeData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1136,6 +1312,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in reviewStatuses)
         {
             var reviewStatus = new ReviewStatus
@@ -1149,6 +1328,8 @@ public static class AppDbContextSeed
                 ColorCode = statusData.ColorCode,
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1174,6 +1355,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in overtimeStatuses)
         {
             var overtimeStatus = new OvertimeStatus
@@ -1187,6 +1371,8 @@ public static class AppDbContextSeed
                 ColorCode = statusData.ColorCode,
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1212,6 +1398,9 @@ public static class AppDbContextSeed
         var organization = await context.Organizations.FirstOrDefaultAsync();
         if (organization == null) return;
 
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in invoiceStatuses)
         {
             var invoiceStatus = new InvoiceStatus
@@ -1225,6 +1414,8 @@ public static class AppDbContextSeed
                 ColorCode = statusData.ColorCode,
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1247,6 +1438,12 @@ public static class AppDbContextSeed
 
         if (statuses == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in statuses)
         {
             var status = new HrSystem.Domain.Entities.Attendance.AttendanceStatus
@@ -1258,6 +1455,8 @@ public static class AppDbContextSeed
                 ColorCode = statusData.ColorCode,
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1280,6 +1479,12 @@ public static class AppDbContextSeed
 
         if (types == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var typeData in types)
         {
             var type = new HrSystem.Domain.Entities.Employee.ContractType
@@ -1290,6 +1495,8 @@ public static class AppDbContextSeed
                 Description = typeData.Description,
                 DisplayOrder = typeData.DisplayOrder,
                 IsActive = typeData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1312,6 +1519,12 @@ public static class AppDbContextSeed
 
         if (genders == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var genderData in genders)
         {
             var gender = new HrSystem.Domain.Entities.Employee.Gender
@@ -1321,6 +1534,8 @@ public static class AppDbContextSeed
                 NameAr = genderData.NameAr,
                 DisplayOrder = genderData.DisplayOrder,
                 IsActive = genderData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1343,6 +1558,12 @@ public static class AppDbContextSeed
 
         if (statuses == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in statuses)
         {
             var status = new HrSystem.Domain.Entities.Employee.MaritalStatus
@@ -1352,6 +1573,8 @@ public static class AppDbContextSeed
                 NameAr = statusData.NameAr,
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1374,6 +1597,12 @@ public static class AppDbContextSeed
 
         if (statuses == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in statuses)
         {
             var status = new HrSystem.Domain.Entities.Employee.EmployeeStatus
@@ -1385,6 +1614,8 @@ public static class AppDbContextSeed
                 ColorCode = statusData.ColorCode,
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1407,6 +1638,12 @@ public static class AppDbContextSeed
 
         if (statuses == null) return;
 
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue) return;
+
         foreach (var statusData in statuses)
         {
             var status = new HrSystem.Domain.Entities.Payroll.PayrollStatus
@@ -1418,6 +1655,8 @@ public static class AppDbContextSeed
                 ColorCode = statusData.ColorCode,
                 DisplayOrder = statusData.DisplayOrder,
                 IsActive = statusData.IsActive,
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -1430,21 +1669,41 @@ public static class AppDbContextSeed
 
     private static async Task SeedCountriesAsync(ApplicationDbContext context, string seedDataPath)
     {
-        if (await context.Countries.AnyAsync()) return;
-
         var filePath = Path.Combine(seedDataPath, "Countries.json");
         if (!File.Exists(filePath)) return;
 
         var json = await File.ReadAllTextAsync(filePath);
         var countries = JsonSerializer.Deserialize<List<CountrySeedData>>(json, _jsonOptions);
 
-        if (countries == null) return;
+        if (countries == null || countries.Count == 0) return;
+
+        var existingCountries = await context.Countries
+            .IgnoreQueryFilters()
+            .Select(c => new { c.Id, c.Code })
+            .ToListAsync();
+
+        var existingIds = new HashSet<Guid>(existingCountries.Select(c => c.Id));
+        var existingCodes = new HashSet<string>(
+            existingCountries
+                .Where(c => !string.IsNullOrWhiteSpace(c.Code))
+                .Select(c => c.Code!),
+            StringComparer.OrdinalIgnoreCase);
+
+        var addedCount = 0;
 
         foreach (var countryData in countries)
         {
+            var countryId = countryData.Id == Guid.Empty ? Guid.NewGuid() : countryData.Id;
+            var hasCode = !string.IsNullOrWhiteSpace(countryData.Code);
+
+            if (existingIds.Contains(countryId) || (hasCode && existingCodes.Contains(countryData.Code!)))
+            {
+                continue;
+            }
+
             var country = new HrSystem.Domain.Entities.Organization.Country
             {
-                Id = countryData.Id,
+                Id = countryId,
                 NameEn = countryData.NameEn,
                 NameAr = countryData.NameAr,
                 Code = countryData.Code,
@@ -1457,9 +1716,18 @@ public static class AppDbContextSeed
             };
 
             await context.Countries.AddAsync(country);
+            existingIds.Add(country.Id);
+            if (hasCode)
+            {
+                existingCodes.Add(countryData.Code!);
+            }
+            addedCount++;
         }
 
-        await context.SaveChangesAsync();
-        Console.WriteLine($"Seeded {countries.Count} countries");
+        if (addedCount > 0)
+        {
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Seeded {addedCount} countries");
+        }
     }
 }

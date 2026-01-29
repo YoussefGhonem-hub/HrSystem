@@ -172,7 +172,7 @@ public class CreateUserWithBranchRolesCommandHandler : IRequestHandler<CreateUse
             OrganizationId = organizationId.Value,
             BranchRoles = userBranchRoles.Select(x => new UserBranchRoleDto
             {
-                BranchId = x.BranchId,
+                BranchId = x.BranchId ?? Guid.Empty,
                 RoleName = x.RoleName
             }).ToList()
         };
