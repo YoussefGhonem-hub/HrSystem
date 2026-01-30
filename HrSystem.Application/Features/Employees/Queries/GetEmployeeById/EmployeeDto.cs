@@ -26,6 +26,7 @@ public record EmployeeDto
     public string? AddressEn { get; init; }
     public string? City { get; init; }
     public string? Country { get; init; }
+    public string? Nationality { get; init; }
     public Guid DepartmentId { get; init; }
     public string DepartmentNameEn { get; init; } = string.Empty;
     public string DepartmentNameAr { get; init; } = string.Empty;

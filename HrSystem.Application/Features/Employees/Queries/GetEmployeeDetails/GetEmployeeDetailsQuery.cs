@@ -103,6 +103,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             AddressEn = employee.AddressEn,
             City = employee.City,
             Country = employee.Country,
+            Nationality = employee.Country,
             DepartmentId = employee.DepartmentId,
             DepartmentNameEn = employee.Department?.NameEn ?? string.Empty,
             DepartmentNameAr = employee.Department?.NameAr ?? string.Empty,
