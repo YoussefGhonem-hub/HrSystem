@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Users.Commands.ActivateAccount;
 using HrSystem.Application.Features.Users.Commands.ChangeUserRole;
 using HrSystem.Application.Features.Users.Commands.CreateUserWithBranchRoles;
@@ -32,10 +32,6 @@ public class UsersController : APIBaseController
     /// Create a user with roles scoped to specific branches
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserWithBranchRolesCommand command)
     {
         var result = await _mediator.Send(command);
@@ -50,8 +46,6 @@ public class UsersController : APIBaseController
     /// Get a paginated list of users with optional filters
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetUsers(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
@@ -84,8 +78,6 @@ public class UsersController : APIBaseController
     /// Get user by id
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(Guid id)
     {
         var result = await _mediator.Send(new GetUserByIdQuery(id));
@@ -99,9 +91,6 @@ public class UsersController : APIBaseController
     /// Update user basic information
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserCommand command)
     {
         if (id != command.Id)
@@ -120,9 +109,6 @@ public class UsersController : APIBaseController
     /// Deactivate user account
     /// </summary>
     [HttpPost("{id:guid}/deactivate")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeactivateAccount(Guid id)
     {
         var result = await _mediator.Send(new DeactivateAccountCommand(id));
@@ -136,9 +122,6 @@ public class UsersController : APIBaseController
     /// Activate user account
     /// </summary>
     [HttpPost("{id:guid}/activate")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ActivateAccount(Guid id)
     {
         var result = await _mediator.Send(new ActivateAccountCommand(id));
@@ -152,9 +135,6 @@ public class UsersController : APIBaseController
     /// Change user roles for a specific branch
     /// </summary>
     [HttpPut("{id:guid}/roles")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ChangeUserRole(Guid id, [FromBody] ChangeUserRoleCommand command)
     {
         if (id != command.UserId)

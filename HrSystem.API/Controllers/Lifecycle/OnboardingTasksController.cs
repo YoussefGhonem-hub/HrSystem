@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Lifecycle.OnboardingTasks.Commands.CreateOnboardingTask;
 using HrSystem.Application.Features.Lifecycle.OnboardingTasks.Commands.DeleteOnboardingTask;
 using HrSystem.Application.Features.Lifecycle.OnboardingTasks.Commands.UpdateOnboardingTask;
@@ -25,8 +25,6 @@ public class OnboardingTasksController : APIBaseController
     /// Get a paginated list of onboarding tasks with filters and sorting
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetOnboardingTasks(
         [FromQuery] Guid? employeeId = null,
         [FromQuery] bool? isCompleted = null,
@@ -61,8 +59,6 @@ public class OnboardingTasksController : APIBaseController
     /// Get onboarding task by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetOnboardingTaskById(Guid id)
     {
         var query = new GetOnboardingTaskByIdQuery(id);
@@ -78,8 +74,6 @@ public class OnboardingTasksController : APIBaseController
     /// Create a new onboarding task
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateOnboardingTask([FromBody] CreateOnboardingTaskCommand command)
     {
         var result = await _mediator.Send(command);
@@ -94,9 +88,6 @@ public class OnboardingTasksController : APIBaseController
     /// Update an existing onboarding task
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateOnboardingTask(Guid id, [FromBody] UpdateOnboardingTaskCommand command)
     {
         if (id != command.Id)
@@ -116,8 +107,6 @@ public class OnboardingTasksController : APIBaseController
     /// Delete an onboarding task (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteOnboardingTask(Guid id)
     {
         var command = new DeleteOnboardingTaskCommand(id);

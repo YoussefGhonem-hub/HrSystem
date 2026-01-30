@@ -38,6 +38,7 @@ public class GetEmployeesListQueryHandler : IRequestHandler<GetEmployeesListQuer
             .Include(e => e.Department)
             .Include(e => e.JobTitle)
             .Include(e => e.Branch)
+            .Include(e => e.Status)
             .AsQueryable();
 
         // Apply filters

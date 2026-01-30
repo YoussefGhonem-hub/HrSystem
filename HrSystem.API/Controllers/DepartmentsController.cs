@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Departments.Commands.CreateDepartment;
 using HrSystem.Application.Features.Departments.Commands.DeleteDepartment;
 using HrSystem.Application.Features.Departments.Commands.UpdateDepartment;
@@ -26,8 +26,6 @@ public class DepartmentsController : APIBaseController
     /// Get a paginated list of departments with filters and sorting
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetDepartments(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -56,8 +54,6 @@ public class DepartmentsController : APIBaseController
     /// Get department by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetDepartmentById(Guid id)
     {
         var query = new GetDepartmentByIdQuery(id);
@@ -73,8 +69,6 @@ public class DepartmentsController : APIBaseController
     /// Create a new department
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentCommand command)
     {
         var result = await _mediator.Send(command);
@@ -89,9 +83,6 @@ public class DepartmentsController : APIBaseController
     /// Update an existing department
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateDepartment(Guid id, [FromBody] UpdateDepartmentCommand command)
     {
         if (id != command.Id)
@@ -111,8 +102,6 @@ public class DepartmentsController : APIBaseController
     /// Delete a department (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteDepartment(Guid id)
     {
         var command = new DeleteDepartmentCommand(id);
@@ -128,9 +117,6 @@ public class DepartmentsController : APIBaseController
     /// Assign a department manager for a specific department within a branch
     /// </summary>
     [HttpPost("{id:guid}/manager")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AssignDepartmentManager(Guid id, [FromBody] AssignDepartmentManagerCommand command)
     {
         if (id != command.DepartmentId)

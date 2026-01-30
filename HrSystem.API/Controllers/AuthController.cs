@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Auth.Commands.Login;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -23,10 +23,6 @@ public class AuthController : APIBaseController
     /// <param name="command">Login credentials (username and password)</param>
     /// <returns>JWT token with user information and roles</returns>
     [HttpPost("login")]
-    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
         var result = await _mediator.Send(command);

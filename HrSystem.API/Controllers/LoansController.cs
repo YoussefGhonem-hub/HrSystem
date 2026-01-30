@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Payroll.Loans.Commands.CreateLoan;
 using HrSystem.Application.Features.Payroll.Loans.Commands.DeleteLoan;
 using HrSystem.Application.Features.Payroll.Loans.Commands.UpdateLoan;
@@ -25,7 +25,6 @@ public class LoansController : APIBaseController
     /// Get loans list with paging and filters
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLoans(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -56,8 +55,6 @@ public class LoansController : APIBaseController
     /// Get loan by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetLoanById(Guid id)
     {
         var result = await _mediator.Send(new GetLoanByIdQuery(id));
@@ -72,8 +69,6 @@ public class LoansController : APIBaseController
     /// Create a new loan
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateLoan([FromBody] CreateLoanCommand command)
     {
         var result = await _mediator.Send(command);
@@ -88,9 +83,6 @@ public class LoansController : APIBaseController
     /// Update an existing loan
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateLoan(Guid id, [FromBody] UpdateLoanCommand command)
     {
         if (id != command.Id)
@@ -110,8 +102,6 @@ public class LoansController : APIBaseController
     /// Delete a loan (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteLoan(Guid id)
     {
         var result = await _mediator.Send(new DeleteLoanCommand(id));

@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Employees.Commands.AssignDirectManager;
 using HrSystem.Application.Features.Employees.Commands.AddEmployeeSalary;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
@@ -32,8 +32,6 @@ public class EmployeesController : APIBaseController
     /// Get a paginated list of employees with filters and sorting
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetEmployees(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -65,8 +63,6 @@ public class EmployeesController : APIBaseController
         );
     }
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEmployeeById(Guid id)
     {
         var query = new GetEmployeeByIdQuery(id);
@@ -82,8 +78,6 @@ public class EmployeesController : APIBaseController
     /// Get full employee details (personal info, job info, latest payroll summary, recent attendance, leave balances, documents, assets)
     /// </summary>
     [HttpGet("{id:guid}/details")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEmployeeDetails(Guid id, [FromQuery] int attendanceRecentCount = 10, [FromQuery] int? leaveBalanceYear = null)
     {
         var result = await _mediator.Send(new GetEmployeeDetailsQuery(id, attendanceRecentCount, leaveBalanceYear));
@@ -98,8 +92,6 @@ public class EmployeesController : APIBaseController
     /// Get personal information for the currently logged-in user
     /// </summary>
     [HttpGet("me")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyProfile()
     {
         var result = await _mediator.Send(new GetMyProfileQuery());
@@ -114,8 +106,6 @@ public class EmployeesController : APIBaseController
     /// Get documents for the currently logged-in user grouped by category
     /// </summary>
     [HttpGet("me/documents")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyDocuments()
     {
         var result = await _mediator.Send(new GetMyDocumentsQuery());
@@ -130,8 +120,6 @@ public class EmployeesController : APIBaseController
     /// Get documents for a specific employee (HR or owner)
     /// </summary>
     [HttpGet("{id:guid}/documents")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetEmployeeDocuments(Guid id)
     {
         var result = await _mediator.Send(new GetEmployeeDocumentsQuery(id));
@@ -146,9 +134,6 @@ public class EmployeesController : APIBaseController
     /// Get a pre-signed download URL for an employee document
     /// </summary>
     [HttpGet("documents/{documentId:guid}/download")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetDocumentDownloadUrl(Guid documentId)
     {
         var result = await _mediator.Send(new GetEmployeeDocumentDownloadUrlQuery(documentId));
@@ -163,9 +148,6 @@ public class EmployeesController : APIBaseController
     /// Upload a document for a specific employee (HR or owner)
     /// </summary>
     [HttpPost("{id:guid}/documents")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UploadEmployeeDocument(Guid id, [FromForm] UploadEmployeeDocumentCommand command)
     {
         if (id != command.EmployeeId)
@@ -185,8 +167,6 @@ public class EmployeesController : APIBaseController
     /// Get salaries for a specific employee (HR or owner)
     /// </summary>
     [HttpGet("{id:guid}/salaries")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetEmployeeSalaries(Guid id)
     {
         var result = await _mediator.Send(new GetEmployeeSalariesQuery(id));
@@ -201,9 +181,6 @@ public class EmployeesController : APIBaseController
     /// Add salary for a specific employee (HR or owner)
     /// </summary>
     [HttpPost("{id:guid}/salaries")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AddEmployeeSalary(Guid id, [FromBody] AddEmployeeSalaryCommand command)
     {
         if (id != command.EmployeeId)
@@ -223,8 +200,6 @@ public class EmployeesController : APIBaseController
     /// Create a new employee
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeCommand command)
     {
         var result = await _mediator.Send(command);
@@ -239,9 +214,6 @@ public class EmployeesController : APIBaseController
     /// Assign direct manager to an existing employee (command as parameter)
     /// </summary>
     [HttpPost("direct-manager")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AssignDirectManager([FromBody] AssignDirectManagerCommand command)
     {
         var result = await _mediator.Send(command);
@@ -255,9 +227,6 @@ public class EmployeesController : APIBaseController
     /// Update an existing employee
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateEmployee(Guid id, [FromBody] UpdateEmployeeCommand command)
     {
         if (id != command.Id)
@@ -277,8 +246,6 @@ public class EmployeesController : APIBaseController
     /// Delete an employee (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEmployee(Guid id)
     {
         var command = new DeleteEmployeeCommand(id);

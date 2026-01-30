@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Performance.Goals.Commands.CreateGoal;
 using HrSystem.Application.Features.Performance.Goals.Commands.DeleteGoal;
 using HrSystem.Application.Features.Performance.Goals.Commands.UpdateGoal;
@@ -25,8 +25,6 @@ public class GoalsController : APIBaseController
     /// Get a paginated list of goals with filters and sorting
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetGoals(
         [FromQuery] Guid? employeeId = null,
         [FromQuery] string? status = null,
@@ -65,8 +63,6 @@ public class GoalsController : APIBaseController
     /// Get goal by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetGoalById(Guid id)
     {
         var query = new GetGoalByIdQuery(id);
@@ -82,8 +78,6 @@ public class GoalsController : APIBaseController
     /// Create a new goal
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateGoal([FromBody] CreateGoalCommand command)
     {
         var result = await _mediator.Send(command);
@@ -98,9 +92,6 @@ public class GoalsController : APIBaseController
     /// Update an existing goal
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateGoal(Guid id, [FromBody] UpdateGoalCommand command)
     {
         if (id != command.Id)
@@ -120,8 +111,6 @@ public class GoalsController : APIBaseController
     /// Delete a goal (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteGoal(Guid id)
     {
         var command = new DeleteGoalCommand(id);

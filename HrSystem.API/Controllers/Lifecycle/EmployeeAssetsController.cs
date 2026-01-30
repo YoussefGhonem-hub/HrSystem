@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.CreateEmployeeAsset;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.DeleteEmployeeAsset;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.UpdateEmployeeAsset;
@@ -26,8 +26,6 @@ public class EmployeeAssetsController : APIBaseController
     /// Get a paginated list of employee assets with filters and sorting
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetEmployeeAssets(
         [FromQuery] Guid? employeeId = null,
         [FromQuery] string? assetType = null,
@@ -62,9 +60,6 @@ public class EmployeeAssetsController : APIBaseController
     /// Get assets for the currently logged-in employee
     /// </summary>
     [HttpGet("me")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyAssets(
         [FromQuery] string? assetType = null,
         [FromQuery] string? status = null,
@@ -97,8 +92,6 @@ public class EmployeeAssetsController : APIBaseController
     /// Get employee asset by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEmployeeAssetById(Guid id)
     {
         var query = new GetEmployeeAssetByIdQuery(id);
@@ -114,8 +107,6 @@ public class EmployeeAssetsController : APIBaseController
     /// Create a new employee asset assignment
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateEmployeeAsset([FromBody] CreateEmployeeAssetCommand command)
     {
         var result = await _mediator.Send(command);
@@ -130,9 +121,6 @@ public class EmployeeAssetsController : APIBaseController
     /// Update an existing employee asset assignment
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateEmployeeAsset(Guid id, [FromBody] UpdateEmployeeAssetCommand command)
     {
         if (id != command.Id)
@@ -152,8 +140,6 @@ public class EmployeeAssetsController : APIBaseController
     /// Delete an employee asset assignment (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEmployeeAsset(Guid id)
     {
         var command = new DeleteEmployeeAssetCommand(id);

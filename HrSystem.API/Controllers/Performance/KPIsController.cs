@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Performance.KPIs.Commands.CreateKPI;
 using HrSystem.Application.Features.Performance.KPIs.Commands.DeleteKPI;
 using HrSystem.Application.Features.Performance.KPIs.Commands.UpdateKPI;
@@ -25,8 +25,6 @@ public class KPIsController : APIBaseController
     /// Get a paginated list of KPIs with filters and sorting
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetKPIs(
         [FromQuery] string? searchTerm = null,
         [FromQuery] string? category = null,
@@ -61,8 +59,6 @@ public class KPIsController : APIBaseController
     /// Get KPI by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetKPIById(Guid id)
     {
         var query = new GetKPIByIdQuery(id);
@@ -78,8 +74,6 @@ public class KPIsController : APIBaseController
     /// Create a new KPI
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateKPI([FromBody] CreateKPICommand command)
     {
         var result = await _mediator.Send(command);
@@ -94,9 +88,6 @@ public class KPIsController : APIBaseController
     /// Update an existing KPI
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateKPI(Guid id, [FromBody] UpdateKPICommand command)
     {
         if (id != command.Id)
@@ -116,8 +107,6 @@ public class KPIsController : APIBaseController
     /// Delete a KPI (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteKPI(Guid id)
     {
         var command = new DeleteKPICommand(id);

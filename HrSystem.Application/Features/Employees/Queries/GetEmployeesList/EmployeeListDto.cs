@@ -1,5 +1,3 @@
-using HrSystem.Domain.Enums;
-
 namespace HrSystem.Application.Features.Employees.Queries.GetEmployeesList;
 
 public record EmployeeListDto
@@ -13,6 +11,6 @@ public record EmployeeListDto
     public string DepartmentNameEn { get; init; } = string.Empty;
     public string JobTitleEn { get; init; } = string.Empty;
     public string? BranchName { get; init; }
-    public EmployeeStatus Status { get; init; }
+    public string StatusName { get; init; } = string.Empty;
     public DateTime HiringDate { get; init; }
 }
