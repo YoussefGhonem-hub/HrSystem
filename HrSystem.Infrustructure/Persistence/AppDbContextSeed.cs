@@ -3,6 +3,7 @@ using HrSystem.Domain.Entities.Account;
 using HrSystem.Domain.Entities.Attendance;
 using HrSystem.Domain.Entities.Employee;
 using HrSystem.Domain.Entities.Leave;
+using HrSystem.Domain.Entities.Lifecycle;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Payroll;
 using HrSystem.Domain.Entities.Performance;
@@ -11,6 +12,7 @@ using HrSystem.Shared.Constants;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using static HrSystem.Infrustructure.Persistence.SeedData.SeedDataDtos;
@@ -94,9 +96,11 @@ public static class AppDbContextSeed
 
             await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
             await SeedEmployeeDocumentTypesAsync(context, seedDataPath);
+            await SeedEmployeeDocumentsAsync(context);
             await SeedLeaveStatusesAsync(context, seedDataPath);
             await SeedLeaveTypesAsync(context, seedDataPath);
             await SeedLeavePoliciesAsync(context, seedDataPath);
+            await SeedLeaveBalancesAndHistoryAsync(context);
             await SeedAllowanceTypesAsync(context, seedDataPath);
             await SeedDeductionTypesAsync(context, seedDataPath);
             await SeedSocialInsuranceRatesAsync(context, seedDataPath);
@@ -104,6 +108,9 @@ public static class AppDbContextSeed
             await SeedPublicHolidaysAsync(context, seedDataPath);
             await SeedWorkSchedulesAsync(context, seedDataPath);
             await SeedPayrollStatusesAsync(context, seedDataPath);
+            await SeedEmployeeSalaryAndPayrollHistoryAsync(context);
+            await SeedAttendanceHistoryAsync(context);
+            await SeedEmployeeAssetsAsync(context);
             await SeedReviewTypesAsync(context, seedDataPath);
             await SeedReviewStatusesAsync(context, seedDataPath);
             await SeedGoalStatusesAsync(context, seedDataPath);
@@ -1041,6 +1048,244 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded {documentTypes.Count} employee document types");
     }
 
+    private static async Task SeedEmployeeDocumentsAsync(ApplicationDbContext context)
+    {
+        if (await context.EmployeeDocuments.AnyAsync())
+        {
+            return;
+        }
+
+        var employees = await context.Employees
+            .AsNoTracking()
+            .Select(e => new EmployeeDocumentSeedInfo(
+                e.Id,
+                e.TenantId,
+                e.BranchId,
+                e.EmployeeCode,
+                e.FirstNameEn,
+                e.LastNameEn,
+                e.HiringDate))
+            .ToListAsync();
+
+        if (employees.Count == 0)
+        {
+            return;
+        }
+
+        var documentTypes = await context.EmployeeDocumentTypes
+            .AsNoTracking()
+            .Where(dt => dt.IsActive)
+            .ToListAsync();
+
+        if (documentTypes.Count == 0)
+        {
+            return;
+        }
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue)
+        {
+            return;
+        }
+
+        var typeLookup = documentTypes.ToDictionary(dt => dt.NameEn, dt => dt.Id, StringComparer.OrdinalIgnoreCase);
+        var templates = BuildDocumentTemplates(typeLookup);
+
+        if (templates.Count == 0)
+        {
+            Console.WriteLine("No matching employee document templates found; skipping employee document seeding.");
+            return;
+        }
+
+        var random = new Random(20260130);
+        var documents = new List<EmployeeDocument>(employees.Count * 3);
+
+        foreach (var employee in employees)
+        {
+            var minPerEmployee = Math.Min(2, templates.Count);
+            var maxPerEmployee = templates.Count;
+            var templateCount = maxPerEmployee == minPerEmployee
+                ? minPerEmployee
+                : random.Next(minPerEmployee, maxPerEmployee + 1);
+
+            var selectedTemplates = templates
+                .OrderBy(_ => random.Next())
+                .Take(Math.Max(1, templateCount))
+                .ToList();
+
+            foreach (var template in selectedTemplates)
+            {
+                var folder = BuildDocumentFolder(employee.EmployeeCode, employee.Id);
+                var uniqueSuffix = employee.Id.ToString("N")[..6];
+                var filePath = $"seed/documents/{folder}/{template.FileSlug}-{uniqueSuffix}.pdf";
+
+                var baseDate = employee.HiringDate ?? DateTime.UtcNow;
+                var expiry = template.HasExpiry
+                    ? baseDate.AddYears(template.ExpiryOffsetYears)
+                    : (DateTime?)null;
+
+                var minSize = Math.Max(10_000, template.MinFileSize);
+                var maxSize = Math.Max(minSize, template.MaxFileSize);
+                var fileSize = minSize == maxSize
+                    ? minSize
+                    : random.NextInt64(minSize, maxSize + 1);
+
+                documents.Add(new EmployeeDocument
+                {
+                    EmployeeId = employee.Id,
+                    DocumentTypeId = template.TypeId,
+                    DocumentName = $"{template.DisplayName} - {employee.FirstName?.Trim()} {employee.LastName?.Trim()}".Trim(),
+                    FilePath = filePath,
+                    FileUrl = $"https://cdn.demo-hrsystem.local/{filePath}",
+                    Description = template.Description,
+                    ExpiryDate = expiry,
+                    FileSize = fileSize,
+                    ContentType = template.ContentType,
+                    TenantId = employee.TenantId,
+                    BranchId = employee.BranchId ?? defaultBranchId.Value,
+                    CreatedDate = DateTimeOffset.UtcNow
+                });
+            }
+        }
+
+        if (documents.Count > 0)
+        {
+            await context.EmployeeDocuments.AddRangeAsync(documents);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Seeded {documents.Count} employee documents");
+        }
+    }
+
+    private static List<DocumentTemplate> BuildDocumentTemplates(Dictionary<string, Guid> typeLookup)
+    {
+        var templates = new List<DocumentTemplate>();
+
+        void TryAddTemplate(
+            string typeName,
+            string displayName,
+            string slug,
+            string contentType,
+            string description,
+            bool hasExpiry,
+            int expiryYears,
+            long minSize,
+            long maxSize)
+        {
+            if (!typeLookup.TryGetValue(typeName, out var typeId))
+            {
+                return;
+            }
+
+            templates.Add(new DocumentTemplate(
+                typeId,
+                displayName,
+                slug,
+                contentType,
+                description,
+                hasExpiry,
+                expiryYears,
+                minSize,
+                maxSize));
+        }
+
+        TryAddTemplate(
+            "National ID",
+            "National ID Copy",
+            "national-id",
+            "application/pdf",
+            "Scanned national identification card.",
+            true,
+            10,
+            150_000,
+            350_000);
+
+        TryAddTemplate(
+            "Birth Certificate",
+            "Birth Certificate",
+            "birth-certificate",
+            "application/pdf",
+            "Certified copy of the employee birth certificate.",
+            false,
+            0,
+            200_000,
+            400_000);
+
+        TryAddTemplate(
+            "Employment Contract",
+            "Signed Employment Contract",
+            "employment-contract",
+            "application/pdf",
+            "Signed employment contract including compensation terms.",
+            false,
+            0,
+            500_000,
+            900_000);
+
+        TryAddTemplate(
+            "Job Offer Letter",
+            "Job Offer Letter",
+            "offer-letter",
+            "application/pdf",
+            "Accepted job offer letter for reference.",
+            false,
+            0,
+            250_000,
+            450_000);
+
+        TryAddTemplate(
+            "NDA / Company Policy",
+            "Policy & NDA Acknowledgment",
+            "nda-policy",
+            "application/pdf",
+            "Signed NDA and acknowledgement of company policies.",
+            false,
+            0,
+            120_000,
+            240_000);
+
+        TryAddTemplate(
+            "Insurance Form",
+            "Insurance Enrollment Form",
+            "insurance-form",
+            "application/pdf",
+            "Health insurance enrollment paperwork.",
+            true,
+            2,
+            180_000,
+            320_000);
+
+        TryAddTemplate(
+            "Social Insurance Document",
+            "Social Insurance Document",
+            "social-insurance",
+            "application/pdf",
+            "Social insurance registration confirmation.",
+            true,
+            5,
+            160_000,
+            280_000);
+
+        return templates;
+    }
+
+    private static string BuildDocumentFolder(string? employeeCode, Guid employeeId)
+    {
+        var baseSegment = string.IsNullOrWhiteSpace(employeeCode)
+            ? employeeId.ToString("N")[..8]
+            : employeeCode.Trim();
+
+        var sanitized = new string(baseSegment
+            .Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_')
+            .ToArray());
+
+        if (string.IsNullOrEmpty(sanitized))
+        {
+            sanitized = employeeId.ToString("N")[..8];
+        }
+
+        return sanitized.ToUpperInvariant();
+    }
+
     private static async Task SeedSocialInsuranceRatesAsync(ApplicationDbContext context, string seedDataPath)
     {
         if (await context.SocialInsuranceRates.AnyAsync()) return;
@@ -1348,6 +1593,715 @@ public static class AppDbContextSeed
 
         return branch?.Id;
     }
+
+    private sealed record EmployeeSeedInfo(Guid Id, Guid TenantId, Guid? BranchId, Guid? DirectManagerId, DateTime? HiringDate);
+    private sealed record EmployeeDocumentSeedInfo(
+        Guid Id,
+        Guid TenantId,
+        Guid? BranchId,
+        string? EmployeeCode,
+        string? FirstName,
+        string? LastName,
+        DateTime? HiringDate);
+
+    private sealed record DocumentTemplate(
+        Guid TypeId,
+        string DisplayName,
+        string FileSlug,
+        string ContentType,
+        string Description,
+        bool HasExpiry,
+        int ExpiryOffsetYears,
+        long MinFileSize,
+        long MaxFileSize);
+
+    private static async Task SeedLeaveBalancesAndHistoryAsync(ApplicationDbContext context)
+    {
+        if (await context.LeaveBalances.AnyAsync())
+        {
+            return;
+        }
+
+        var employees = await context.Employees
+            .AsNoTracking()
+            .Select(e => new EmployeeSeedInfo(
+                e.Id,
+                e.TenantId,
+                e.BranchId,
+                e.DirectManagerId,
+                e.HiringDate))
+            .ToListAsync();
+
+        if (employees.Count == 0)
+        {
+            return;
+        }
+
+        var annualPolicy = await context.LeavePolicies
+            .AsNoTracking()
+            .OrderBy(lp => lp.NameEn)
+            .FirstOrDefaultAsync(lp => lp.NameEn == "Annual Leave")
+            ?? await context.LeavePolicies.AsNoTracking().FirstOrDefaultAsync();
+
+        if (annualPolicy == null)
+        {
+            return;
+        }
+
+        if (annualPolicy.DefaultDaysPerYear <= 0)
+        {
+            Console.WriteLine("Annual leave policy has no entitlement configured; skipping leave balance seeding.");
+            return;
+        }
+
+        var leaveStatuses = await context.LeaveStatuses
+            .AsNoTracking()
+            .OrderBy(ls => ls.DisplayOrder)
+            .ToListAsync();
+
+        if (leaveStatuses.Count == 0)
+        {
+            return;
+        }
+
+        var approvedStatusId = leaveStatuses
+            .FirstOrDefault(s => s.NameEn.Equals("Approved", StringComparison.OrdinalIgnoreCase))?.Id
+            ?? leaveStatuses.First().Id;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue)
+        {
+            return;
+        }
+
+        var random = new Random(20260130);
+        var currentYear = DateTime.UtcNow.Year;
+        var previousYear = currentYear - 1;
+
+        var leaveBalances = new List<LeaveBalance>();
+        var leaveRequests = new List<LeaveRequest>();
+
+        foreach (var employee in employees)
+        {
+            var prevTotal = annualPolicy.DefaultDaysPerYear;
+            var prevUsedTarget = Math.Max(5, random.Next(8, Math.Max(9, prevTotal)));
+            var prevUsed = Math.Min(Math.Max(prevTotal - 1, 0), prevUsedTarget);
+            var prevRemaining = Math.Max(0, prevTotal - prevUsed);
+
+            leaveBalances.Add(new LeaveBalance
+            {
+                EmployeeId = employee.Id,
+                LeavePolicyId = annualPolicy.Id,
+                Year = previousYear,
+                TotalDays = prevTotal,
+                UsedDays = prevUsed,
+                RemainingDays = prevRemaining,
+                CarriedForwardDays = 0,
+                TenantId = employee.TenantId,
+                BranchId = employee.BranchId ?? defaultBranchId.Value,
+                CreatedDate = DateTimeOffset.UtcNow
+            });
+
+            var carryForward = Math.Min(prevRemaining, annualPolicy.MaxCarryForward);
+            var currentTotal = annualPolicy.DefaultDaysPerYear + carryForward;
+            var currentUsedTarget = Math.Max(4, random.Next(6, Math.Max(7, currentTotal)));
+            var currentUsed = Math.Min(Math.Max(currentTotal - 1, 0), currentUsedTarget);
+            var currentRemaining = Math.Max(0, currentTotal - currentUsed);
+
+            leaveBalances.Add(new LeaveBalance
+            {
+                EmployeeId = employee.Id,
+                LeavePolicyId = annualPolicy.Id,
+                Year = currentYear,
+                TotalDays = currentTotal,
+                UsedDays = currentUsed,
+                RemainingDays = currentRemaining,
+                CarriedForwardDays = carryForward,
+                TenantId = employee.TenantId,
+                BranchId = employee.BranchId ?? defaultBranchId.Value,
+                CreatedDate = DateTimeOffset.UtcNow
+            });
+
+            CreateLeaveRequestsForYear(employee, annualPolicy, approvedStatusId, previousYear, prevUsed, leaveRequests, random, defaultBranchId.Value);
+            CreateLeaveRequestsForYear(employee, annualPolicy, approvedStatusId, currentYear, currentUsed, leaveRequests, random, defaultBranchId.Value);
+        }
+
+        if (leaveBalances.Count > 0)
+        {
+            await context.LeaveBalances.AddRangeAsync(leaveBalances);
+        }
+
+        if (leaveRequests.Count > 0)
+        {
+            await context.LeaveRequests.AddRangeAsync(leaveRequests);
+        }
+
+        if (leaveBalances.Count > 0 || leaveRequests.Count > 0)
+        {
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Seeded {leaveBalances.Count} leave balances and {leaveRequests.Count} leave requests");
+        }
+    }
+
+    private static void CreateLeaveRequestsForYear(
+        EmployeeSeedInfo employee,
+        LeavePolicy policy,
+        Guid approvedStatusId,
+        int year,
+        int usedDays,
+        List<LeaveRequest> requests,
+        Random random,
+        Guid fallbackBranchId)
+    {
+        if (usedDays <= 0)
+        {
+            return;
+        }
+
+        var yearStart = new DateTime(year, 1, 1);
+        var yearEnd = new DateTime(year, 12, 31);
+
+        // Skip if employee was hired after the year ends
+        if (employee.HiringDate.HasValue && employee.HiringDate.Value.Date > yearEnd)
+        {
+            return;
+        }
+
+        var earliestStart = employee.HiringDate.HasValue && employee.HiringDate.Value.Date > yearStart
+            ? employee.HiringDate.Value.Date
+            : yearStart;
+
+        if (earliestStart > yearEnd)
+        {
+            return;
+        }
+
+        var currentStartCursor = earliestStart;
+
+        // Guarantee at least 2 requests per year if usedDays allows
+        var requestCount = Math.Max(2, Math.Min(4, usedDays / 3 + 1));
+        var daysRemaining = usedDays;
+        var requestsCreated = 0;
+
+        for (var i = 0; i < requestCount && daysRemaining > 0; i++)
+        {
+            if (currentStartCursor > yearEnd)
+            {
+                break;
+            }
+
+            // Calculate available window
+            var availableDays = (yearEnd - currentStartCursor).Days + 1;
+            if (availableDays <= 0)
+            {
+                break;
+            }
+
+            // Size the chunk: at least 1 day, at most 5 days or what remains
+            var maxChunk = Math.Min(5, Math.Min(daysRemaining, availableDays));
+            var chunk = Math.Max(1, random.Next(1, maxChunk + 1));
+
+            var startWindow = availableDays - chunk;
+            var startOffset = startWindow > 0 ? random.Next(0, Math.Min(startWindow, 30)) : 0;
+            var startDate = currentStartCursor.AddDays(startOffset);
+            var endDate = startDate.AddDays(chunk - 1);
+
+            // Clamp end date to year end
+            if (endDate > yearEnd)
+            {
+                endDate = yearEnd;
+                chunk = (endDate - startDate).Days + 1;
+            }
+
+            if (chunk <= 0)
+            {
+                break;
+            }
+
+            requests.Add(new LeaveRequest
+            {
+                EmployeeId = employee.Id,
+                LeavePolicyId = policy.Id,
+                LeaveTypeId = policy.LeaveTypeId,
+                StartDate = startDate,
+                EndDate = endDate,
+                TotalDays = chunk,
+                Reason = $"Auto-generated annual leave ({year})",
+                LeaveStatusId = approvedStatusId,
+                ManagerId = employee.DirectManagerId,
+                ManagerApprovalDate = startDate.AddDays(-2),
+                ManagerComments = "Approved automatically",
+                HRApprovedBy = employee.DirectManagerId,
+                HRApprovalDate = startDate.AddDays(-1),
+                HRComments = "Seeded record",
+                TenantId = employee.TenantId,
+                BranchId = employee.BranchId ?? fallbackBranchId,
+                CreatedDate = DateTimeOffset.UtcNow
+            });
+
+            daysRemaining -= chunk;
+            requestsCreated++;
+            currentStartCursor = endDate.AddDays(random.Next(7, 30));
+        }
+
+        // Fallback: if no requests created but usedDays > 0, force one at start of eligible window
+        if (requestsCreated == 0 && usedDays > 0)
+        {
+            var availableDays = (yearEnd - earliestStart).Days + 1;
+            var chunk = Math.Min(usedDays, Math.Min(5, availableDays));
+            if (chunk > 0)
+            {
+                var startDate = earliestStart;
+                var endDate = startDate.AddDays(chunk - 1);
+
+                requests.Add(new LeaveRequest
+                {
+                    EmployeeId = employee.Id,
+                    LeavePolicyId = policy.Id,
+                    LeaveTypeId = policy.LeaveTypeId,
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    TotalDays = chunk,
+                    Reason = $"Auto-generated annual leave ({year})",
+                    LeaveStatusId = approvedStatusId,
+                    ManagerId = employee.DirectManagerId,
+                    ManagerApprovalDate = startDate.AddDays(-2),
+                    ManagerComments = "Approved automatically",
+                    HRApprovedBy = employee.DirectManagerId,
+                    HRApprovalDate = startDate.AddDays(-1),
+                    HRComments = "Seeded record",
+                    TenantId = employee.TenantId,
+                    BranchId = employee.BranchId ?? fallbackBranchId,
+                    CreatedDate = DateTimeOffset.UtcNow
+                });
+            }
+        }
+    }
+
+    private static async Task SeedEmployeeSalaryAndPayrollHistoryAsync(ApplicationDbContext context)
+    {
+        var employees = await context.Employees
+            .Include(e => e.JobTitle)
+            .AsNoTracking()
+            .ToListAsync();
+
+        if (employees.Count == 0)
+        {
+            return;
+        }
+
+        var organization = await context.Organizations.AsNoTracking().FirstOrDefaultAsync();
+        if (organization == null)
+        {
+            return;
+        }
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue)
+        {
+            return;
+        }
+
+        var random = new Random(20260130);
+
+        var employeesWithSalary = new HashSet<Guid>(
+            await context.Salaries
+                .AsNoTracking()
+                .Select(s => s.EmployeeId)
+                .Distinct()
+                .ToListAsync());
+
+        var newSalaries = new List<Salary>();
+        foreach (var employee in employees)
+        {
+            if (employeesWithSalary.Contains(employee.Id))
+            {
+                continue;
+            }
+
+            var minSalary = employee.JobTitle?.MinSalary > 0 ? employee.JobTitle.MinSalary : 15000m;
+            var maxSalary = employee.JobTitle?.MaxSalary > minSalary ? employee.JobTitle.MaxSalary : minSalary + 5000m;
+            var baseSalary = GenerateSalaryAmount(random, minSalary, maxSalary);
+
+            newSalaries.Add(new Salary
+            {
+                EmployeeId = employee.Id,
+                BasicSalary = baseSalary,
+                EffectiveDate = employee.HiringDate,
+                Notes = "Seeded base salary",
+                IsCurrent = true,
+                TenantId = employee.TenantId,
+                BranchId = employee.BranchId ?? defaultBranchId.Value,
+                CreatedDate = DateTimeOffset.UtcNow
+            });
+        }
+
+        if (newSalaries.Count > 0)
+        {
+            await context.Salaries.AddRangeAsync(newSalaries);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Seeded {newSalaries.Count} salary records");
+        }
+
+        if (await context.PayrollCycles.AnyAsync())
+        {
+            return;
+        }
+
+        var currentSalaries = await context.Salaries
+            .Where(s => s.IsCurrent)
+            .AsNoTracking()
+            .ToDictionaryAsync(s => s.EmployeeId);
+
+        if (currentSalaries.Count == 0)
+        {
+            return;
+        }
+
+        var payrollStatuses = await context.PayrollStatuses
+            .AsNoTracking()
+            .ToListAsync();
+
+        if (payrollStatuses.Count == 0)
+        {
+            return;
+        }
+
+        var payrollStatusId =
+            payrollStatuses.FirstOrDefault(s => s.NameEn.Equals("Paid", StringComparison.OrdinalIgnoreCase))?.Id
+            ?? payrollStatuses.FirstOrDefault(s => s.NameEn.Equals("Processed", StringComparison.OrdinalIgnoreCase))?.Id
+            ?? payrollStatuses.First().Id;
+
+        var payrollCycles = new List<PayrollCycle>();
+        var today = DateTime.UtcNow;
+
+        for (var offset = 0; offset < 3; offset++)
+        {
+            var periodStart = new DateTime(today.Year, today.Month, 1).AddMonths(-offset);
+            var periodEnd = periodStart.AddMonths(1).AddDays(-1);
+
+            var cycle = new PayrollCycle
+            {
+                CycleName = periodStart.ToString("MMMM yyyy", CultureInfo.InvariantCulture),
+                Month = periodStart.Month,
+                Year = periodStart.Year,
+                PeriodStartDate = periodStart,
+                PeriodEndDate = periodEnd,
+                PaymentDate = periodEnd.AddDays(3),
+                StatusId = payrollStatusId,
+                Notes = "Auto-generated sample payroll cycle",
+                TenantId = organization.Id,
+                BranchId = defaultBranchId.Value,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            decimal totalGross = 0;
+            decimal totalNet = 0;
+            decimal totalDeductions = 0;
+            decimal totalTax = 0;
+            decimal totalInsurance = 0;
+
+            foreach (var salary in currentSalaries.Values)
+            {
+                var allowances = Math.Round(salary.BasicSalary * (decimal)(0.08 + random.NextDouble() * 0.05), 2, MidpointRounding.AwayFromZero);
+                var overtime = Math.Round(salary.BasicSalary * (decimal)(0.01 + random.NextDouble() * 0.02), 2, MidpointRounding.AwayFromZero);
+                var bonus = random.NextDouble() < 0.3
+                    ? Math.Round(salary.BasicSalary * (decimal)(0.03 + random.NextDouble() * 0.04), 2, MidpointRounding.AwayFromZero)
+                    : 0m;
+
+                var gross = salary.BasicSalary + allowances + overtime + bonus;
+                var tax = Math.Round(gross * 0.05m, 2, MidpointRounding.AwayFromZero);
+                var insuranceEmployee = Math.Round(gross * 0.08m, 2, MidpointRounding.AwayFromZero);
+                var insuranceEmployer = Math.Round(gross * 0.10m, 2, MidpointRounding.AwayFromZero);
+                var unpaidLeaveDays = random.NextDouble() < 0.15 ? random.Next(0, 3) : 0;
+                var leaveDeductions = Math.Round((salary.BasicSalary / 22m) * unpaidLeaveDays, 2, MidpointRounding.AwayFromZero);
+                var totalDeduction = tax + insuranceEmployee + leaveDeductions;
+                var netSalary = gross - totalDeduction;
+
+                var payslip = new Payslip
+                {
+                    PayrollCycleId = cycle.Id,
+                    EmployeeId = salary.EmployeeId,
+                    PayslipNumber = $"PS-{periodStart:yyyyMM}-{salary.EmployeeId.ToString("N")[..6].ToUpperInvariant()}",
+                    BasicSalary = salary.BasicSalary,
+                    TotalAllowances = allowances + overtime + bonus,
+                    GrossSalary = gross,
+                    TotalDeductions = totalDeduction,
+                    IncomeTax = tax,
+                    SocialInsuranceEmployee = insuranceEmployee,
+                    SocialInsuranceEmployer = insuranceEmployer,
+                    OvertimeAmount = overtime,
+                    BonusAmount = bonus,
+                    LeaveDeductions = leaveDeductions,
+                    UnpaidLeaveDays = unpaidLeaveDays,
+                    NetSalary = netSalary,
+                    TotalWorkingDays = 22,
+                    ActualWorkingDays = 22 - unpaidLeaveDays,
+                    AbsentDays = unpaidLeaveDays,
+                    GeneratedDate = DateTime.UtcNow,
+                    IsPaid = true,
+                    PaidDate = cycle.PaymentDate,
+                    TenantId = salary.TenantId,
+                    BranchId = salary.BranchId ?? defaultBranchId.Value,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+
+                cycle.Payslips.Add(payslip);
+
+                totalGross += gross;
+                totalNet += netSalary;
+                totalDeductions += totalDeduction;
+                totalTax += tax;
+                totalInsurance += insuranceEmployee + insuranceEmployer;
+            }
+
+            cycle.TotalGrossSalary = totalGross;
+            cycle.TotalNetSalary = totalNet;
+            cycle.TotalDeductions = totalDeductions;
+            cycle.TotalTax = totalTax;
+            cycle.TotalInsurance = totalInsurance;
+
+            payrollCycles.Add(cycle);
+        }
+
+        if (payrollCycles.Count > 0)
+        {
+            await context.PayrollCycles.AddRangeAsync(payrollCycles);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Seeded {payrollCycles.Count} payroll cycles and {payrollCycles.Sum(c => c.Payslips.Count)} payslips");
+        }
+    }
+
+    private static async Task SeedAttendanceHistoryAsync(ApplicationDbContext context)
+    {
+        if (await context.Attendances.AnyAsync())
+        {
+            return;
+        }
+
+        var employees = await context.Employees.AsNoTracking().ToListAsync();
+        if (employees.Count == 0)
+        {
+            return;
+        }
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue)
+        {
+            return;
+        }
+
+        var statuses = await context.AttendanceStatuses.AsNoTracking().ToListAsync();
+        if (statuses.Count == 0)
+        {
+            return;
+        }
+
+        var statusLookup = statuses.ToDictionary(s => s.NameEn, s => s.Id, StringComparer.OrdinalIgnoreCase);
+        var presentStatusId = statusLookup.TryGetValue("Present", out var present) ? present : statuses.First().Id;
+        var weekendStatusId = statusLookup.TryGetValue("Weekend", out var weekend) ? weekend : presentStatusId;
+        var absentStatusId = statusLookup.TryGetValue("Absent", out var absent) ? absent : presentStatusId;
+        var lateStatusId = statusLookup.TryGetValue("Late", out var late) ? late : presentStatusId;
+        var leaveStatusId = statusLookup.TryGetValue("On Leave", out var leave) ? leave : presentStatusId;
+
+        var random = new Random(20260130);
+        var endDate = DateTime.UtcNow.Date.AddDays(-1);
+        var startDate = endDate.AddDays(-30);
+        var shiftStart = new TimeSpan(9, 0, 0);
+        var shiftEnd = new TimeSpan(17, 0, 0);
+
+        var attendanceRecords = new List<Attendance>();
+
+        foreach (var employee in employees)
+        {
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                var isWeekend = date.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
+                var statusId = presentStatusId;
+
+                TimeSpan? checkIn = null;
+                TimeSpan? checkOut = null;
+                TimeSpan? worked = null;
+                TimeSpan? overtime = null;
+                TimeSpan? lateMinutes = null;
+                TimeSpan? earlyLeave = null;
+                var flaggedLate = false;
+                var flaggedEarlyLeave = false;
+                var flaggedOvertime = false;
+
+                if (isWeekend)
+                {
+                    statusId = weekendStatusId;
+                }
+                else
+                {
+                    var roll = random.NextDouble();
+                    if (roll < 0.08)
+                    {
+                        statusId = absentStatusId;
+                    }
+                    else if (roll < 0.12)
+                    {
+                        statusId = leaveStatusId;
+                    }
+                    else
+                    {
+                        var isLate = roll < 0.25;
+                        statusId = isLate ? lateStatusId : presentStatusId;
+
+                        var startOffset = isLate
+                            ? random.Next(5, 40)
+                            : random.Next(-10, 11);
+
+                        checkIn = shiftStart.Add(TimeSpan.FromMinutes(startOffset));
+                        checkOut = shiftEnd.Add(TimeSpan.FromMinutes(random.Next(-20, 60)));
+
+                        var workedRaw = checkOut.Value - checkIn.Value;
+                        worked = workedRaw < TimeSpan.Zero ? TimeSpan.Zero : workedRaw;
+
+                        if (checkIn > shiftStart.Add(TimeSpan.FromMinutes(5)))
+                        {
+                            flaggedLate = true;
+                            lateMinutes = checkIn - shiftStart;
+                        }
+
+                        if (checkOut < shiftEnd)
+                        {
+                            flaggedEarlyLeave = true;
+                            earlyLeave = shiftEnd - checkOut;
+                        }
+                        else if (checkOut > shiftEnd.Add(TimeSpan.FromMinutes(15)))
+                        {
+                            flaggedOvertime = true;
+                            overtime = checkOut - shiftEnd;
+                        }
+                    }
+                }
+
+                attendanceRecords.Add(new Attendance
+                {
+                    EmployeeId = employee.Id,
+                    Date = date,
+                    CheckInTime = checkIn,
+                    CheckOutTime = checkOut,
+                    StatusId = statusId,
+                    DeviceId = "SEED-DEVICE",
+                    CheckInDeviceId = checkIn.HasValue ? "SEED-DEVICE" : null,
+                    CheckOutDeviceId = checkOut.HasValue ? "SEED-DEVICE" : null,
+                    WorkedHours = worked,
+                    OvertimeHours = overtime,
+                    LateMinutes = lateMinutes,
+                    EarlyLeaveMinutes = earlyLeave,
+                    IsLate = flaggedLate,
+                    IsEarlyLeave = flaggedEarlyLeave,
+                    IsOvertime = flaggedOvertime,
+                    Notes = "Auto-generated attendance record",
+                    TenantId = employee.TenantId,
+                    BranchId = employee.BranchId ?? defaultBranchId.Value,
+                    CreatedDate = DateTimeOffset.UtcNow
+                });
+            }
+        }
+
+        if (attendanceRecords.Count > 0)
+        {
+            await context.Attendances.AddRangeAsync(attendanceRecords);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Seeded {attendanceRecords.Count} attendance records");
+        }
+    }
+
+    private static async Task SeedEmployeeAssetsAsync(ApplicationDbContext context)
+    {
+        if (await context.EmployeeAssets.AnyAsync())
+        {
+            return;
+        }
+
+        var employees = await context.Employees.AsNoTracking().ToListAsync();
+        if (employees.Count == 0)
+        {
+            return;
+        }
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue)
+        {
+            return;
+        }
+
+        var assetTemplates = new[]
+        {
+            new AssetTemplate("Laptop", "Dell Latitude 7440", "Latitude 7440", 28500m),
+            new AssetTemplate("Laptop", "HP EliteBook 840", "EliteBook 840 G10", 26500m),
+            new AssetTemplate("Mobile", "iPhone 15", "A3090", 36000m),
+            new AssetTemplate("Mobile", "Samsung Galaxy S24", "SM-S921B", 32000m),
+            new AssetTemplate("Access Card", "RFID Access Card", "AC-100", 150m),
+            new AssetTemplate("Monitor", "Dell UltraSharp 27", "U2723QE", 14500m),
+            new AssetTemplate("Headset", "Jabra Evolve2 65", "Evolve2 65", 3500m)
+        };
+
+        var random = new Random(20260130);
+        var assets = new List<EmployeeAsset>();
+
+        foreach (var employee in employees)
+        {
+            var assetCount = 1 + random.Next(0, 2);
+            for (var i = 0; i < assetCount; i++)
+            {
+                var template = assetTemplates[random.Next(assetTemplates.Length)];
+                var assignedDate = employee.HiringDate.AddDays(random.Next(0, 45));
+                var serialPrefix = template.AssetType[..Math.Min(3, template.AssetType.Length)].ToUpperInvariant();
+                var asset = new EmployeeAsset
+                {
+                    EmployeeId = employee.Id,
+                    AssetType = template.AssetType,
+                    AssetName = template.AssetName,
+                    SerialNumber = $"{serialPrefix}-{random.Next(10000, 99999)}",
+                    Model = template.Model,
+                    Description = $"Issued {template.AssetType.ToLowerInvariant()} for daily operations",
+                    AssignedDate = assignedDate,
+                    ExpectedReturnDate = assignedDate.AddYears(1),
+                    IsReturned = false,
+                    Condition = "Good",
+                    Value = template.Value,
+                    TenantId = employee.TenantId,
+                    BranchId = employee.BranchId ?? defaultBranchId.Value,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+
+                if (random.NextDouble() < 0.1)
+                {
+                    asset.IsReturned = true;
+                    asset.ReturnDate = asset.AssignedDate.AddMonths(random.Next(6, 14));
+                    asset.ReturnNotes = "Returned after upgrade";
+                }
+
+                assets.Add(asset);
+            }
+        }
+
+        if (assets.Count > 0)
+        {
+            await context.EmployeeAssets.AddRangeAsync(assets);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Seeded {assets.Count} employee assets");
+        }
+    }
+
+    private static decimal GenerateSalaryAmount(Random random, decimal minSalary, decimal maxSalary)
+    {
+        if (maxSalary <= minSalary)
+        {
+            maxSalary = minSalary + 1000m;
+        }
+
+        var sample = (double)minSalary + random.NextDouble() * (double)(maxSalary - minSalary);
+        var rounded = Math.Round((decimal)sample / 50m, 0, MidpointRounding.AwayFromZero) * 50m;
+        return rounded;
+    }
+
+    private sealed record AssetTemplate(string AssetType, string AssetName, string Model, decimal Value);
 
     // Seed Data DTOs
 

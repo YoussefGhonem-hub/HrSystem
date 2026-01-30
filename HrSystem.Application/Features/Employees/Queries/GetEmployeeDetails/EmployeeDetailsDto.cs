@@ -48,6 +48,7 @@ public class EmployeePayrollSummaryDto
     public DateTime? PaidDate { get; set; }
     public string? PaymentMethod { get; set; }
     public string? PayDayDescription { get; set; }
+    public string Currency { get; set; } = string.Empty;
     public List<EmployeePayslipHistoryItemDto> History { get; set; } = new();
 }
 

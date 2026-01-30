@@ -166,6 +166,28 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             ? $"{GetOrdinal(pd.Day)} of every month"
             : null;
 
+        var employeeScope = await _context.Employees
+            .Where(e => e.Id == employeeId)
+            .Select(e => new
+            {
+                e.TenantId,
+                BranchCurrency = e.Branch != null ? e.Branch.Currency : null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var currency = employeeScope?.BranchCurrency;
+        var tenantId = employeeScope?.TenantId;
+
+        if (string.IsNullOrWhiteSpace(currency) && tenantId.HasValue)
+        {
+            currency = await _context.Organizations
+                .Where(o => o.Id == tenantId.Value)
+                .Select(o => o.Currency)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        currency ??= string.Empty;
+
         return new EmployeePayrollSummaryDto
         {
             PayslipId = latestPayslip?.Id,
@@ -179,6 +201,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             PaidDate = latestPayslip?.PaidDate,
             PaymentMethod = null, // Not available in schema yet
             PayDayDescription = payDayDescription,
+            Currency = currency,
             History = history
         };
     }
@@ -242,7 +265,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
 
     private async Task<List<LeaveBalanceDto>> GetLeaveBalancesAsync(Guid employeeId, int year, CancellationToken cancellationToken)
     {
-        return await _context.LeaveBalances
+        var balances = await _context.LeaveBalances
             .Include(lb => lb.LeavePolicy)
                 .ThenInclude(lp => lp.LeaveType)
             .Where(lb => lb.EmployeeId == employeeId && lb.Year == year)
@@ -263,6 +286,62 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 CarriedForwardDays = lb.CarriedForwardDays
             })
             .ToListAsync(cancellationToken);
+
+        if (balances.Count == 0)
+        {
+            return balances;
+        }
+
+        var policyIds = balances
+            .Select(b => b.LeavePolicyId)
+            .Distinct()
+            .ToList();
+
+        if (policyIds.Count == 0)
+        {
+            return balances;
+        }
+
+        var leaveHistory = await _context.LeaveRequests
+            .Include(lr => lr.LeaveStatus)
+            .Where(lr => lr.EmployeeId == employeeId
+                         && policyIds.Contains(lr.LeavePolicyId)
+                         && (lr.StartDate.Year == year || lr.EndDate.Year == year))
+            .OrderByDescending(lr => lr.StartDate)
+            .Select(lr => new LeaveRequestHistoryDto
+            {
+                LeaveRequestId = lr.Id,
+                LeavePolicyId = lr.LeavePolicyId,
+                StartDate = lr.StartDate,
+                EndDate = lr.EndDate,
+                TotalDays = lr.TotalDays,
+                StatusNameEn = lr.LeaveStatus.NameEn,
+                StatusNameAr = lr.LeaveStatus.NameAr,
+                Reason = lr.Reason,
+                ApprovedDate = lr.HRApprovalDate ?? lr.ManagerApprovalDate,
+                ManagerComments = lr.ManagerComments,
+                HRComments = lr.HRComments
+            })
+            .ToListAsync(cancellationToken);
+
+        if (leaveHistory.Count == 0)
+        {
+            return balances;
+        }
+
+        var historyLookup = leaveHistory
+            .GroupBy(h => h.LeavePolicyId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var balance in balances)
+        {
+            if (historyLookup.TryGetValue(balance.LeavePolicyId, out var history))
+            {
+                balance.History = history;
+            }
+        }
+
+        return balances;
     }
 
     private async Task<List<EmployeeDocumentDto>> GetEmployeeDocumentsAsync(Guid employeeId, CancellationToken cancellationToken)
