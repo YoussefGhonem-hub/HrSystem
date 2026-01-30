@@ -76,6 +76,11 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
             }
         }
 
+        if (!branchId.HasValue && user.BranchId.HasValue)
+        {
+            branchId = user.BranchId;
+        }
+
         // Fallback: resolve branch from user-branch role mapping if not set on employee
         if (!branchId.HasValue)
         {

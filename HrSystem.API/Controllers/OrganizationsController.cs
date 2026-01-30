@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Organizations.Commands.CreateOrganizationWithAdmin;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationsList;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationDetails;
@@ -24,10 +24,6 @@ public class OrganizationsController : APIBaseController
     /// Create a new organization with branches and an OrganizationAdmin user
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateOrganization([FromBody] CreateOrganizationWithAdminCommand command)
     {
         var result = await _mediator.Send(command);
@@ -42,9 +38,6 @@ public class OrganizationsController : APIBaseController
     /// Get all organizations (paginated). Only SuperAdmin.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetOrganizations(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -62,10 +55,6 @@ public class OrganizationsController : APIBaseController
     /// Get organization details by id. Only SuperAdmin.
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetOrganizationById(Guid id)
     {
         var result = await _mediator.Send(new GetOrganizationDetailsQuery(id));

@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Attendance.Commands.AssignEmployeeWorkSchedule;
 using HrSystem.Application.Features.Attendance.Commands.CreateAttendance;
 using HrSystem.Application.Features.Attendance.Commands.CreateWorkSchedule;
@@ -33,8 +33,6 @@ public class AttendanceController : APIBaseController
     /// Get a paginated list of attendance records with filters and sorting
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetAttendance(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -71,8 +69,6 @@ public class AttendanceController : APIBaseController
     /// Alias: Attendance history with filters and pagination
     /// </summary>
     [HttpGet("history")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetAttendanceHistory(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -109,8 +105,6 @@ public class AttendanceController : APIBaseController
     /// Get attendance dashboard statistics for a date (defaults to today)
     /// </summary>
     [HttpGet("dashboard")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAttendanceDashboard([FromQuery] DateTime? date = null)
     {
         var result = await _mediator.Send(new GetAttendanceDashboardQuery(date));
@@ -125,8 +119,6 @@ public class AttendanceController : APIBaseController
     /// Get attendance record by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAttendanceById(Guid id)
     {
         var query = new GetAttendanceByIdQuery(id);
@@ -142,8 +134,6 @@ public class AttendanceController : APIBaseController
     /// Create a new attendance record
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateAttendance([FromBody] CreateAttendanceCommand command)
     {
         var result = await _mediator.Send(command);
@@ -158,9 +148,6 @@ public class AttendanceController : APIBaseController
     /// Update an existing attendance record
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateAttendance(Guid id, [FromBody] UpdateAttendanceCommand command)
     {
         if (id != command.Id)
@@ -180,8 +167,6 @@ public class AttendanceController : APIBaseController
     /// Delete an attendance record (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAttendance(Guid id)
     {
         var command = new DeleteAttendanceCommand(id);
@@ -197,9 +182,6 @@ public class AttendanceController : APIBaseController
     /// Enroll biometric template for an employee (HR or owner)
     /// </summary>
     [HttpPost("biometrics/enroll")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> EnrollBiometric([FromBody] EnrollEmployeeBiometricCommand command)
     {
         var result = await _mediator.Send(command);
@@ -214,9 +196,6 @@ public class AttendanceController : APIBaseController
     /// Verify biometric and record attendance (check-in/out)
     /// </summary>
     [HttpPost("biometrics/verify")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> VerifyBiometric([FromBody] VerifyBiometricAttendanceCommand command)
     {
         var result = await _mediator.Send(command);
@@ -231,7 +210,6 @@ public class AttendanceController : APIBaseController
     /// Get all work schedules for the organization
     /// </summary>
     [HttpGet("work-schedules")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWorkSchedules()
     {
         var result = await _mediator.Send(new GetWorkSchedulesQuery());
@@ -245,8 +223,6 @@ public class AttendanceController : APIBaseController
     /// Create a new work schedule
     /// </summary>
     [HttpPost("work-schedules")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateWorkSchedule([FromBody] CreateWorkScheduleCommand command)
     {
         var result = await _mediator.Send(command);
@@ -260,9 +236,6 @@ public class AttendanceController : APIBaseController
     /// Update an existing work schedule
     /// </summary>
     [HttpPut("work-schedules/{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateWorkSchedule(Guid id, [FromBody] UpdateWorkScheduleCommand command)
     {
         if (id != command.Id)
@@ -281,9 +254,6 @@ public class AttendanceController : APIBaseController
     /// Assign a work schedule to an employee
     /// </summary>
     [HttpPost("work-schedules/assign")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AssignEmployeeWorkSchedule([FromBody] AssignEmployeeWorkScheduleCommand command)
     {
         var result = await _mediator.Send(command);

@@ -9,7 +9,6 @@ namespace HrSystem.Domain.Entities.Account;
 public class UserBranchRole : BaseEntity
 {
     public Guid UserId { get; set; }
-    public Guid BranchId { get; set; }
     public string RoleName { get; set; } = string.Empty;
 
     public virtual ApplicationUser User { get; set; } = null!;

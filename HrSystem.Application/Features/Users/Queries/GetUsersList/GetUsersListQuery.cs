@@ -118,7 +118,7 @@ public class GetUsersListQueryHandler : IRequestHandler<GetUsersListQuery, Error
                 .Where(ubr => ubr.UserId == u.Id)
                 .Select(ubr => new UserBranchRoleDto
                 {
-                    BranchId = ubr.BranchId,
+                    BranchId = ubr.BranchId ?? Guid.Empty,
                     RoleName = ubr.RoleName
                 }).ToList()
         });

@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Payroll.Queries.GetMyLoans;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslips;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslipDetails;
@@ -26,9 +26,6 @@ public class PayrollController : APIBaseController
     /// Get gross and net salary for the currently logged-in user
     /// </summary>
     [HttpGet("my-salary")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMySalary([FromQuery] int? year = null, [FromQuery] int? month = null)
     {
         var result = await _mediator.Send(new GetMySalarySummaryQuery(year, month));
@@ -44,8 +41,6 @@ public class PayrollController : APIBaseController
     /// - HR/Admin can filter by employee; others restricted to own data
     /// </summary>
     [HttpGet("history")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetPayslipsHistory(
         [FromQuery] Guid? employeeId = null,
         [FromQuery] int? year = null,
@@ -80,9 +75,6 @@ public class PayrollController : APIBaseController
     /// Get aggregated payroll summary (employees paid, gross, deductions, net)
     /// </summary>
     [HttpGet("summary")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPayrollSummary([FromQuery] int? year = null, [FromQuery] int? month = null)
     {
         var result = await _mediator.Send(new GetPayrollSummaryQuery(year, month));
@@ -97,8 +89,6 @@ public class PayrollController : APIBaseController
     /// Get loans list for the currently logged-in user
     /// </summary>
     [HttpGet("my-loans")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyLoans([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         var result = await _mediator.Send(new GetMyLoansQuery(pageNumber, pageSize));
@@ -113,9 +103,6 @@ public class PayrollController : APIBaseController
     /// Get loan details for the currently logged-in user
     /// </summary>
     [HttpGet("my-loans/{loanId:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyLoanDetails(Guid loanId)
     {
         var result = await _mediator.Send(new GetMyLoanDetailsQuery(loanId));
@@ -130,8 +117,6 @@ public class PayrollController : APIBaseController
     /// Get payslips list for the currently logged-in user
     /// </summary>
     [HttpGet("my-payslips")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyPayslips(
         [FromQuery] int? year = null,
         [FromQuery] int pageNumber = 1,
@@ -149,9 +134,6 @@ public class PayrollController : APIBaseController
     /// Get payslip full details for the currently logged-in user
     /// </summary>
     [HttpGet("my-payslips/{payslipId:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyPayslipDetails(Guid payslipId)
     {
         var result = await _mediator.Send(new GetMyPayslipDetailsQuery(payslipId));

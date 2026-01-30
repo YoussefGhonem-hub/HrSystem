@@ -16,9 +16,6 @@ public class Department : BaseAuditableEntity
     public string? Description { get; set; }
     public Guid? ManagerId { get; set; }
     public Guid? ParentDepartmentId { get; set; }
-    
-    // Branch Reference (for multi-branch organizations)
-    public Guid? BranchId { get; set; }
 
     // Navigation properties
     public virtual Employee? Manager { get; set; }

@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Leave.Commands.CreateLeavePolicy;
 using HrSystem.Application.Features.Leave.Commands.CreateLeaveRequest;
 using HrSystem.Application.Features.Leave.Commands.ApproveLeaveRequest;
@@ -39,8 +39,6 @@ public class LeaveController : APIBaseController
     /// - HR Manager: Gets manager-approved requests waiting for HR approval
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetLeaveRequests(
         [FromQuery] Guid? statusId = null,
         [FromQuery] Guid? leaveTypeId = null,
@@ -75,8 +73,6 @@ public class LeaveController : APIBaseController
     /// Alias: Leave requests history with filters and pagination
     /// </summary>
     [HttpGet("history")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetLeaveRequestsHistory(
         [FromQuery] Guid? statusId = null,
         [FromQuery] Guid? leaveTypeId = null,
@@ -111,9 +107,6 @@ public class LeaveController : APIBaseController
     /// Create a new leave request
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CreateLeaveRequest([FromBody] CreateLeaveRequestCommand command)
     {
         var result = await _mediator.Send(command);
@@ -128,9 +121,6 @@ public class LeaveController : APIBaseController
     /// Get leave request details by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetLeaveRequestById(Guid id)
     {
         var result = await _mediator.Send(new GetLeaveRequestByIdQuery(id));
@@ -145,8 +135,6 @@ public class LeaveController : APIBaseController
     /// Get annual leave dashboard data for the currently logged-in user
     /// </summary>
     [HttpGet("my-dashboard")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyLeaveDashboard([FromQuery] int? year = null, [FromQuery] int historyCount = 5)
     {
         var result = await _mediator.Send(new GetMyLeaveDashboardQuery(year, historyCount));
@@ -161,8 +149,6 @@ public class LeaveController : APIBaseController
     /// Get leave balances for the currently logged-in user
     /// </summary>
     [HttpGet("my-balances")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyLeaveBalances([FromQuery] int? year = null)
     {
         var result = await _mediator.Send(new GetMyLeaveBalancesQuery(year));
@@ -178,9 +164,6 @@ public class LeaveController : APIBaseController
     /// </summary>
     [HttpGet("hr/summary")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetHrLeaveSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
     {
         var result = await _mediator.Send(new GetHrLeaveSummaryQuery(startDateFrom, startDateTo));
@@ -196,9 +179,6 @@ public class LeaveController : APIBaseController
     /// </summary>
     [HttpGet("hr/requests")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetHrLeaveRequests(
         [FromQuery] Guid? statusId = null,
         [FromQuery] Guid? leaveTypeId = null,
@@ -234,9 +214,6 @@ public class LeaveController : APIBaseController
     /// </summary>
     [HttpGet("manager/overview")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetManagerOverview(
         [FromQuery] int myPageNumber = 1,
         [FromQuery] int myPageSize = 10,
@@ -255,8 +232,6 @@ public class LeaveController : APIBaseController
     /// Explicit endpoint for employees to get their own leave requests
     /// </summary>
     [HttpGet("my-requests")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyLeaveRequests(
         [FromQuery] Guid? statusId = null,
         [FromQuery] Guid? leaveTypeId = null,
@@ -290,11 +265,6 @@ public class LeaveController : APIBaseController
     /// Supports multi-level approval: Manager approval -> HR approval
     /// </summary>
     [HttpPost("{id:guid}/approve")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ApproveLeaveRequest(Guid id, [FromBody] ApproveLeaveRequestCommand command)
     {
         if (id != command.LeaveRequestId)
@@ -315,11 +285,6 @@ public class LeaveController : APIBaseController
     /// Can be rejected by direct manager or HR manager
     /// </summary>
     [HttpPost("{id:guid}/reject")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RejectLeaveRequest(Guid id, [FromBody] RejectLeaveRequestCommand command)
     {
         if (id != command.LeaveRequestId)
@@ -342,8 +307,6 @@ public class LeaveController : APIBaseController
     /// </summary>
     [HttpGet("policies")]
     [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetLeavePolicies()
     {
         var result = await _mediator.Send(new GetLeavePoliciesQuery());
@@ -358,8 +321,6 @@ public class LeaveController : APIBaseController
     /// </summary>
     [HttpGet("policies/{id:guid}")]
     [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetLeavePolicyById(Guid id)
     {
         var result = await _mediator.Send(new GetLeavePolicyByIdQuery(id));
@@ -374,9 +335,6 @@ public class LeaveController : APIBaseController
     /// </summary>
     [HttpPost("policies")]
     [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateLeavePolicy([FromBody] CreateLeavePolicyCommand command)
     {
         var result = await _mediator.Send(command);
@@ -391,9 +349,6 @@ public class LeaveController : APIBaseController
     /// </summary>
     [HttpPut("policies/{id:guid}")]
     [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateLeavePolicy(Guid id, [FromBody] UpdateLeavePolicyCommand command)
     {
         if (id != command.Id)
@@ -413,9 +368,6 @@ public class LeaveController : APIBaseController
     /// </summary>
     [HttpDelete("policies/{id:guid}")]
     [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.OrganizationAdmin + "," + RoleNames.SuperAdmin)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteLeavePolicy(Guid id)
     {
         var result = await _mediator.Send(new DeleteLeavePolicyCommand(id));

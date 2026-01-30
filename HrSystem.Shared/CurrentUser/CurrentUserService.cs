@@ -1,4 +1,5 @@
-﻿using HrSystem.Shared.Extensions;
+﻿using HrSystem.Shared.Constants;
+using HrSystem.Shared.Extensions;
 using Microsoft.AspNetCore.Http;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -10,6 +11,11 @@ public static class CurrentUser
     // Initialize this once at startup with the registered IHttpContextAccessor.
     public static void Initialize(IHttpContextAccessor accessor) => HttpContextAccessor = accessor;
     public static IHttpContextAccessor? HttpContextAccessor { get; set; }
+
+    /// <summary>
+    /// When true, multi-tenant query filters are bypassed (used during background operations like seeding).
+    /// </summary>
+    public static bool BypassScopeFilters { get; set; }
 
     // Claim keys
     private const string SubClaim = "sub";
@@ -130,6 +136,7 @@ public static class CurrentUser
     public static string Name => GetClaimValue(NameClaim) ?? UserName;
     public static IReadOnlyList<string> Roles => GetRoles();
     public static bool IsOrganizationAdmin => Roles.Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) || string.Equals(r, "OrganizationAdmin", StringComparison.OrdinalIgnoreCase));
+    public static bool IsSuperAdmin => Roles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase));
     public static IReadOnlyList<string> Permissions => GetPermissions();
     public static IReadOnlyList<string> Audiences => GetAudiences();
     public static bool IsAuthenticated => HttpContextAccessor?.HttpContext?.User?.Identity?.IsAuthenticated == true;

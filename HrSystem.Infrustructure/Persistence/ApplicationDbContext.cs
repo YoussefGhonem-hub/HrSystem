@@ -1,9 +1,14 @@
 using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
+using HrSystem.Domain.Entities.Organization;
 using HrSystem.Infrustructure.Extensions;
 using HrSystem.Shared.CurrentUser;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace HrSystem.Infrustructure.Persistence;
@@ -102,57 +107,90 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     private void ApplyScopedFilters(ModelBuilder modelBuilder)
     {
-        // Get current organization ID from CurrentUser
-        var organizationId = CurrentUser.OrganizationId;
-        var isOrgAdmin = CurrentUser.IsOrganizationAdmin;
-        var branchId = CurrentUser.BranchId;
+        if (CurrentUser.BypassScopeFilters || CurrentUser.IsSuperAdmin)
+        {
+            return;
+        }
 
-        // Apply filter to all entities that inherit from BaseAuditableEntity (they have TenantId)
+        var organizationId = CurrentUser.OrganizationId;
+        var branchId = CurrentUser.BranchId;
+        var isOrgAdmin = CurrentUser.IsOrganizationAdmin;
+
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            if (typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType))
+            if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
-                var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "e");
-                var property = System.Linq.Expressions.Expression.Property(parameter, nameof(BaseAuditableEntity.TenantId));
-                System.Linq.Expressions.Expression tenantPredicate;
-                if (organizationId.HasValue)
+                continue;
+            }
+
+            var parameter = Expression.Parameter(entityType.ClrType, "entity");
+            Expression? scopePredicate = null;
+
+            if (!organizationId.HasValue)
+            {
+                scopePredicate = Expression.Constant(false);
+            }
+            else if (isOrgAdmin)
+            {
+                scopePredicate = BuildTenantPredicate(parameter, organizationId.Value);
+            }
+            else
+            {
+                if (!branchId.HasValue)
                 {
-                    var organizationValue = System.Linq.Expressions.Expression.Constant(organizationId.Value);
-                    tenantPredicate = System.Linq.Expressions.Expression.Equal(property, organizationValue);
+                    scopePredicate = Expression.Constant(false);
                 }
                 else
                 {
-                    // No organization id -> allow all (e => true)
-                    tenantPredicate = System.Linq.Expressions.Expression.Constant(true);
+                    var tenantPredicate = BuildTenantPredicate(parameter, organizationId.Value);
+                    var branchPredicate = BuildBranchPredicate(parameter, branchId.Value);
+                    scopePredicate = Expression.AndAlso(tenantPredicate, branchPredicate);
                 }
-
-                // Optional branch predicate when entity has BranchId and user is not org admin
-                var branchProp = entityType.ClrType.GetProperty("BranchId");
-                System.Linq.Expressions.Expression finalPredicate = tenantPredicate;
-
-                if (!isOrgAdmin && branchProp != null && branchId.HasValue)
-                {
-                    var branchProperty = System.Linq.Expressions.Expression.Property(parameter, branchProp);
-                    var branchConst = System.Linq.Expressions.Expression.Constant(branchId.Value, branchProp.PropertyType);
-
-                    System.Linq.Expressions.Expression branchPredicate;
-                    if (Nullable.GetUnderlyingType(branchProp.PropertyType) != null)
-                    {
-                        var nullableBranchConst = System.Linq.Expressions.Expression.Convert(branchConst, branchProp.PropertyType);
-                        branchPredicate = System.Linq.Expressions.Expression.Equal(branchProperty, nullableBranchConst);
-                    }
-                    else
-                    {
-                        branchPredicate = System.Linq.Expressions.Expression.Equal(branchProperty, branchConst);
-                    }
-
-                    finalPredicate = System.Linq.Expressions.Expression.AndAlso(tenantPredicate, branchPredicate);
-                }
-
-                var lambda = System.Linq.Expressions.Expression.Lambda(finalPredicate, parameter);
-                entityType.SetQueryFilter(lambda);
             }
+
+            var existingFilter = entityType.GetQueryFilter();
+            if (existingFilter != null)
+            {
+                var existingBody = ReplacingExpressionVisitor.Replace(
+                    existingFilter.Parameters.First(),
+                    parameter,
+                    existingFilter.Body);
+
+                scopePredicate = scopePredicate == null
+                    ? existingBody
+                    : Expression.AndAlso(existingBody, scopePredicate);
+            }
+
+            if (scopePredicate == null)
+            {
+                continue;
+            }
+
+            var lambda = Expression.Lambda(scopePredicate, parameter);
+            entityType.SetQueryFilter(lambda);
         }
+    }
+
+    private static Expression BuildTenantPredicate(ParameterExpression parameter, Guid tenantId)
+    {
+        var property = Expression.Property(parameter, nameof(BaseEntity.TenantId));
+        var constant = Expression.Constant(tenantId);
+        return Expression.Equal(property, constant);
+    }
+
+    private static Expression BuildBranchPredicate(ParameterExpression parameter, Guid branchId)
+    {
+        var property = Expression.Property(parameter, nameof(BaseEntity.BranchId));
+        Expression branchConstant = property.Type == typeof(Guid)
+            ? Expression.Constant(branchId)
+            : Expression.Constant((Guid?)branchId, property.Type);
+
+        if (property.Type != branchConstant.Type)
+        {
+            branchConstant = Expression.Convert(branchConstant, property.Type);
+        }
+
+        return Expression.Equal(property, branchConstant);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -168,49 +206,52 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         var organizationId = CurrentUser.OrganizationId;
         var branchId = CurrentUser.BranchId;
 
-        foreach (var entry in ChangeTracker.Entries())
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
-            if (entry.Entity is not BaseAuditableEntity auditable) continue;
+            var entity = entry.Entity;
 
             switch (entry.State)
             {
                 case EntityState.Added:
-                    if (auditable.CreatedDate == default) auditable.CreatedDate = now;
-                    if (auditable.CreatedBy == Guid.Empty && userId.HasValue) auditable.CreatedBy = userId.Value;
-                    if (auditable.TenantId == Guid.Empty && organizationId.HasValue) auditable.TenantId = organizationId.Value;
-                    // Auto-assign BranchId on entities that have it
-                    var branchProp = entry.Entity.GetType().GetProperty("BranchId");
-                    if (branchProp != null && branchId.HasValue)
+                    if (entity.CreatedDate == default) entity.CreatedDate = now;
+                    if (!entity.CreatedBy.HasValue && userId.HasValue) entity.CreatedBy = userId.Value;
+                    if (entity.TenantId == Guid.Empty && organizationId.HasValue) entity.TenantId = organizationId.Value;
+
+                    if (entity is Branch branchEntity)
                     {
-                        var currentValue = branchProp.GetValue(entry.Entity);
-                        var isDefault = currentValue is null || (currentValue is Guid g && g == Guid.Empty);
-                        if (isDefault)
+                        if (!branchEntity.BranchId.HasValue || branchEntity.BranchId == Guid.Empty)
                         {
-                            // Convert Guid to nullable Guid if needed
-                            object valueToSet = branchId.Value;
-                            if (Nullable.GetUnderlyingType(branchProp.PropertyType) != null)
-                            {
-                                valueToSet = (Guid?)branchId.Value;
-                            }
-                            branchProp.SetValue(entry.Entity, valueToSet);
+                            branchEntity.BranchId = branchEntity.Id;
                         }
                     }
-                    auditable.IsDeleted = false;
+                    else if ((!entity.BranchId.HasValue || entity.BranchId == Guid.Empty) && branchId.HasValue)
+                    {
+                        entity.BranchId = branchId.Value;
+                    }
+
+                    if (entity is BaseAuditableEntity auditableAdded)
+                    {
+                        auditableAdded.IsDeleted = false;
+                    }
                     break;
 
                 case EntityState.Modified:
-                    auditable.ModifiedDate = now;
-                    if (userId.HasValue) auditable.ModifiedBy = userId.Value;
-                    entry.Property(nameof(BaseAuditableEntity.CreatedDate)).IsModified = false;
-                    entry.Property(nameof(BaseAuditableEntity.CreatedBy)).IsModified = false;
-                    entry.Property(nameof(BaseAuditableEntity.TenantId)).IsModified = false;
+                    entity.ModifiedDate = now;
+                    if (userId.HasValue) entity.ModifiedBy = userId.Value;
+
+                    entry.Property(nameof(BaseEntity.CreatedDate)).IsModified = false;
+                    entry.Property(nameof(BaseEntity.CreatedBy)).IsModified = false;
+                    entry.Property(nameof(BaseEntity.TenantId)).IsModified = false;
                     break;
 
                 case EntityState.Deleted:
-                    entry.State = EntityState.Modified;
-                    auditable.IsDeleted = true;
-                    auditable.DeletedDate = now;
-                    if (userId.HasValue) auditable.DeletedBy = userId.Value;
+                    if (entity is BaseAuditableEntity auditableDeleted)
+                    {
+                        entry.State = EntityState.Modified;
+                        auditableDeleted.IsDeleted = true;
+                        auditableDeleted.DeletedDate = now;
+                        if (userId.HasValue) auditableDeleted.DeletedBy = userId.Value;
+                    }
                     break;
             }
         }

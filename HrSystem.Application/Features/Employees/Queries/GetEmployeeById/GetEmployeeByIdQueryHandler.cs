@@ -25,6 +25,10 @@ public class GetEmployeeByIdQueryHandler : IRequestHandler<GetEmployeeByIdQuery,
             .Include(e => e.JobTitle)
             .Include(e => e.DirectManager)
             .Include(e => e.Branch)
+            .Include(e => e.Gender)
+            .Include(e => e.MaritalStatus)
+            .Include(e => e.ContractType)
+            .Include(e => e.Status)
             .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
 
         if (employee == null)

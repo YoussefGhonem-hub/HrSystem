@@ -36,6 +36,17 @@ public static class RoleNames
     public const string Employee = "Employee";
 
     /// <summary>
+    /// Roles that must always be scoped to a branch
+    /// </summary>
+    public static readonly string[] BranchScoped = new[]
+    {
+        HRManager,
+        HRSpecialist,
+        DepartmentManager,
+        Employee
+    };
+
+    /// <summary>
     /// Gets all available role names
     /// </summary>
     public static readonly string[] All = new[]
@@ -54,5 +65,13 @@ public static class RoleNames
     public static bool IsValid(string roleName)
     {
         return All.Contains(roleName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Determines whether the supplied role requires a branch scope assignment.
+    /// </summary>
+    public static bool RequiresBranchScope(string roleName)
+    {
+        return BranchScoped.Contains(roleName, StringComparer.OrdinalIgnoreCase);
     }
 }

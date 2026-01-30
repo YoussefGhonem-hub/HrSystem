@@ -1,4 +1,4 @@
-using HrSystem.API.Controllers.Shared;
+﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Branches.Commands.CreateBranch;
 using HrSystem.Application.Features.Branches.Commands.DeleteBranch;
 using HrSystem.Application.Features.Branches.Commands.UpdateBranch;
@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HrSystem.API.Controllers;
 
 [Route("api/[controller]")]
-[Authorize]
+[AllowAnonymous]
 public class BranchesController : APIBaseController
 {
     private readonly ISender _mediator;
@@ -26,8 +26,6 @@ public class BranchesController : APIBaseController
     /// Get a paginated list of branches with filters and sorting
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetBranches(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -58,8 +56,6 @@ public class BranchesController : APIBaseController
     /// Get branch by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBranchById(Guid id)
     {
         var query = new GetBranchByIdQuery(id);
@@ -75,8 +71,6 @@ public class BranchesController : APIBaseController
     /// Create a new branch
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateBranch([FromBody] CreateBranchCommand command)
     {
         var result = await _mediator.Send(command);
@@ -91,9 +85,6 @@ public class BranchesController : APIBaseController
     /// Update an existing branch
     /// </summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateBranch(Guid id, [FromBody] UpdateBranchCommand command)
     {
         if (id != command.Id)
@@ -113,8 +104,6 @@ public class BranchesController : APIBaseController
     /// Delete a branch (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteBranch(Guid id)
     {
         var command = new DeleteBranchCommand(id);
