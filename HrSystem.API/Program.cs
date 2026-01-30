@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Storage.AWS3;
+using HrSystem.Shared.CurrentUser;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -91,8 +92,16 @@ using (var scope = app.Services.CreateScope())
     var roleManager = services.GetRequiredService<RoleManager<ApplicationRole>>();
     var env = services.GetRequiredService<IWebHostEnvironment>();
 
-    await dbContext.Database.MigrateAsync();
-    await AppDbContextSeed.SeedAsync(dbContext, userManager, roleManager, env);
+    CurrentUser.BypassScopeFilters = true;
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+        await AppDbContextSeed.SeedAsync(dbContext, userManager, roleManager, env);
+    }
+    finally
+    {
+        CurrentUser.BypassScopeFilters = false;
+    }
 
     // Initialize CurrentUser accessor with the app's IHttpContextAccessor
     var accessor = services.GetRequiredService<IHttpContextAccessor>();

@@ -17,8 +17,9 @@ public class ApplicationUser : IdentityUser<Guid>
     // Multi-Tenancy
     public Guid OrganizationId { get; set; }
     
-    // Employee Reference
+    // Employee / Branch Reference
     public Guid? EmployeeId { get; set; }
+    public Guid? BranchId { get; set; }
     
     // Audit
     public DateTimeOffset CreatedDate { get; set; } = DateTimeOffset.UtcNow;
@@ -29,5 +30,6 @@ public class ApplicationUser : IdentityUser<Guid>
     // Navigation Properties
     public virtual Organization.Organization Organization { get; set; } = null!;
     public virtual Employee.Employee? Employee { get; set; }
+    public virtual Organization.Branch? Branch { get; set; }
     public virtual ICollection<UserBranchRole> BranchRoles { get; set; } = new List<UserBranchRole>();
 }

@@ -107,7 +107,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     private void ApplyScopedFilters(ModelBuilder modelBuilder)
     {
-        if (CurrentUser.IsSuperAdmin)
+        if (CurrentUser.BypassScopeFilters || CurrentUser.IsSuperAdmin)
         {
             return;
         }

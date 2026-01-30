@@ -12,6 +12,11 @@ public static class CurrentUser
     public static void Initialize(IHttpContextAccessor accessor) => HttpContextAccessor = accessor;
     public static IHttpContextAccessor? HttpContextAccessor { get; set; }
 
+    /// <summary>
+    /// When true, multi-tenant query filters are bypassed (used during background operations like seeding).
+    /// </summary>
+    public static bool BypassScopeFilters { get; set; }
+
     // Claim keys
     private const string SubClaim = "sub";
     private const string NameIdClaim = ClaimTypes.NameIdentifier;

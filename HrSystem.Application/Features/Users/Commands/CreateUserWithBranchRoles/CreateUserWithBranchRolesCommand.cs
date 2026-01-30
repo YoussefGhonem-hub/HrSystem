@@ -2,6 +2,7 @@ using ErrorOr;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -111,6 +112,9 @@ public class CreateUserWithBranchRolesCommandHandler : IRequestHandler<CreateUse
             }
         }
 
+        var primaryBranchId = request.BranchRoles.FirstOrDefault()?.BranchId;
+        var requiresBranchScope = resolvedRoleNames.Any(RoleNames.RequiresBranchScope);
+
         var user = new ApplicationUser
         {
             Id = Guid.NewGuid(),
@@ -120,6 +124,7 @@ public class CreateUserWithBranchRolesCommandHandler : IRequestHandler<CreateUse
             FullName = request.FullName,
             IsActive = true,
             OrganizationId = organizationId.Value,
+            BranchId = requiresBranchScope ? primaryBranchId : null,
             CreatedDate = DateTimeOffset.UtcNow
         };
 

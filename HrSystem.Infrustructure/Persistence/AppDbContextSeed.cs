@@ -57,21 +57,42 @@ public static class AppDbContextSeed
 
         try
         {
-            // Seed in order: Roles -> SubscriptionPlans -> Organization -> Branches -> Others
-            await SeedRolesAsync(roleManager, seedDataPath);
+            // Seed organization foundation before any dependent entities
             await SeedSubscriptionPlansAsync(context, seedDataPath);
             await SeedOrganizationAsync(context, seedDataPath);
+            if (!await context.Organizations.AnyAsync())
+            {
+                Console.WriteLine("Organization seeding failed or organization already missing; aborting remaining seed steps.");
+                return;
+            }
+
+            await SeedRolesAsync(roleManager, seedDataPath);
             await SeedCountriesAsync(context, seedDataPath);
             await SeedBranchesAsync(context, seedDataPath);
-            await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
+            if (!await context.Branches.AnyAsync())
+            {
+                Console.WriteLine("Branch seeding failed; aborting remaining seed steps.");
+                return;
+            }
+
             await SeedDepartmentsAsync(context, seedDataPath);
             await SeedJobTitlesAsync(context, seedDataPath);
-            await SeedAttendanceStatusesAsync(context, seedDataPath);
             await SeedContractTypesAsync(context, seedDataPath);
             await SeedGendersAsync(context, seedDataPath);
             await SeedMaritalStatusesAsync(context, seedDataPath);
             await SeedEmployeeStatusesAsync(context, seedDataPath);
-            await SeedEmployeesAsync(context, userManager, roleManager, seedDataPath);
+            await SeedAttendanceStatusesAsync(context, seedDataPath);
+
+            if (await HasEmployeeSeedPrerequisitesAsync(context))
+            {
+                await SeedEmployeesAsync(context, userManager, roleManager, seedDataPath);
+            }
+            else
+            {
+                Console.WriteLine("Skipping employee seeding because prerequisite reference data is missing.");
+            }
+
+            await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
             await SeedEmployeeDocumentTypesAsync(context, seedDataPath);
             await SeedLeaveStatusesAsync(context, seedDataPath);
             await SeedLeaveTypesAsync(context, seedDataPath);
@@ -260,6 +281,7 @@ public static class AppDbContextSeed
 
         var branches = await context.Branches.ToListAsync();
         var defaultBranch = branches.FirstOrDefault(b => b.IsHeadquarter) ?? branches.FirstOrDefault();
+        var defaultBranchId = defaultBranch?.Id;
 
         var filePath = Path.Combine(seedDataPath, "Roles.json");
         if (!File.Exists(filePath)) return;
@@ -289,6 +311,9 @@ public static class AppDbContextSeed
             var email = $"{roleData.Name.ToLowerInvariant()}@{organization.Code.ToLowerInvariant()}.local";
             var existingUser = await userManager.FindByEmailAsync(email);
 
+            var requiresBranchScope = RoleNames.RequiresBranchScope(roleData.Name);
+            var branchIdForRole = requiresBranchScope ? defaultBranchId : null;
+
             var user = existingUser ?? new ApplicationUser
             {
                 Id = Guid.NewGuid(),
@@ -298,7 +323,8 @@ public static class AppDbContextSeed
                 FullName = roleData.DisplayName,
                 IsActive = true,
                 OrganizationId = organization.Id,
-                CreatedDate = DateTimeOffset.UtcNow
+                CreatedDate = DateTimeOffset.UtcNow,
+                BranchId = branchIdForRole
             };
 
             if (existingUser == null)
@@ -309,6 +335,11 @@ public static class AppDbContextSeed
                     Console.WriteLine($"Failed to create user for role {roleData.Name}: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
                     continue;
                 }
+            }
+            else if (requiresBranchScope && branchIdForRole.HasValue && user.BranchId != branchIdForRole)
+            {
+                user.BranchId = branchIdForRole;
+                await userManager.UpdateAsync(user);
             }
 
             var inRole = await userManager.IsInRoleAsync(user, roleData.Name);
@@ -485,6 +516,41 @@ public static class AppDbContextSeed
         var departments = await context.Departments.ToListAsync();
         var jobTitles = await context.JobTitles.ToListAsync();
         var branches = await context.Branches.ToListAsync();
+        var departmentLookup = await BuildDepartmentLookupAsync(departments, seedDataPath);
+        var jobTitleLookup = await BuildJobTitleLookupAsync(jobTitles, seedDataPath);
+
+        Department? ResolveDepartment(string? code)
+        {
+            if (!string.IsNullOrWhiteSpace(code) && departmentLookup.TryGetValue(code, out var mappedDepartment))
+            {
+                return mappedDepartment;
+            }
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return null;
+            }
+
+            return departments.FirstOrDefault(d => d.NameEn.StartsWith(code, StringComparison.OrdinalIgnoreCase));
+        }
+
+        JobTitle? ResolveJobTitle(string? code)
+        {
+            if (!string.IsNullOrWhiteSpace(code) && jobTitleLookup.TryGetValue(code, out var mappedJobTitle))
+            {
+                return mappedJobTitle;
+            }
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return null;
+            }
+
+            var normalizedCode = NormalizeCodeKey(code);
+            return jobTitles.FirstOrDefault(j =>
+                j.TitleEn.Contains(code, StringComparison.OrdinalIgnoreCase) ||
+                NormalizeCodeKey(j.TitleEn).Contains(normalizedCode, StringComparison.OrdinalIgnoreCase));
+        }
 
         // Dictionary to store employee codes and their IDs for manager assignment
         var employeeMap = new Dictionary<string, Guid>();
@@ -492,9 +558,9 @@ public static class AppDbContextSeed
         // First pass: Create all employees without manager assignment
         foreach (var empData in employees)
         {
-            var department = departments.FirstOrDefault(d => d.NameEn.StartsWith(empData.DepartmentCode));
-            var jobTitle = jobTitles.FirstOrDefault(j => j.TitleEn.Contains(empData.JobTitleCode) || j.TitleEn.Replace(" ", "").ToUpper().Contains(empData.JobTitleCode.Replace("-", "")));
-            var branch = branches.FirstOrDefault(b => b.Code == empData.BranchCode);
+            var department = ResolveDepartment(empData.DepartmentCode);
+            var jobTitle = ResolveJobTitle(empData.JobTitleCode);
+            var branch = branches.FirstOrDefault(b => string.Equals(b.Code, empData.BranchCode, StringComparison.OrdinalIgnoreCase));
 
             if (department == null || jobTitle == null || branch == null)
             {
@@ -536,6 +602,9 @@ public static class AppDbContextSeed
 
             employeeMap[empData.EmployeeCode] = employeeId;
             await context.Employees.AddAsync(employee);
+            
+            // Save the employee first to satisfy FK constraint before creating user
+            await context.SaveChangesAsync();
 
             // Create user account for employee
             var user = new ApplicationUser
@@ -548,6 +617,7 @@ public static class AppDbContextSeed
                 IsActive = true,
                 OrganizationId = organization.Id,
                 EmployeeId = employeeId,
+                BranchId = branch.Id,
                 CreatedDate = DateTimeOffset.UtcNow
             };
 
@@ -608,6 +678,118 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {employees.Count} employees");
+    }
+
+    private static async Task<Dictionary<string, Department>> BuildDepartmentLookupAsync(
+        List<Department> departments,
+        string seedDataPath)
+    {
+        var lookup = new Dictionary<string, Department>(StringComparer.OrdinalIgnoreCase);
+        if (departments.Count == 0)
+        {
+            return lookup;
+        }
+
+        var filePath = Path.Combine(seedDataPath, "Departments.json");
+        if (!File.Exists(filePath))
+        {
+            return lookup;
+        }
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var seeds = JsonSerializer.Deserialize<List<DepartmentSeedData>>(json, _jsonOptions);
+        if (seeds == null)
+        {
+            return lookup;
+        }
+
+        foreach (var seed in seeds)
+        {
+            if (string.IsNullOrWhiteSpace(seed.Code) || string.IsNullOrWhiteSpace(seed.NameEn))
+            {
+                continue;
+            }
+
+            var department = departments.FirstOrDefault(d =>
+                string.Equals(d.NameEn, seed.NameEn, StringComparison.OrdinalIgnoreCase));
+
+            if (department == null)
+            {
+                continue;
+            }
+
+            lookup.TryAdd(seed.Code, department);
+
+            var normalizedCode = NormalizeCodeKey(seed.Code);
+            if (!string.IsNullOrEmpty(normalizedCode))
+            {
+                lookup.TryAdd(normalizedCode, department);
+            }
+        }
+
+        return lookup;
+    }
+
+    private static async Task<Dictionary<string, JobTitle>> BuildJobTitleLookupAsync(
+        List<JobTitle> jobTitles,
+        string seedDataPath)
+    {
+        var lookup = new Dictionary<string, JobTitle>(StringComparer.OrdinalIgnoreCase);
+        if (jobTitles.Count == 0)
+        {
+            return lookup;
+        }
+
+        var filePath = Path.Combine(seedDataPath, "JobTitles.json");
+        if (!File.Exists(filePath))
+        {
+            return lookup;
+        }
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var seeds = JsonSerializer.Deserialize<List<JobTitleSeedData>>(json, _jsonOptions);
+        if (seeds == null)
+        {
+            return lookup;
+        }
+
+        foreach (var seed in seeds)
+        {
+            if (string.IsNullOrWhiteSpace(seed.Code) || string.IsNullOrWhiteSpace(seed.TitleEn))
+            {
+                continue;
+            }
+
+            var jobTitle = jobTitles.FirstOrDefault(j =>
+                string.Equals(j.TitleEn, seed.TitleEn, StringComparison.OrdinalIgnoreCase));
+
+            if (jobTitle == null)
+            {
+                continue;
+            }
+
+            lookup.TryAdd(seed.Code, jobTitle);
+
+            var normalizedCode = NormalizeCodeKey(seed.Code);
+            if (!string.IsNullOrEmpty(normalizedCode))
+            {
+                lookup.TryAdd(normalizedCode, jobTitle);
+            }
+        }
+
+        return lookup;
+    }
+
+    private static string NormalizeCodeKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return string.Concat(value
+            .Where(c => !char.IsWhiteSpace(c) && c != '-' && c != '_')
+            .Select(char.ToUpperInvariant));
     }
 
     private static async Task SeedLeaveStatusesAsync(ApplicationDbContext context, string seedDataPath)
@@ -1424,6 +1606,20 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {invoiceStatuses.Count} invoice statuses");
+    }
+
+    private static async Task<bool> HasEmployeeSeedPrerequisitesAsync(ApplicationDbContext context)
+    {
+        var hasDepartments = await context.Departments.AnyAsync();
+        var hasJobTitles = await context.JobTitles.AnyAsync();
+        var hasBranches = await context.Branches.AnyAsync();
+        var hasContractTypes = await context.ContractTypes.AnyAsync();
+        var hasGenders = await context.Genders.AnyAsync();
+        var hasMaritalStatuses = await context.MaritalStatuses.AnyAsync();
+        var hasEmployeeStatuses = await context.EmployeeStatuses.AnyAsync();
+
+        return hasDepartments && hasJobTitles && hasBranches &&
+               hasContractTypes && hasGenders && hasMaritalStatuses && hasEmployeeStatuses;
     }
 
     private static async Task SeedAttendanceStatusesAsync(ApplicationDbContext context, string seedDataPath)

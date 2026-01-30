@@ -1,0 +1,3881 @@
+{
+  "info": {
+    "_postman_id": "99b48d2f-8d5c-4b7a-9a77-5f41f0ea0001",
+    "name": "HrSystem API",
+    "description": "Comprehensive Postman collection for the HrSystem API covering authentication, employees, attendance, leave management, payroll, performance, users, and lookups.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:7212"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "tokenExpiresAt",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "employeeId",
+      "value": "11111111-1111-1111-1111-111111111111"
+    },
+    {
+      "key": "managerId",
+      "value": "22222222-2222-2222-2222-222222222222"
+    },
+    {
+      "key": "branchId",
+      "value": "33333333-3333-3333-3333-333333333333"
+    },
+    {
+      "key": "departmentId",
+      "value": "44444444-4444-4444-4444-444444444444"
+    },
+    {
+      "key": "jobTitleId",
+      "value": "55555555-5555-5555-5555-555555555555"
+    },
+    {
+      "key": "contractTypeId",
+      "value": "66666666-6666-6666-6666-666666666666"
+    },
+    {
+      "key": "employeeStatusId",
+      "value": "70707070-7070-7070-7070-707070707070"
+    },
+    {
+      "key": "genderId",
+      "value": "77777777-7777-7777-7777-777777777777"
+    },
+    {
+      "key": "maritalStatusId",
+      "value": "88888888-8888-8888-8888-888888888888"
+    },
+    {
+      "key": "countryId",
+      "value": "99999999-9999-9999-9999-999999999999"
+    },
+    {
+      "key": "leaveTypeId",
+      "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    },
+    {
+      "key": "leaveStatusId",
+      "value": "abababab-abab-abab-abab-abababababab"
+    },
+    {
+      "key": "leaveRequestId",
+      "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    },
+    {
+      "key": "leavePolicyId",
+      "value": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    },
+    {
+      "key": "documentTypeId",
+      "value": "dddddddd-dddd-dddd-dddd-dddddddddddd"
+    },
+    {
+      "key": "documentId",
+      "value": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+    },
+    {
+      "key": "attendanceStatusId",
+      "value": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+    },
+    {
+      "key": "workScheduleId",
+      "value": "10101010-1010-1010-1010-101010101010"
+    },
+    {
+      "key": "onboardingTaskId",
+      "value": "11111110-1111-1111-1111-111111111110"
+    },
+    {
+      "key": "employeeAssetId",
+      "value": "12121212-1212-1212-1212-121212121212"
+    },
+    {
+      "key": "goalId",
+      "value": "13131313-1313-1313-1313-131313131313"
+    },
+    {
+      "key": "goalStatusId",
+      "value": "14141414-1414-1414-1414-141414141414"
+    },
+    {
+      "key": "goalPriorityId",
+      "value": "15151515-1515-1515-1515-151515151515"
+    },
+    {
+      "key": "kpiId",
+      "value": "16161616-1616-1616-1616-161616161616"
+    },
+    {
+      "key": "loanId",
+      "value": "17171717-1717-1717-1717-171717171717"
+    },
+    {
+      "key": "payslipId",
+      "value": "18181818-1818-1818-1818-181818181818"
+    },
+    {
+      "key": "organizationId",
+      "value": "19191919-1919-1919-1919-191919191919"
+    },
+    {
+      "key": "roleId",
+      "value": "1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a"
+    },
+    {
+      "key": "subscriptionPlanId",
+      "value": "1b1b1b1b-1b1b-1b1b-1b1b-1b1b1b1b1b1b"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login (Seeded Org Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "login"
+              ]
+            },
+            "description": "Authenticate using the seeded organization admin account (organizationadmin@demo001.local / Password@123)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"organizationadmin@demo001.local\",\n  \"password\": \"Password@123\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responds with 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "pm.test('Success flag is true', function () {",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "if (jsonData.data) {",
+                  "    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('tokenExpiresAt', jsonData.data.expiresAt);",
+                  "    pm.collectionVariables.set('userId', jsonData.data.userId);",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "List Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees?pageNumber=1&pageSize=10&searchTerm=john&departmentId={{departmentId}}&branchId={{branchId}}&jobTitleId={{jobTitleId}}&managerId={{managerId}}&statusId={{employeeStatusId}}&sortBy=fullNameEn&sortDescending=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "john",
+                  "description": "Optional search term",
+                  "disabled": true
+                },
+                {
+                  "key": "departmentId",
+                  "value": "{{departmentId}}",
+                  "description": "Filter by department",
+                  "disabled": true
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}",
+                  "description": "Filter by branch",
+                  "disabled": true
+                },
+                {
+                  "key": "jobTitleId",
+                  "value": "{{jobTitleId}}",
+                  "description": "Filter by job title",
+                  "disabled": true
+                },
+                {
+                  "key": "managerId",
+                  "value": "{{managerId}}",
+                  "description": "Filter by direct manager",
+                  "disabled": true
+                },
+                {
+                  "key": "statusId",
+                  "value": "{{employeeStatusId}}",
+                  "description": "Filter by employee status",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "fullNameEn",
+                  "description": "Field to sort by",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDescending",
+                  "value": "false",
+                  "description": "Use true for descending sort",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get a paginated, filterable list of employees"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/{{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "{{employeeId}}"
+              ]
+            },
+            "description": "Retrieve a single employee core profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/{{employeeId}}/details?attendanceRecentCount=10&leaveBalanceYear=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "{{employeeId}}",
+                "details"
+              ],
+              "query": [
+                {
+                  "key": "attendanceRecentCount",
+                  "value": "10"
+                },
+                {
+                  "key": "leaveBalanceYear",
+                  "value": "2026",
+                  "description": "Optional leave balance year",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Aggregated employee profile including attendance, leave, payroll, documents, and assets"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "me"
+              ]
+            },
+            "description": "Return personal information for the currently authenticated employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/me/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "me",
+                "documents"
+              ]
+            },
+            "description": "Fetch documents grouped by category for the logged-in employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/{{employeeId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "{{employeeId}}",
+                "documents"
+              ]
+            },
+            "description": "HR/Admin access to a specific employee document library"
+          },
+          "response": []
+        },
+        {
+          "name": "Download Employee Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/documents/{{documentId}}/download",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "documents",
+                "{{documentId}}",
+                "download"
+              ]
+            },
+            "description": "Generate a time-bound download URL for a stored employee document"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Employee Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/{{employeeId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "{{employeeId}}",
+                "documents"
+              ]
+            },
+            "description": "Upload a document for the specified employee (HR or owner)",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "documentTypeId",
+                  "value": "{{documentTypeId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "documentName",
+                  "value": "Passport Copy",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Scanned passport",
+                  "type": "text"
+                },
+                {
+                  "key": "expiryDate",
+                  "value": "2026-12-31",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee Salaries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/{{employeeId}}/salaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "{{employeeId}}",
+                "salaries"
+              ]
+            },
+            "description": "Return salary history for a specific employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Employee Salary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/{{employeeId}}/salaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "{{employeeId}}",
+                "salaries"
+              ]
+            },
+            "description": "Add a salary package for the target employee",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"basicSalary\": 15000,\n  \"effectiveDate\": \"2026-02-01\",\n  \"notes\": \"Annual increment\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees"
+              ]
+            },
+            "description": "Create a new employee with core identity and job placement data",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeCode\": \"EMP-2001\",\n  \"firstNameAr\": \"Ahmed\",\n  \"lastNameAr\": \"Saleh\",\n  \"firstNameEn\": \"Ahmed\",\n  \"lastNameEn\": \"Saleh\",\n  \"nationalId\": \"A1234567890\",\n  \"passportNumber\": \"P1234567\",\n  \"dateOfBirth\": \"1992-05-14\",\n  \"genderId\": \"{{genderId}}\",\n  \"maritalStatusId\": \"{{maritalStatusId}}\",\n  \"email\": \"ahmed.saleh@example.com\",\n  \"phoneNumber\": \"+20123456781\",\n  \"mobileNumber\": \"+20123456782\",\n  \"addressAr\": \"Address in Arabic\",\n  \"addressEn\": \"123 Nile St, Cairo\",\n  \"city\": \"Cairo\",\n  \"country\": \"Egypt\",\n  \"departmentId\": \"{{departmentId}}\",\n  \"jobTitleId\": \"{{jobTitleId}}\",\n  \"directManagerId\": \"{{managerId}}\",\n  \"branchId\": \"{{branchId}}\",\n  \"contractTypeId\": \"{{contractTypeId}}\",\n  \"hiringDate\": \"2024-09-01\",\n  \"probationPeriodMonths\": 3\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Direct Manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/direct-manager",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "direct-manager"
+              ]
+            },
+            "description": "Assign or change the direct manager for an employee",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"directManagerId\": \"{{managerId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/{{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "{{employeeId}}"
+              ]
+            },
+            "description": "Update personal and job placement data for an employee",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{employeeId}}\",\n  \"firstNameAr\": \"Ahmed\",\n  \"lastNameAr\": \"Saleh\",\n  \"firstNameEn\": \"Ahmed\",\n  \"lastNameEn\": \"Saleh\",\n  \"passportNumber\": \"P1234567\",\n  \"maritalStatusId\": \"{{maritalStatusId}}\",\n  \"email\": \"ahmed.saleh@example.com\",\n  \"phoneNumber\": \"+20123456781\",\n  \"mobileNumber\": \"+20123456782\",\n  \"addressAr\": \"Address in Arabic\",\n  \"addressEn\": \"123 Nile St, Cairo\",\n  \"city\": \"Cairo\",\n  \"country\": \"Egypt\",\n  \"departmentId\": \"{{departmentId}}\",\n  \"jobTitleId\": \"{{jobTitleId}}\",\n  \"directManagerId\": \"{{managerId}}\",\n  \"branchId\": \"{{branchId}}\",\n  \"contractTypeId\": \"{{contractTypeId}}\",\n  \"statusId\": \"{{employeeStatusId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Employees/{{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Employees",
+                "{{employeeId}}"
+              ]
+            },
+            "description": "Soft-delete an employee record"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "item": [
+        {
+          "name": "List Branches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Branches?pageNumber=1&pageSize=10&searchTerm=HQ&countryId={{countryId}}&isActive=true&sortBy=nameEn&sortDescending=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Branches"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "HQ",
+                  "description": "Filter by name/code",
+                  "disabled": true
+                },
+                {
+                  "key": "countryId",
+                  "value": "{{countryId}}",
+                  "description": "Filter by country",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Only active branches",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "nameEn",
+                  "description": "Field to sort",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDescending",
+                  "value": "false",
+                  "description": "Descending order",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get paginated branches with optional filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Branch By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Branches/{{branchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Branches",
+                "{{branchId}}"
+              ]
+            },
+            "description": "Retrieve branch details"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Branches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Branches"
+              ]
+            },
+            "description": "Create a new branch for the current organization",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"Al Far Alraeesy\",\n  \"nameEn\": \"Main Branch\",\n  \"code\": \"BR-HQ\",\n  \"description\": \"Headquarters branch\",\n  \"countryId\": \"{{countryId}}\",\n  \"city\": \"Cairo\",\n  \"addressAr\": \"Ealamat Almarkaz\",\n  \"addressEn\": \"123 Nile Corniche\",\n  \"postalCode\": \"11511\",\n  \"phoneNumber\": \"+20123456780\",\n  \"email\": \"hq@example.com\",\n  \"timeZone\": \"Egypt Standard Time\",\n  \"currency\": \"EGP\",\n  \"language\": \"ar\",\n  \"isHeadquarter\": true,\n  \"openingDate\": \"2020-01-01\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Branch",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Branches/{{branchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Branches",
+                "{{branchId}}"
+              ]
+            },
+            "description": "Update branch profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{branchId}}\",\n  \"nameAr\": \"Al Far Alraeesy\",\n  \"nameEn\": \"Main Branch\",\n  \"code\": \"BR-HQ\",\n  \"description\": \"Headquarters branch\",\n  \"countryId\": \"{{countryId}}\",\n  \"city\": \"Cairo\",\n  \"addressAr\": \"Ealamat Almarkaz\",\n  \"addressEn\": \"123 Nile Corniche\",\n  \"postalCode\": \"11511\",\n  \"phoneNumber\": \"+20123456780\",\n  \"email\": \"hq@example.com\",\n  \"timeZone\": \"Egypt Standard Time\",\n  \"currency\": \"EGP\",\n  \"language\": \"ar\",\n  \"isHeadquarter\": true,\n  \"openingDate\": \"2020-01-01\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Branch",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Branches/{{branchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Branches",
+                "{{branchId}}"
+              ]
+            },
+            "description": "Soft-delete branch"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Departments",
+      "item": [
+        {
+          "name": "List Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Departments?pageNumber=1&pageSize=10&searchTerm=IT&branchId={{branchId}}&sortBy=nameEn&sortDescending=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Departments"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "IT",
+                  "description": "Search term",
+                  "disabled": true
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}",
+                  "description": "Filter by branch",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "nameEn",
+                  "description": "Sort column",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDescending",
+                  "value": "false",
+                  "description": "Descending sort",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get paginated departments with optional filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Departments/{{departmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Departments",
+                "{{departmentId}}"
+              ]
+            },
+            "description": "Retrieve department details"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Departments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Departments"
+              ]
+            },
+            "description": "Create a new department",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"Qesm Taqniat Almaelomat\",\n  \"nameEn\": \"IT Department\",\n  \"description\": \"Handles internal systems\",\n  \"managerId\": \"{{managerId}}\",\n  \"parentDepartmentId\": null,\n  \"branchId\": \"{{branchId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Department",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Departments/{{departmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Departments",
+                "{{departmentId}}"
+              ]
+            },
+            "description": "Update department data",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{departmentId}}\",\n  \"nameAr\": \"Qesm Taqniat Almaelomat\",\n  \"nameEn\": \"IT Department\",\n  \"description\": \"Handles internal systems\",\n  \"managerId\": \"{{managerId}}\",\n  \"parentDepartmentId\": null,\n  \"branchId\": \"{{branchId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Department",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Departments/{{departmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Departments",
+                "{{departmentId}}"
+              ]
+            },
+            "description": "Soft-delete department"
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Department Manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Departments/{{departmentId}}/manager",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Departments",
+                "{{departmentId}}",
+                "manager"
+              ]
+            },
+            "description": "Assign a department manager",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"departmentId\": \"{{departmentId}}\",\n  \"employeeId\": \"{{managerId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Job Titles",
+      "item": [
+        {
+          "name": "List Job Titles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/JobTitles?pageNumber=1&pageSize=10&searchTerm=Engineer&sortBy=titleEn&sortDescending=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "JobTitles"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "Engineer",
+                  "description": "Search term",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "titleEn",
+                  "description": "Sort column",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDescending",
+                  "value": "false",
+                  "description": "Descending sort",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get paginated job titles"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job Title By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/JobTitles/{{jobTitleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "JobTitles",
+                "{{jobTitleId}}"
+              ]
+            },
+            "description": "Retrieve job title details"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Job Title",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/JobTitles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "JobTitles"
+              ]
+            },
+            "description": "Create a job title",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titleAr\": \"Muhandis Barmajyat\",\n  \"titleEn\": \"Software Engineer\",\n  \"description\": \"Builds and maintains software\",\n  \"level\": 3,\n  \"minSalary\": 25000,\n  \"maxSalary\": 45000\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Job Title",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/JobTitles/{{jobTitleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "JobTitles",
+                "{{jobTitleId}}"
+              ]
+            },
+            "description": "Update a job title",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{jobTitleId}}\",\n  \"titleAr\": \"Muhandis Barmajyat\",\n  \"titleEn\": \"Software Engineer\",\n  \"description\": \"Builds and maintains software\",\n  \"level\": 4,\n  \"minSalary\": 27000,\n  \"maxSalary\": 50000\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Job Title",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/JobTitles/{{jobTitleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "JobTitles",
+                "{{jobTitleId}}"
+              ]
+            },
+            "description": "Soft-delete job title"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "List Attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance?pageNumber=1&pageSize=10&employeeId={{employeeId}}&startDate=2026-01-01&endDate=2026-01-31&statusId={{attendanceStatusId}}&isLate=false&isOvertime=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Filter by employee",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "description": "Filter by start date",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-31",
+                  "description": "Filter by end date",
+                  "disabled": true
+                },
+                {
+                  "key": "statusId",
+                  "value": "{{attendanceStatusId}}",
+                  "description": "Filter by status",
+                  "disabled": true
+                },
+                {
+                  "key": "isLate",
+                  "value": "false",
+                  "description": "Only late records",
+                  "disabled": true
+                },
+                {
+                  "key": "isOvertime",
+                  "value": "false",
+                  "description": "Only overtime records",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated attendance records with filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Attendance History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/history?pageNumber=1&pageSize=10&employeeId={{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Filter by employee",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Attendance list alias for history view"
+          },
+          "response": []
+        },
+        {
+          "name": "Attendance Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/dashboard?date=2026-01-15",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-01-15",
+                  "description": "Optional date",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Daily attendance dashboard metrics"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/{{attendanceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "{{attendanceId}}"
+              ]
+            },
+            "description": "Retrieve a specific attendance record"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance"
+              ]
+            },
+            "description": "Create an attendance entry manually",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"date\": \"2026-01-15\",\n  \"checkInTime\": \"08:55:00\",\n  \"checkOutTime\": \"17:05:00\",\n  \"statusId\": \"{{attendanceStatusId}}\",\n  \"deviceId\": \"WIFI-01\",\n  \"checkInDeviceId\": \"WIFI-01\",\n  \"checkOutDeviceId\": \"WIFI-01\",\n  \"notes\": \"Manual entry\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Attendance",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/{{attendanceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "{{attendanceId}}"
+              ]
+            },
+            "description": "Update attendance entry",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{attendanceId}}\",\n  \"checkInTime\": \"09:00:00\",\n  \"checkOutTime\": \"17:00:00\",\n  \"statusId\": \"{{attendanceStatusId}}\",\n  \"deviceId\": \"WIFI-02\",\n  \"checkInDeviceId\": \"WIFI-02\",\n  \"checkOutDeviceId\": \"WIFI-02\",\n  \"overtimeHours\": \"00:30:00\",\n  \"lateMinutes\": \"00:10:00\",\n  \"earlyLeaveMinutes\": \"00:00:00\",\n  \"isLate\": true,\n  \"isEarlyLeave\": false,\n  \"isOvertime\": true,\n  \"notes\": \"Adjusted after approval\",\n  \"approvedBy\": \"HR Manager\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Attendance",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/{{attendanceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "{{attendanceId}}"
+              ]
+            },
+            "description": "Soft-delete attendance record"
+          },
+          "response": []
+        },
+        {
+          "name": "Enroll Biometric Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/biometrics/enroll",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "biometrics",
+                "enroll"
+              ]
+            },
+            "description": "Enroll biometric template for an employee",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"biometricType\": 2,\n  \"templateBase64\": \"QmFzZTY0RW5jb2RlZFRlbXBsYXRl==\",\n  \"provider\": \"ZKTeco\",\n  \"deviceId\": \"BIO-01\",\n  \"isActive\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Biometric Punch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/biometrics/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "biometrics",
+                "verify"
+              ]
+            },
+            "description": "Verify biometric data and register attendance punch",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"biometricType\": 2,\n  \"punchType\": 1,\n  \"templateBase64\": \"QmFzZTY0RW5jb2RlZFRlbXBsYXRl==\",\n  \"deviceId\": \"BIO-01\",\n  \"eventTime\": \"2026-01-15T08:55:00Z\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Work Schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/work-schedules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "work-schedules"
+              ]
+            },
+            "description": "List work schedules defined for the organization"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Work Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/work-schedules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "work-schedules"
+              ]
+            },
+            "description": "Create a reusable work schedule",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Standard 9-5\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"17:00:00\",\n  \"breakDuration\": \"01:00:00\",\n  \"workingHoursPerDay\": 8,\n  \"workingDaysPerWeek\": 5,\n  \"gracePeriodLate\": \"00:10:00\",\n  \"gracePeriodEarlyLeave\": \"00:05:00\",\n  \"isSaturday\": false,\n  \"isSunday\": true,\n  \"isMonday\": true,\n  \"isTuesday\": true,\n  \"isWednesday\": true,\n  \"isThursday\": true,\n  \"isFriday\": false,\n  \"isDefault\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Work Schedule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/work-schedules/{{workScheduleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "work-schedules",
+                "{{workScheduleId}}"
+              ]
+            },
+            "description": "Update working hours template",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{workScheduleId}}\",\n  \"name\": \"Standard 9-5\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"17:30:00\",\n  \"breakDuration\": \"01:00:00\",\n  \"workingHoursPerDay\": 8,\n  \"workingDaysPerWeek\": 5,\n  \"gracePeriodLate\": \"00:10:00\",\n  \"gracePeriodEarlyLeave\": \"00:05:00\",\n  \"isSaturday\": false,\n  \"isSunday\": true,\n  \"isMonday\": true,\n  \"isTuesday\": true,\n  \"isWednesday\": true,\n  \"isThursday\": true,\n  \"isFriday\": false,\n  \"isDefault\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Employee Work Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Attendance/work-schedules/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Attendance",
+                "work-schedules",
+                "assign"
+              ]
+            },
+            "description": "Assign a work schedule to an employee",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"workScheduleId\": \"{{workScheduleId}}\",\n  \"effectiveDate\": \"2026-02-01\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Leave",
+      "item": [
+        {
+          "name": "List Leave Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave?pageNumber=1&pageSize=10&statusId={{leaveStatusId}}&leaveTypeId={{leaveTypeId}}&startDateFrom=2026-02-01&startDateTo=2026-02-15&employeeId={{employeeId}}&sortBy=startDate&sortDescending=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "statusId",
+                  "value": "{{leaveStatusId}}",
+                  "description": "Filter by status",
+                  "disabled": true
+                },
+                {
+                  "key": "leaveTypeId",
+                  "value": "{{leaveTypeId}}",
+                  "description": "Filter by type",
+                  "disabled": true
+                },
+                {
+                  "key": "startDateFrom",
+                  "value": "2026-02-01",
+                  "description": "Filter start",
+                  "disabled": true
+                },
+                {
+                  "key": "startDateTo",
+                  "value": "2026-02-15",
+                  "description": "Filter end",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Filter by employee",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "startDate",
+                  "description": "Sort column",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDescending",
+                  "value": "false",
+                  "description": "Descending sort",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Context-aware leave list (employee/manager/HR)"
+          },
+          "response": []
+        },
+        {
+          "name": "Leave History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/history?pageNumber=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Historical leave requests with same filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Leave Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave"
+              ]
+            },
+            "description": "Submit a new leave request",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"leaveTypeId\": \"{{leaveTypeId}}\",\n  \"startDate\": \"2026-02-10\",\n  \"endDate\": \"2026-02-14\",\n  \"reason\": \"Annual vacation with family\",\n  \"documentUrl\": null,\n  \"emergencyContactName\": \"Omar Ali\",\n  \"emergencyContactPhone\": \"+20123456789\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leave Request By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/{{leaveRequestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "{{leaveRequestId}}"
+              ]
+            },
+            "description": "Retrieve leave details"
+          },
+          "response": []
+        },
+        {
+          "name": "My Leave Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/my-dashboard?year=2026&historyCount=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "my-dashboard"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "Optional year",
+                  "disabled": true
+                },
+                {
+                  "key": "historyCount",
+                  "value": "5",
+                  "description": "Number of recent requests",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Dashboard metrics for current user"
+          },
+          "response": []
+        },
+        {
+          "name": "My Leave Balances",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/my-balances?year=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "my-balances"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "Optional year",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "View remaining balances"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Leave Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/hr/summary?startDateFrom=2026-02-01&startDateTo=2026-02-28",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "hr",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "startDateFrom",
+                  "value": "2026-02-01",
+                  "description": "Optional start",
+                  "disabled": true
+                },
+                {
+                  "key": "startDateTo",
+                  "value": "2026-02-28",
+                  "description": "Optional end",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Leave summary for HR roles"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Leave Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/hr/requests?pageNumber=1&pageSize=10&statusId={{leaveStatusId}}&leaveTypeId={{leaveTypeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "hr",
+                "requests"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "statusId",
+                  "value": "{{leaveStatusId}}",
+                  "description": "Filter by status",
+                  "disabled": true
+                },
+                {
+                  "key": "leaveTypeId",
+                  "value": "{{leaveTypeId}}",
+                  "description": "Filter by type",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "HR branch leave requests"
+          },
+          "response": []
+        },
+        {
+          "name": "Manager Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/manager/overview?myPageNumber=1&myPageSize=5&pendingPageNumber=1&pendingPageSize=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "manager",
+                "overview"
+              ],
+              "query": [
+                {
+                  "key": "myPageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "myPageSize",
+                  "value": "5"
+                },
+                {
+                  "key": "pendingPageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pendingPageSize",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Combined view of manager requests and pending approvals"
+          },
+          "response": []
+        },
+        {
+          "name": "My Leave Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/my-requests?pageNumber=1&pageSize=10&statusId={{leaveStatusId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "my-requests"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "statusId",
+                  "value": "{{leaveStatusId}}",
+                  "description": "Filter by status",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Explicit endpoint for employee requests"
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Leave Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/{{leaveRequestId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "{{leaveRequestId}}",
+                "approve"
+              ]
+            },
+            "description": "Approve leave according to workflow",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveRequestId\": \"{{leaveRequestId}}\",\n  \"comments\": \"Approved - enjoy your vacation\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Leave Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/{{leaveRequestId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "{{leaveRequestId}}",
+                "reject"
+              ]
+            },
+            "description": "Reject leave with reason",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveRequestId\": \"{{leaveRequestId}}\",\n  \"rejectionReason\": \"Peak period\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Leave Policies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/policies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "policies"
+              ]
+            },
+            "description": "List configured leave policies"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leave Policy By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/policies/{{leavePolicyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "policies",
+                "{{leavePolicyId}}"
+              ]
+            },
+            "description": "Retrieve leave policy"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Leave Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/policies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "policies"
+              ]
+            },
+            "description": "Define leave balance rules",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveTypeId\": \"{{leaveTypeId}}\",\n  \"nameAr\": \"Siaset Agazat\",\n  \"nameEn\": \"Annual Leave Policy\",\n  \"defaultDaysPerYear\": 21,\n  \"maxCarryForward\": 5,\n  \"requiresApproval\": true,\n  \"requiresManagerApproval\": true,\n  \"requiresHRApproval\": true,\n  \"isPaid\": true,\n  \"maxConsecutiveDays\": 14,\n  \"minDaysNotice\": 3,\n  \"requiresDocument\": false,\n  \"description\": \"Standard policy\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Leave Policy",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/policies/{{leavePolicyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "policies",
+                "{{leavePolicyId}}"
+              ]
+            },
+            "description": "Update policy settings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{leavePolicyId}}\",\n  \"nameAr\": \"Siaset Agazat\",\n  \"nameEn\": \"Annual Leave Policy\",\n  \"defaultDaysPerYear\": 24,\n  \"maxCarryForward\": 7,\n  \"requiresApproval\": true,\n  \"requiresManagerApproval\": true,\n  \"requiresHRApproval\": true,\n  \"isPaid\": true,\n  \"maxConsecutiveDays\": 18,\n  \"minDaysNotice\": 2,\n  \"requiresDocument\": false,\n  \"description\": \"Updated policy\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Leave Policy",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Leave/policies/{{leavePolicyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Leave",
+                "policies",
+                "{{leavePolicyId}}"
+              ]
+            },
+            "description": "Soft-delete leave policy"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Lifecycle - Onboarding",
+      "item": [
+        {
+          "name": "List Onboarding Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/OnboardingTasks?pageNumber=1&pageSize=10&employeeId={{employeeId}}&isCompleted=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "OnboardingTasks"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Filter by employee",
+                  "disabled": true
+                },
+                {
+                  "key": "isCompleted",
+                  "value": "false",
+                  "description": "Filter by completion",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated onboarding tasks"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Onboarding Task",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/OnboardingTasks/{{onboardingTaskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "OnboardingTasks",
+                "{{onboardingTaskId}}"
+              ]
+            },
+            "description": "Retrieve onboarding task details"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Onboarding Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/OnboardingTasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "OnboardingTasks"
+              ]
+            },
+            "description": "Create onboarding workflow task",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"taskNameAr\": \"Tadreeb Awwaly\",\n  \"taskNameEn\": \"Initial Training\",\n  \"descriptionAr\": \"Sharh almakhtat\",\n  \"descriptionEn\": \"Explain onboarding plan\",\n  \"sequence\": 1,\n  \"dueDate\": \"2026-02-05\",\n  \"assignedTo\": \"{{managerId}}\",\n  \"category\": \"Documentation\",\n  \"notes\": \"Prepare IT access\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Onboarding Task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/OnboardingTasks/{{onboardingTaskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "OnboardingTasks",
+                "{{onboardingTaskId}}"
+              ]
+            },
+            "description": "Update onboarding task",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{onboardingTaskId}}\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"taskNameAr\": \"Tadreeb Awwaly\",\n  \"taskNameEn\": \"Initial Training\",\n  \"descriptionAr\": \"Sharh almakhtat\",\n  \"descriptionEn\": \"Explain onboarding plan\",\n  \"sequence\": 1,\n  \"dueDate\": \"2026-02-07\",\n  \"assignedTo\": \"{{managerId}}\",\n  \"category\": \"Documentation\",\n  \"notes\": \"Laptop prepared\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Onboarding Task",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/OnboardingTasks/{{onboardingTaskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "OnboardingTasks",
+                "{{onboardingTaskId}}"
+              ]
+            },
+            "description": "Soft-delete onboarding task"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Lifecycle - Assets",
+      "item": [
+        {
+          "name": "List Employee Assets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/EmployeeAssets?pageNumber=1&pageSize=10&employeeId={{employeeId}}&assetType=Laptop",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "EmployeeAssets"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Filter by employee",
+                  "disabled": true
+                },
+                {
+                  "key": "assetType",
+                  "value": "Laptop",
+                  "description": "Filter by type",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated employee asset assignments"
+          },
+          "response": []
+        },
+        {
+          "name": "My Assets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/EmployeeAssets/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "EmployeeAssets",
+                "me"
+              ]
+            },
+            "description": "Assets assigned to the authenticated employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee Asset",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/EmployeeAssets/{{employeeAssetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "EmployeeAssets",
+                "{{employeeAssetId}}"
+              ]
+            },
+            "description": "Retrieve employee asset assignment"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Employee Asset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/EmployeeAssets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "EmployeeAssets"
+              ]
+            },
+            "description": "Assign an asset to an employee",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"assetType\": \"Laptop\",\n  \"assetNameAr\": \"Hasoob Mahmol\",\n  \"assetNameEn\": \"Dell Latitude\",\n  \"serialNumber\": \"DL-5520-0001\",\n  \"assignedDate\": \"2026-01-20\",\n  \"returnDate\": null,\n  \"status\": \"Assigned\",\n  \"value\": 1500.00,\n  \"notes\": \"With docking station\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee Asset",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/EmployeeAssets/{{employeeAssetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "EmployeeAssets",
+                "{{employeeAssetId}}"
+              ]
+            },
+            "description": "Update asset assignment",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{employeeAssetId}}\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"assetType\": \"Laptop\",\n  \"assetNameAr\": \"Hasoob Mahmol\",\n  \"assetNameEn\": \"Dell Latitude\",\n  \"serialNumber\": \"DL-5520-0001\",\n  \"assignedDate\": \"2026-01-20\",\n  \"returnDate\": \"2026-06-30\",\n  \"status\": \"Returned\",\n  \"value\": 1500.00,\n  \"notes\": \"Device returned in good condition\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Employee Asset",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/EmployeeAssets/{{employeeAssetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "EmployeeAssets",
+                "{{employeeAssetId}}"
+              ]
+            },
+            "description": "Soft-delete employee asset record"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Performance - Goals",
+      "item": [
+        {
+          "name": "List Goals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Goals?pageNumber=1&pageSize=10&employeeId={{employeeId}}&status={{goalStatusId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Goals"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Filter by employee",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "{{goalStatusId}}",
+                  "description": "Filter by status",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated performance goals"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Goal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Goals/{{goalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Goals",
+                "{{goalId}}"
+              ]
+            },
+            "description": "Retrieve goal details"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Goal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Goals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Goals"
+              ]
+            },
+            "description": "Create a goal for an employee",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"titleAr\": \"Hadaf Alparmaat\",\n  \"titleEn\": \"Increase Sales Pipeline\",\n  \"descriptionAr\": \"Wasf Alhadaf\",\n  \"descriptionEn\": \"Grow qualified pipeline by 15%\",\n  \"startDate\": \"2026-01-01\",\n  \"targetDate\": \"2026-06-30\",\n  \"statusId\": \"{{goalStatusId}}\",\n  \"priorityId\": \"{{goalPriorityId}}\",\n  \"assignedBy\": \"{{managerId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Goal",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Goals/{{goalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Goals",
+                "{{goalId}}"
+              ]
+            },
+            "description": "Update existing goal",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{goalId}}\",\n  \"titleAr\": \"Hadaf Alparmaat\",\n  \"titleEn\": \"Increase Sales Pipeline\",\n  \"descriptionAr\": \"Wasf Alhadaf\",\n  \"descriptionEn\": \"Grow qualified pipeline by 15%\",\n  \"startDate\": \"2026-01-01\",\n  \"targetDate\": \"2026-06-30\",\n  \"statusId\": \"{{goalStatusId}}\",\n  \"progress\": 55,\n  \"priorityId\": \"{{goalPriorityId}}\",\n  \"assignedBy\": \"{{managerId}}\",\n  \"completionNotes\": \"Milestones achieved\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Goal",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Goals/{{goalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Goals",
+                "{{goalId}}"
+              ]
+            },
+            "description": "Soft-delete goal"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Performance - KPIs",
+      "item": [
+        {
+          "name": "List KPIs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/KPIs?pageNumber=1&pageSize=10&searchTerm=Utilization",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "KPIs"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "Utilization",
+                  "description": "Search term",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated KPI definitions"
+          },
+          "response": []
+        },
+        {
+          "name": "Get KPI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/KPIs/{{kpiId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "KPIs",
+                "{{kpiId}}"
+              ]
+            },
+            "description": "Retrieve KPI details"
+          },
+          "response": []
+        },
+        {
+          "name": "Create KPI",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/KPIs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "KPIs"
+              ]
+            },
+            "description": "Create KPI definition",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"Mueashir Ada\",\n  \"nameEn\": \"Customer Satisfaction\",\n  \"descriptionAr\": \"Wasf almueashir\",\n  \"descriptionEn\": \"Quarterly CSAT target\",\n  \"category\": \"Service\",\n  \"weight\": 25,\n  \"measurementCriteria\": \"Post-support survey >= 90%\",\n  \"jobTitleId\": \"{{jobTitleId}}\",\n  \"departmentId\": \"{{departmentId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update KPI",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/KPIs/{{kpiId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "KPIs",
+                "{{kpiId}}"
+              ]
+            },
+            "description": "Update KPI definition",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{kpiId}}\",\n  \"nameAr\": \"Mueashir Ada\",\n  \"nameEn\": \"Customer Satisfaction\",\n  \"descriptionAr\": \"Wasf almueashir\",\n  \"descriptionEn\": \"Quarterly CSAT target\",\n  \"category\": \"Service\",\n  \"weight\": 30,\n  \"measurementCriteria\": \"Post-support survey >= 92%\",\n  \"jobTitleId\": \"{{jobTitleId}}\",\n  \"departmentId\": \"{{departmentId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete KPI",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/KPIs/{{kpiId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "KPIs",
+                "{{kpiId}}"
+              ]
+            },
+            "description": "Soft-delete KPI"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payroll",
+      "item": [
+        {
+          "name": "My Salary Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payroll/my-salary?year=2026&month=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payroll",
+                "my-salary"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "Optional year",
+                  "disabled": true
+                },
+                {
+                  "key": "month",
+                  "value": "1",
+                  "description": "Optional month",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Gross/net salary for logged-in employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Payslips History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payroll/history?pageNumber=1&pageSize=10&employeeId={{employeeId}}&year=2026&month=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payroll",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Filter by employee (HR)",
+                  "disabled": true
+                },
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "Filter year",
+                  "disabled": true
+                },
+                {
+                  "key": "month",
+                  "value": "1",
+                  "description": "Filter month",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "HR-accessible payslip history"
+          },
+          "response": []
+        },
+        {
+          "name": "Payroll Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payroll/summary?year=2026&month=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payroll",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "Optional year",
+                  "disabled": true
+                },
+                {
+                  "key": "month",
+                  "value": "1",
+                  "description": "Optional month",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Aggregated payroll KPIs"
+          },
+          "response": []
+        },
+        {
+          "name": "My Loans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payroll/my-loans?pageNumber=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payroll",
+                "my-loans"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Loans associated with current user"
+          },
+          "response": []
+        },
+        {
+          "name": "My Loan Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payroll/my-loans/{{loanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payroll",
+                "my-loans",
+                "{{loanId}}"
+              ]
+            },
+            "description": "Retrieve a single loan detail for current user"
+          },
+          "response": []
+        },
+        {
+          "name": "My Payslips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payroll/my-payslips?year=2026&pageNumber=1&pageSize=6",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payroll",
+                "my-payslips"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "Filter year",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "6"
+                }
+              ]
+            },
+            "description": "Current user payslip list"
+          },
+          "response": []
+        },
+        {
+          "name": "My Payslip Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payroll/my-payslips/{{payslipId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payroll",
+                "my-payslips",
+                "{{payslipId}}"
+              ]
+            },
+            "description": "Full payslip details for the authenticated user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Loans",
+      "item": [
+        {
+          "name": "List Loans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Loans?pageNumber=1&pageSize=10&employeeId={{employeeId}}&isActive=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Loans"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Filter by employee",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter active loans",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated loan assignments"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Loan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Loans/{{loanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Loans",
+                "{{loanId}}"
+              ]
+            },
+            "description": "Retrieve loan details"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Loan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Loans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Loans"
+              ]
+            },
+            "description": "Create a new loan for an employee",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"loanName\": \"Education Loan\",\n  \"totalAmount\": 60000,\n  \"monthlyDeduction\": 2500,\n  \"installmentMonths\": 24,\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": \"2027-12-31\",\n  \"isActive\": true,\n  \"notes\": \"Payroll deduction\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Loan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Loans/{{loanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Loans",
+                "{{loanId}}"
+              ]
+            },
+            "description": "Update existing loan",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{loanId}}\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"loanName\": \"Education Loan\",\n  \"totalAmount\": 60000,\n  \"remainingAmount\": 45000,\n  \"monthlyDeduction\": 2500,\n  \"installmentMonths\": 24,\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": \"2027-12-31\",\n  \"isActive\": true,\n  \"notes\": \"Payroll deduction\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Loan",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Loans/{{loanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Loans",
+                "{{loanId}}"
+              ]
+            },
+            "description": "Soft-delete loan"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Lookups",
+      "item": [
+        {
+          "name": "Employees Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "employees"
+              ]
+            },
+            "description": "Non-paginated employee list"
+          },
+          "response": []
+        },
+        {
+          "name": "Departments Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/departments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "departments"
+              ]
+            },
+            "description": "Departments for dropdowns"
+          },
+          "response": []
+        },
+        {
+          "name": "Countries Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/countries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "countries"
+              ]
+            },
+            "description": "Supported countries"
+          },
+          "response": []
+        },
+        {
+          "name": "Contract Types Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/contract-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "contract-types"
+              ]
+            },
+            "description": "Contract type dropdown"
+          },
+          "response": []
+        },
+        {
+          "name": "Employee Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/employee-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "employee-statuses"
+              ]
+            },
+            "description": "Employee status options"
+          },
+          "response": []
+        },
+        {
+          "name": "Attendance Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/attendance-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "attendance-statuses"
+              ]
+            },
+            "description": "Attendance statuses"
+          },
+          "response": []
+        },
+        {
+          "name": "Leave Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/leave-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "leave-statuses"
+              ]
+            },
+            "description": "Leave status options"
+          },
+          "response": []
+        },
+        {
+          "name": "Leave Types Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/leave-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "leave-types"
+              ]
+            },
+            "description": "Leave type dropdown"
+          },
+          "response": []
+        },
+        {
+          "name": "Goal Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/goal-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "goal-statuses"
+              ]
+            },
+            "description": "Goal status list"
+          },
+          "response": []
+        },
+        {
+          "name": "Goal Priorities Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/goal-priorities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "goal-priorities"
+              ]
+            },
+            "description": "Goal priority list"
+          },
+          "response": []
+        },
+        {
+          "name": "Review Types Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/review-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "review-types"
+              ]
+            },
+            "description": "Performance review types"
+          },
+          "response": []
+        },
+        {
+          "name": "Review Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/review-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "review-statuses"
+              ]
+            },
+            "description": "Review status list"
+          },
+          "response": []
+        },
+        {
+          "name": "Overtime Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/overtime-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "overtime-statuses"
+              ]
+            },
+            "description": "Overtime request statuses"
+          },
+          "response": []
+        },
+        {
+          "name": "Payroll Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/payroll-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "payroll-statuses"
+              ]
+            },
+            "description": "Payroll status list"
+          },
+          "response": []
+        },
+        {
+          "name": "Invoice Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/invoice-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "invoice-statuses"
+              ]
+            },
+            "description": "Invoice status list"
+          },
+          "response": []
+        },
+        {
+          "name": "Genders Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/genders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "genders"
+              ]
+            },
+            "description": "Gender options"
+          },
+          "response": []
+        },
+        {
+          "name": "Marital Statuses Lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Lookups/marital-statuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Lookups",
+                "marital-statuses"
+              ]
+            },
+            "description": "Marital status options"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "Create Organization With Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Organizations"
+              ]
+            },
+            "description": "Provision a new tenant, default branches, and organization admin user",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"organization\": {\n        \"nameAr\": \"Munazama Jadida\",\n        \"nameEn\": \"New Org\",\n        \"code\": \"ORG100\",\n        \"subscriptionPlanId\": \"{{subscriptionPlanId}}\",\n        \"logoUrl\": null,\n        \"commercialRegistrationNumber\": \"CR-9988\",\n        \"taxRegistrationNumber\": \"TX-7788\",\n        \"legalEntityType\": \"LLC\",\n        \"email\": \"admin@neworg.example\",\n        \"phoneNumber\": \"+20123450999\",\n        \"website\": \"https://neworg.example\",\n        \"addressAr\": \"Ealamat Riyadh\",\n        \"addressEn\": \"King Fahd Road\",\n        \"city\": \"Riyadh\",\n        \"country\": \"Saudi Arabia\",\n        \"postalCode\": \"11564\",\n        \"timeZone\": \"Arab Standard Time\",\n        \"currency\": \"SAR\",\n        \"weekStartDay\": \"Sunday\",\n        \"isTrialPeriod\": true,\n        \"trialDays\": 30\n    },\n    \"branches\": [\n        {\n            \"nameAr\": \"Fr Main\",\n            \"nameEn\": \"HQ\",\n            \"code\": \"ORG100-HQ\",\n            \"countryId\": \"{{countryId}}\",\n            \"description\": \"Headquarters\",\n            \"city\": \"Riyadh\",\n            \"addressAr\": \"Ealamat Riyadh\",\n            \"addressEn\": \"King Fahd Road\",\n            \"postalCode\": \"11564\",\n            \"latitude\": 24.7136,\n            \"longitude\": 46.6753,\n            \"phoneNumber\": \"+96611222333\",\n            \"email\": \"hq@neworg.example\",\n            \"fax\": null,\n            \"timeZone\": \"Arab Standard Time\",\n            \"currency\": \"SAR\",\n            \"language\": \"ar\",\n            \"isHeadquarter\": true,\n            \"openingDate\": \"2026-01-01\"\n        }\n    ],\n    \"adminUser\": {\n        \"email\": \"organizationadmin@neworg.example\",\n        \"fullName\": \"New Org Admin\",\n        \"password\": \"Password@123\",\n        \"userName\": \"neworg.admin\"\n    }\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Organizations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Organizations?pageNumber=1&pageSize=10&searchTerm=ORG",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Organizations"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "ORG",
+                  "description": "Search term",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated organizations (SuperAdmin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Organization",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Organizations/{{organizationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Organizations",
+                "{{organizationId}}"
+              ]
+            },
+            "description": "Retrieve details for a specific organization"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User With Branch Roles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users"
+              ]
+            },
+            "description": "Provision a user scoped to specific branches and roles",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"branchmanager@demo.local\",\n    \"fullName\": \"Branch Manager\",\n    \"password\": \"Password@123\",\n    \"userName\": \"branch.manager\",\n    \"organizationId\": \"{{organizationId}}\",\n    \"branchRoles\": [\n        {\n            \"branchId\": \"{{branchId}}\",\n            \"roleIds\": [\n                \"{{roleId}}\"\n            ]\n        }\n    ]\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users?pageNumber=1&pageSize=20&searchTerm=manager&isActive=true&branchId={{branchId}}&roleId={{roleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "manager",
+                  "description": "Search term",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active",
+                  "disabled": true
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}",
+                  "description": "Filter by branch",
+                  "disabled": true
+                },
+                {
+                  "key": "roleId",
+                  "value": "{{roleId}}",
+                  "description": "Filter by role",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated list of system users"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Retrieve user details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Update user profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"id\": \"{{userId}}\",\n    \"fullName\": \"Branch Manager\",\n    \"userName\": \"branch.manager\",\n    \"isActive\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/{{userId}}/deactivate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "{{userId}}",
+                "deactivate"
+              ]
+            },
+            "description": "Deactivate user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Activate User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/{{userId}}/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "{{userId}}",
+                "activate"
+              ]
+            },
+            "description": "Activate user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Change User Roles",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/{{userId}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "{{userId}}",
+                "roles"
+              ]
+            },
+            "description": "Replace branch-specific roles for a user",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"branchId\": \"{{branchId}}\",\n    \"roleIds\": [\n        \"{{roleId}}\"\n    ]\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
