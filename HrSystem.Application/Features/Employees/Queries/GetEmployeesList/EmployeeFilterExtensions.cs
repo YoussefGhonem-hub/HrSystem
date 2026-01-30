@@ -47,7 +47,24 @@ public static class EmployeeFilterExtensions
     public static IQueryable<Employee> ApplySorting(this IQueryable<Employee> query, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
-            sortBy = "CreatedDate";
+            sortBy = nameof(Employee.CreatedDate);
+        else
+            sortBy = sortBy.Trim();
+
+        // Handle computed names that are not mapped to the database
+        if (string.Equals(sortBy, nameof(Employee.FullNameEn), StringComparison.OrdinalIgnoreCase))
+        {
+            return sortDescending
+                ? query.OrderByDescending(e => e.FirstNameEn).ThenByDescending(e => e.LastNameEn)
+                : query.OrderBy(e => e.FirstNameEn).ThenBy(e => e.LastNameEn);
+        }
+
+        if (string.Equals(sortBy, nameof(Employee.FullNameAr), StringComparison.OrdinalIgnoreCase))
+        {
+            return sortDescending
+                ? query.OrderByDescending(e => e.FirstNameAr).ThenByDescending(e => e.LastNameAr)
+                : query.OrderBy(e => e.FirstNameAr).ThenBy(e => e.LastNameAr);
+        }
 
         var parameter = Expression.Parameter(typeof(Employee), "x");
         var property = typeof(Employee).GetProperty(sortBy);

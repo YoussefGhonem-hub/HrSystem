@@ -2,9 +2,11 @@
 using HrSystem.Application.Features.Lookups.Queries.GetAttendanceStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetContractTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetCountries;
+using HrSystem.Application.Features.Lookups.Queries.GetBranchLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetEmployeeStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetGenders;
 using HrSystem.Application.Features.Lookups.Queries.GetInvoiceStatuses;
+using HrSystem.Application.Features.Lookups.Queries.GetDirectManagersLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetLeaveStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetLeaveTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetMaritalStatuses;
@@ -142,6 +144,16 @@ public class LookupsController : APIBaseController
     }
 
     /// <summary>
+    /// Get all active branches for dropdown
+    /// </summary>
+    [HttpGet("branches")]
+    public async Task<IActionResult> GetBranches()
+    {
+        var result = await _mediator.Send(new GetBranchLookupQuery());
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
     /// Get all departments (non-paginated) for dropdown
     /// </summary>
     [HttpGet("departments")]
@@ -230,6 +242,16 @@ public class LookupsController : APIBaseController
     public async Task<IActionResult> GetEmployees()
     {
         var result = await _mediator.Send(new GetEmployeesLookupQuery());
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get all direct managers (non-paginated) for dropdowns
+    /// </summary>
+    [HttpGet("directmanagers")]
+    public async Task<IActionResult> GetDirectManagers()
+    {
+        var result = await _mediator.Send(new GetDirectManagersLookupQuery());
         return result.Match(Ok, Problem);
     }
 

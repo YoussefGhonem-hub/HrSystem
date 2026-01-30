@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Common.Extensions;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -20,12 +21,14 @@ public class GetEmployeesLookupQueryHandler : IRequestHandler<GetEmployeesLookup
     public async Task<ErrorOr<GenericResponse<List<EmployeeLookupDto>>>> Handle(GetEmployeesLookupQuery request, CancellationToken cancellationToken)
     {
         var employees = await _context.Employees
-            .OrderBy(e => e.FullNameEn)
+            .WhereNotDeleted()
+            .OrderBy(e => e.FirstNameEn)
+            .ThenBy(e => e.LastNameEn)
             .Select(e => new EmployeeLookupDto
             {
                 Id = e.Id,
-                FullNameEn = e.FullNameEn,
-                FullNameAr = e.FullNameAr,
+                FullNameEn = e.FirstNameEn + " " + e.LastNameEn,
+                FullNameAr = e.FirstNameAr + " " + e.LastNameAr,
                 EmployeeCode = e.EmployeeCode
             })
             .ToListAsync(cancellationToken);

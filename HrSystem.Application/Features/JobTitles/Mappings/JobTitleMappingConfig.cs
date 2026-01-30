@@ -10,9 +10,9 @@ public class JobTitleMappingConfig : IRegister
     public void Register(TypeAdapterConfig config)
     {
         config.NewConfig<JobTitle, JobTitleDto>()
-            .Map(dest => dest.EmployeeCount, src => src.Employees.Count);
+            .Map(dest => dest.EmployeeCount, src => src.Employees != null ? src.Employees.Count : 0);
 
         config.NewConfig<JobTitle, JobTitleListDto>()
-            .Map(dest => dest.EmployeeCount, src => src.Employees.Count);
+            .Map(dest => dest.EmployeeCount, src => src.Employees != null ? src.Employees.Count : 0);
     }
 }
