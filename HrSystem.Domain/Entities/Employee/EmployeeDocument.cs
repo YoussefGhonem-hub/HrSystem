@@ -1,4 +1,5 @@
 using HrSystem.Domain.Common;
+using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Employee;
 
@@ -12,7 +13,7 @@ namespace HrSystem.Domain.Entities.Employee;
 public class EmployeeDocument : BaseAuditableEntity
 {
     public Guid EmployeeId { get; set; }
-    public Guid DocumentTypeId { get; set; }
+    public EmployeeDocumentType DocumentType { get; set; }
     public string DocumentName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
     public string? FileUrl { get; set; }
@@ -23,5 +24,4 @@ public class EmployeeDocument : BaseAuditableEntity
 
     // Navigation Properties
     public virtual Employee Employee { get; set; } = null!;
-    public virtual EmployeeDocumentType DocumentType { get; set; } = null!;
 }

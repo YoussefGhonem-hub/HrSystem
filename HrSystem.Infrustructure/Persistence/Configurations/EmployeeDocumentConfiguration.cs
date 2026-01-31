@@ -12,13 +12,12 @@ public class EmployeeDocumentConfiguration : IEntityTypeConfiguration<EmployeeDo
 
         builder.Property(ed => ed.DocumentName).IsRequired().HasMaxLength(200);
         builder.Property(ed => ed.FilePath).IsRequired().HasMaxLength(500);
+        builder.Property(ed => ed.DocumentType)
+            .HasConversion<string>()
+            .HasMaxLength(64)
+            .IsRequired();
 
-        builder.HasOne(ed => ed.DocumentType)
-            .WithMany(dt => dt.Documents)
-            .HasForeignKey(ed => ed.DocumentTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasIndex(ed => ed.DocumentTypeId);
+        builder.HasIndex(ed => ed.DocumentType);
 
         builder.HasOne(ed => ed.Employee)
             .WithMany(e => e.Documents)

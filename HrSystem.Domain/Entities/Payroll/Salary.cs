@@ -17,6 +17,16 @@ public class Salary : BaseAuditableEntity
     public DateTime? EndDate { get; set; }
     public string? Notes { get; set; }
     public bool IsCurrent { get; set; } = true;
+    public string Currency { get; set; } = "EGP";
+    public bool IsSocialInsuranceEnabled { get; set; }
+    public decimal? SocialInsuranceEmployeeRate { get; set; }
+    public decimal? SocialInsuranceEmployerRate { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? BankName { get; set; }
+    public string? BankBranch { get; set; }
+    public string? BankAccountNumber { get; set; }
+    public string? BankIban { get; set; }
+    public string? BankSwiftCode { get; set; }
 
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;

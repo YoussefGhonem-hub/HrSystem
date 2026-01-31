@@ -45,17 +45,34 @@ public class GetEmployeeDocumentsQueryHandler : IRequestHandler<GetEmployeeDocum
             }
         }
 
-        var documents = await _context.EmployeeDocuments
-            .Include(d => d.DocumentType)
+        var rawDocuments = await _context.EmployeeDocuments
+            .AsNoTracking()
             .Where(d => !d.IsDeleted && d.EmployeeId == request.EmployeeId)
-            .OrderBy(d => d.DocumentType.DisplayOrder)
+            .OrderBy(d => d.DocumentType)
             .ThenBy(d => d.DocumentName)
-                .Select(d => new Employees.Queries.GetMyDocuments.DocumentItemDto
+            .Select(d => new
+            {
+                d.Id,
+                d.DocumentType,
+                d.DocumentName,
+                d.FileUrl,
+                d.FilePath,
+                d.ContentType,
+                d.FileSize,
+                d.ExpiryDate,
+                d.Description
+            })
+            .ToListAsync(cancellationToken);
+
+        var documents = rawDocuments.Select(d =>
+        {
+            var info = d.DocumentType.GetInfo();
+            return new Employees.Queries.GetMyDocuments.DocumentItemDto
             {
                 Id = d.Id,
-                DocumentTypeId = d.DocumentTypeId,
-                DocumentTypeNameEn = d.DocumentType.NameEn,
-                DocumentTypeNameAr = d.DocumentType.NameAr,
+                DocumentType = d.DocumentType,
+                DocumentTypeNameEn = info.NameEn,
+                DocumentTypeNameAr = info.NameAr,
                 DocumentName = d.DocumentName,
                 FileUrl = d.FileUrl ?? d.FilePath,
                 FilePath = d.FilePath,
@@ -63,11 +80,9 @@ public class GetEmployeeDocumentsQueryHandler : IRequestHandler<GetEmployeeDocum
                 FileSize = d.FileSize,
                 ExpiryDate = d.ExpiryDate,
                 Description = d.Description,
-                Category = d.DocumentType.CategoryKey == default
-                    ? Employees.Queries.GetMyDocuments.DocumentCategoryHelper.ResolveCategory(d.DocumentType.NameEn, d.DocumentName)
-                    : d.DocumentType.CategoryKey
-            })
-            .ToListAsync(cancellationToken);
+                Category = info.Category
+            };
+        }).ToList();
 
         foreach (var document in documents)
         {

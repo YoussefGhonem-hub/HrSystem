@@ -37,15 +37,15 @@ public class Employee : BaseAuditableEntity
     public string? Country { get; set; } = "Egypt";
     
     // Employment Information
-    public Guid DepartmentId { get; set; }
-    public Guid JobTitleId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? JobTitleId { get; set; }
     public Guid? DirectManagerId { get; set; }
-    public Guid ContractTypeId { get; set; }
+    public Guid? ContractTypeId { get; set; }
     public Guid StatusId { get; set; }
     
-    public DateTime HiringDate { get; set; }
+    public DateTime? HiringDate { get; set; }
     public DateTime? ProbationEndDate { get; set; }
-    public int ProbationPeriodMonths { get; set; } = 3;
+    public int? ProbationPeriodMonths { get; set; }
     public DateTime? TerminationDate { get; set; }
     public string? TerminationReason { get; set; }
     

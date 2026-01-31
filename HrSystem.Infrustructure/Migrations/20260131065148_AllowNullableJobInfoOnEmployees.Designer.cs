@@ -4,6 +4,7 @@ using HrSystem.Infrustructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HrSystem.Infrustructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260131065148_AllowNullableJobInfoOnEmployees")]
+    partial class AllowNullableJobInfoOnEmployees
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -291,19 +294,11 @@ namespace HrSystem.Infrustructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("AbsenceDeductionPolicy")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
                     b.Property<string>("ApprovedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("ApprovedDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("AttendanceMethod")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
 
                     b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
@@ -344,19 +339,6 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("GracePeriod")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("HalfDayRule")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<bool>("IsConfigurationRecord")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -369,20 +351,8 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<bool>("IsOvertime")
                         .HasColumnType("bit");
 
-                    b.Property<string>("LateDeductionPolicy")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
                     b.Property<TimeSpan?>("LateMinutes")
                         .HasColumnType("time");
-
-                    b.Property<string>("MaxLatePerMonth")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("MissingCheckoutHandling")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
 
                     b.Property<Guid?>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -393,15 +363,6 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("OvertimeCalculation")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<bool>("OvertimeEligible")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<TimeSpan?>("OvertimeHours")
                         .HasColumnType("time");
 
@@ -410,14 +371,6 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("WorkDays")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("WorkShift")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
 
                     b.Property<TimeSpan?>("WorkedHours")
                         .HasColumnType("time");
@@ -428,7 +381,7 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.HasIndex("StatusId");
 
-                    b.HasIndex("EmployeeId", "Date", "IsConfigurationRecord")
+                    b.HasIndex("EmployeeId", "Date")
                         .IsUnique();
 
                     b.ToTable("Attendances", "Attendance");
@@ -1242,10 +1195,8 @@ namespace HrSystem.Infrustructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("DocumentType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                    b.Property<Guid>("DocumentTypeId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uniqueidentifier");
@@ -1278,13 +1229,82 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentType");
+                    b.HasIndex("DocumentTypeId");
 
                     b.HasIndex("EmployeeId");
 
                     b.HasIndex("IsDeleted");
 
                     b.ToTable("EmployeeDocuments", "Employee");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Employee.EmployeeDocumentType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CategoryKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ModifiedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryKey");
+
+                    b.HasIndex("DisplayOrder");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("EmployeeDocumentTypes", "Employee");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Employee.EmployeeStatus", b =>
@@ -3503,21 +3523,6 @@ namespace HrSystem.Infrustructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("BankAccountNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankBranch")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankIban")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankSwiftCode")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<decimal>("BasicSalary")
                         .HasColumnType("decimal(18,2)");
 
@@ -3529,10 +3534,6 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uniqueidentifier");
@@ -3555,9 +3556,6 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsSocialInsuranceEnabled")
-                        .HasColumnType("bit");
-
                     b.Property<Guid?>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -3566,15 +3564,6 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("SocialInsuranceEmployeeRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("SocialInsuranceEmployerRate")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
@@ -4908,11 +4897,19 @@ namespace HrSystem.Infrustructure.Migrations
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Employee.EmployeeDocument", b =>
                 {
+                    b.HasOne("HrSystem.Domain.Entities.Employee.EmployeeDocumentType", "DocumentType")
+                        .WithMany("Documents")
+                        .HasForeignKey("DocumentTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("HrSystem.Domain.Entities.Employee.Employee", "Employee")
                         .WithMany("Documents")
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("DocumentType");
 
                     b.Navigation("Employee");
                 });
@@ -5474,6 +5471,11 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Navigation("Salaries");
 
                     b.Navigation("Subordinates");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Employee.EmployeeDocumentType", b =>
+                {
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Employee.EmployeeStatus", b =>

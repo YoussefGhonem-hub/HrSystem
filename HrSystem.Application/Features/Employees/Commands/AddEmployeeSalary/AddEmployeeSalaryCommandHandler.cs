@@ -7,6 +7,7 @@ using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace HrSystem.Application.Features.Employees.Commands.AddEmployeeSalary;
 
@@ -24,6 +25,7 @@ public class AddEmployeeSalaryCommandHandler : IRequestHandler<AddEmployeeSalary
         CancellationToken cancellationToken)
     {
         var employee = await _context.Employees
+            .Include(e => e.Branch)
             .FirstOrDefaultAsync(e => e.Id == request.EmployeeId, cancellationToken);
 
         if (employee == null)
@@ -45,6 +47,17 @@ public class AddEmployeeSalaryCommandHandler : IRequestHandler<AddEmployeeSalary
             }
         }
 
+        var currency = employee.Branch?.Currency;
+        if (string.IsNullOrWhiteSpace(currency) && employee.TenantId != Guid.Empty)
+        {
+            currency = await _context.Organizations
+                .Where(o => o.Id == employee.TenantId)
+                .Select(o => o.Currency)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        currency ??= "EGP";
+
         var currentSalary = await _context.Salaries
             .FirstOrDefaultAsync(s => !s.IsDeleted && s.EmployeeId == request.EmployeeId && s.IsCurrent, cancellationToken);
 
@@ -64,9 +77,11 @@ public class AddEmployeeSalaryCommandHandler : IRequestHandler<AddEmployeeSalary
             EffectiveDate = request.EffectiveDate,
             Notes = request.Notes,
             IsCurrent = true,
+            Currency = currency,
             TenantId = employee.TenantId != Guid.Empty
                 ? employee.TenantId
-                : CurrentUser.OrganizationId ?? Guid.Empty
+                : CurrentUser.OrganizationId ?? Guid.Empty,
+            BranchId = employee.BranchId
         };
 
         salary.MarkAsCreated(CurrentUser.Id ?? Guid.Empty);
@@ -82,7 +97,12 @@ public class AddEmployeeSalaryCommandHandler : IRequestHandler<AddEmployeeSalary
             EffectiveDate = salary.EffectiveDate,
             EndDate = salary.EndDate,
             Notes = salary.Notes,
-            IsCurrent = salary.IsCurrent
+            IsCurrent = salary.IsCurrent,
+            Currency = salary.Currency,
+            IncludeSocialInsurance = salary.IsSocialInsuranceEnabled,
+            SocialInsuranceEmployeeRate = salary.SocialInsuranceEmployeeRate,
+            SocialInsuranceEmployerRate = salary.SocialInsuranceEmployerRate,
+            PaymentMethod = salary.PaymentMethod
         };
 
         return new GenericResponse<EmployeeSalaryDto>

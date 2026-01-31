@@ -1,12 +1,13 @@
+using System;
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Shared.Common;
 using MediatR;
 
-namespace HrSystem.Application.Features.Employees.Commands.CreateEmployee;
+namespace HrSystem.Application.Features.Employees.Commands.UpdateEmployeePersonalInfo;
 
-public record CreateEmployeeCommand(
-    string EmployeeCode,
+public record UpdateEmployeePersonalInfoCommand(
+    Guid EmployeeId,
     string FirstNameAr,
     string LastNameAr,
     string FirstNameEn,
@@ -22,12 +23,5 @@ public record CreateEmployeeCommand(
     string AddressAr,
     string? AddressEn,
     string? City,
-    string? Country,
-    Guid DepartmentId,
-    Guid JobTitleId,
-    Guid? DirectManagerId,
-    Guid? BranchId,
-    Guid ContractTypeId,
-    DateTime HiringDate,
-    int ProbationPeriodMonths
+    string? Country
 ) : IRequest<ErrorOr<GenericResponse<EmployeeDto>>>;

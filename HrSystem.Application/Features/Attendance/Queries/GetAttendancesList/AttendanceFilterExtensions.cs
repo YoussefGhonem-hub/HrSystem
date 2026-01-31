@@ -11,6 +11,8 @@ public static class AttendanceFilterExtensions
         bool? isLate,
         bool? isOvertime)
     {
+        query = query.Where(a => !a.IsConfigurationRecord);
+
         if (employeeId.HasValue)
         {
             query = query.Where(a => a.EmployeeId == employeeId.Value);

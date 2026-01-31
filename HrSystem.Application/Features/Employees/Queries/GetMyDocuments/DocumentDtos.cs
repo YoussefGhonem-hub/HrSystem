@@ -13,7 +13,7 @@ public class DocumentGroupDto
 public class DocumentItemDto
 {
     public Guid Id { get; set; }
-    public Guid DocumentTypeId { get; set; }
+    public EmployeeDocumentType DocumentType { get; set; }
     public string DocumentTypeNameEn { get; set; } = string.Empty;
     public string DocumentTypeNameAr { get; set; } = string.Empty;
     public string DocumentName { get; set; } = string.Empty;

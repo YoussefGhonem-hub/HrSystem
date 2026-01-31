@@ -17,6 +17,7 @@ public class Attendance : BaseAuditableEntity
     public TimeSpan? CheckInTime { get; set; }
     public TimeSpan? CheckOutTime { get; set; }
     public Guid StatusId { get; set; }
+    public bool IsConfigurationRecord { get; set; }
     
     // Biometric/Device Info
     public string? DeviceId { get; set; }
@@ -36,6 +37,19 @@ public class Attendance : BaseAuditableEntity
     public string? Notes { get; set; }
     public string? ApprovedBy { get; set; }
     public DateTime? ApprovedDate { get; set; }
+
+    // Attendance Configuration Snapshot
+    public string? WorkShift { get; set; }
+    public string? WorkDays { get; set; }
+    public string? GracePeriod { get; set; }
+    public string? MaxLatePerMonth { get; set; }
+    public bool OvertimeEligible { get; set; }
+    public string? OvertimeCalculation { get; set; }
+    public string? AttendanceMethod { get; set; }
+    public string? LateDeductionPolicy { get; set; }
+    public string? AbsenceDeductionPolicy { get; set; }
+    public string? HalfDayRule { get; set; }
+    public string? MissingCheckoutHandling { get; set; }
 
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;

@@ -49,17 +49,34 @@ public class GetMyDocumentsQueryHandler : IRequestHandler<GetMyDocumentsQuery, E
             return Error.Unauthorized("Documents.Unauthorized", "Current user is not linked to an employee");
         }
 
-        var documents = await _context.EmployeeDocuments
-            .Include(d => d.DocumentType)
+        var rawDocuments = await _context.EmployeeDocuments
+            .AsNoTracking()
             .Where(d => !d.IsDeleted && d.EmployeeId == employeeId.Value)
-            .OrderBy(d => d.DocumentType.DisplayOrder)
+            .OrderBy(d => d.DocumentType)
             .ThenBy(d => d.DocumentName)
-            .Select(d => new DocumentItemDto
+            .Select(d => new
+            {
+                d.Id,
+                d.DocumentType,
+                d.DocumentName,
+                d.FileUrl,
+                d.FilePath,
+                d.ContentType,
+                d.FileSize,
+                d.ExpiryDate,
+                d.Description
+            })
+            .ToListAsync(cancellationToken);
+
+        var documents = rawDocuments.Select(d =>
+        {
+            var info = d.DocumentType.GetInfo();
+            return new DocumentItemDto
             {
                 Id = d.Id,
-                DocumentTypeId = d.DocumentTypeId,
-                DocumentTypeNameEn = d.DocumentType.NameEn,
-                DocumentTypeNameAr = d.DocumentType.NameAr,
+                DocumentType = d.DocumentType,
+                DocumentTypeNameEn = info.NameEn,
+                DocumentTypeNameAr = info.NameAr,
                 DocumentName = d.DocumentName,
                 FileUrl = d.FileUrl ?? d.FilePath,
                 FilePath = d.FilePath,
@@ -67,11 +84,9 @@ public class GetMyDocumentsQueryHandler : IRequestHandler<GetMyDocumentsQuery, E
                 FileSize = d.FileSize,
                 ExpiryDate = d.ExpiryDate,
                 Description = d.Description,
-                Category = d.DocumentType.CategoryKey == default
-                    ? DocumentCategoryHelper.ResolveCategory(d.DocumentType.NameEn, d.DocumentName)
-                    : d.DocumentType.CategoryKey
-            })
-            .ToListAsync(cancellationToken);
+                Category = info.Category
+            };
+        }).ToList();
 
         foreach (var document in documents)
         {

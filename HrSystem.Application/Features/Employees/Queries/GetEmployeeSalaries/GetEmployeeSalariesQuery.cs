@@ -59,7 +59,12 @@ public class GetEmployeeSalariesQueryHandler : IRequestHandler<GetEmployeeSalari
                 EffectiveDate = s.EffectiveDate,
                 EndDate = s.EndDate,
                 Notes = s.Notes,
-                IsCurrent = s.IsCurrent
+                IsCurrent = s.IsCurrent,
+                Currency = s.Currency,
+                IncludeSocialInsurance = s.IsSocialInsuranceEnabled,
+                SocialInsuranceEmployeeRate = s.SocialInsuranceEmployeeRate,
+                SocialInsuranceEmployerRate = s.SocialInsuranceEmployerRate,
+                PaymentMethod = s.PaymentMethod
             })
             .ToListAsync(cancellationToken);
 

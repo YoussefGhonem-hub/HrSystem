@@ -1,4 +1,5 @@
 ﻿using HrSystem.API.Controllers.Shared;
+using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Application.Features.Payroll.Queries.GetMyLoans;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslips;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslipDetails;
@@ -20,6 +21,25 @@ public class PayrollController : APIBaseController
     public PayrollController(ISender mediator)
     {
         _mediator = mediator;
+    }
+
+    /// <summary>
+    /// Configure payroll settings (salary, allowances, deductions, payment method) for a specific employee
+    /// </summary>
+    [HttpPost("employees/{employeeId:guid}/configuration")]
+    public async Task<IActionResult> ConfigureEmployeePayroll(Guid employeeId, [FromBody] ConfigureEmployeePayrollCommand command)
+    {
+        if (employeeId != command.EmployeeId)
+        {
+            return BadRequest("ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
     }
 
     /// <summary>

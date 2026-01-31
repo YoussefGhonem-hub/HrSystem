@@ -20,7 +20,7 @@ public class MyProfileDto
     public string? DepartmentNameAr { get; set; }
     public string? EmploymentStatusEn { get; set; }
     public string? EmploymentStatusAr { get; set; }
-    public DateTime HiringDate { get; set; }
+    public DateTime? HiringDate { get; set; }
     public DateTime? ProbationEndDate { get; set; }
     public string? WorkScheduleName { get; set; }
     public TimeSpan? WorkScheduleStartTime { get; set; }

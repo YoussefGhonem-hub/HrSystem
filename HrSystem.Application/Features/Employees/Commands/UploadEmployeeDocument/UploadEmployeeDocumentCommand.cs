@@ -1,6 +1,7 @@
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetMyDocuments;
 using HrSystem.Domain.Entities.Employee;
+using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
@@ -14,7 +15,7 @@ namespace HrSystem.Application.Features.Employees.Commands.UploadEmployeeDocumen
 
 public record UploadEmployeeDocumentCommand(
     Guid EmployeeId,
-    Guid DocumentTypeId,
+    EmployeeDocumentType DocumentType,
     string? DocumentName,
     string? Description,
     DateTime? ExpiryDate,
@@ -58,13 +59,7 @@ public class UploadEmployeeDocumentCommandHandler : IRequestHandler<UploadEmploy
             }
         }
 
-        var documentType = await _context.EmployeeDocumentTypes
-            .FirstOrDefaultAsync(dt => dt.Id == request.DocumentTypeId && dt.IsActive, cancellationToken);
-
-        if (documentType == null)
-        {
-            return Error.NotFound("Documents.TypeNotFound", "Document type not found");
-        }
+        var typeInfo = request.DocumentType.GetInfo();
 
         // Upload to Amazon S3
         var stored = await _storageService.Upload(request.File, cancellationToken);
@@ -79,8 +74,8 @@ public class UploadEmployeeDocumentCommandHandler : IRequestHandler<UploadEmploy
         var document = new EmployeeDocument
         {
             EmployeeId = request.EmployeeId,
-            DocumentTypeId = documentType.Id,
-            DocumentName = string.IsNullOrWhiteSpace(request.DocumentName) ? documentType.NameEn : request.DocumentName!,
+            DocumentType = request.DocumentType,
+            DocumentName = string.IsNullOrWhiteSpace(request.DocumentName) ? typeInfo.NameEn : request.DocumentName!,
             FilePath = stored.Key,
             FileUrl = fileUrl,
             Description = request.Description,
@@ -98,9 +93,9 @@ public class UploadEmployeeDocumentCommandHandler : IRequestHandler<UploadEmploy
         var dto = new DocumentItemDto
         {
             Id = document.Id,
-            DocumentTypeId = document.DocumentTypeId,
-            DocumentTypeNameEn = documentType.NameEn,
-            DocumentTypeNameAr = documentType.NameAr,
+            DocumentType = document.DocumentType,
+            DocumentTypeNameEn = typeInfo.NameEn,
+            DocumentTypeNameAr = typeInfo.NameAr,
             DocumentName = document.DocumentName,
             FileUrl = document.FileUrl,
             FilePath = document.FilePath,
@@ -108,9 +103,7 @@ public class UploadEmployeeDocumentCommandHandler : IRequestHandler<UploadEmploy
             FileSize = document.FileSize,
             ExpiryDate = document.ExpiryDate,
             Description = document.Description,
-            Category = documentType.CategoryKey == default
-                ? DocumentCategoryHelper.ResolveCategory(documentType.NameEn, document.DocumentName)
-                : documentType.CategoryKey
+            Category = typeInfo.Category
         };
 
         return new GenericResponse<DocumentItemDto>

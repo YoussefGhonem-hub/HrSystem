@@ -22,6 +22,11 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(e => e.NationalId).IsRequired().HasMaxLength(14);
         builder.Property(e => e.Email).IsRequired().HasMaxLength(200);
         builder.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(20);
+        builder.Property(e => e.HiringDate).IsRequired(false);
+        builder.Property(e => e.ProbationPeriodMonths).IsRequired(false);
+        builder.Property(e => e.DepartmentId).IsRequired(false);
+        builder.Property(e => e.JobTitleId).IsRequired(false);
+        builder.Property(e => e.ContractTypeId).IsRequired(false);
 
         // Relationships
         builder.HasOne(e => e.Department)

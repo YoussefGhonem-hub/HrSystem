@@ -2,6 +2,7 @@ using ErrorOr;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendancesList;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
+using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -346,20 +347,33 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
 
     private async Task<List<EmployeeDocumentDto>> GetEmployeeDocumentsAsync(Guid employeeId, CancellationToken cancellationToken)
     {
-        var documents = await _context.EmployeeDocuments
-            .Include(d => d.DocumentType)
+        var rawDocuments = await _context.EmployeeDocuments
+            .AsNoTracking()
             .Where(d => d.EmployeeId == employeeId)
             .OrderByDescending(d => d.CreatedDate)
-            .Select(d => new EmployeeDocumentDto
+            .Select(d => new
+            {
+                d.Id,
+                d.DocumentName,
+                d.DocumentType,
+                d.FileUrl,
+                d.ExpiryDate
+            })
+            .ToListAsync(cancellationToken);
+
+        var documents = rawDocuments.Select(d =>
+        {
+            var info = d.DocumentType.GetInfo();
+            return new EmployeeDocumentDto
             {
                 Id = d.Id,
                 DocumentName = d.DocumentName,
-                DocumentTypeNameEn = d.DocumentType.NameEn,
-                DocumentTypeNameAr = d.DocumentType.NameAr,
+                DocumentTypeNameEn = info.NameEn,
+                DocumentTypeNameAr = info.NameAr,
                 FileUrl = d.FileUrl,
                 ExpiryDate = d.ExpiryDate
-            })
-            .ToListAsync(cancellationToken);
+            };
+        }).ToList();
 
         // Generate presigned URLs from S3
         foreach (var doc in documents)

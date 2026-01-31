@@ -10,6 +10,7 @@ using HrSystem.Application.Features.Lookups.Queries.GetDirectManagersLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetLeaveStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetLeaveTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetMaritalStatuses;
+using HrSystem.Application.Features.Lookups.Queries.GetJobTitlesLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetOvertimeStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetPayrollStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetGoalPriorities;
@@ -160,6 +161,16 @@ public class LookupsController : APIBaseController
     public async Task<IActionResult> GetDepartments()
     {
         var result = await _mediator.Send(new GetDepartmentLookupQuery());
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get all job titles (non-paginated) for dropdown
+    /// </summary>
+    [HttpGet("job-titles")]
+    public async Task<IActionResult> GetJobTitles()
+    {
+        var result = await _mediator.Send(new GetJobTitlesLookupQuery());
         return result.Match(Ok, Problem);
     }
 

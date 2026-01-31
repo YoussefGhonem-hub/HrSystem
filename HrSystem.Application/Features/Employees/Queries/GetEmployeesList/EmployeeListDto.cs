@@ -12,5 +12,5 @@ public record EmployeeListDto
     public string JobTitleEn { get; init; } = string.Empty;
     public string? BranchName { get; init; }
     public string StatusName { get; init; } = string.Empty;
-    public DateTime HiringDate { get; init; }
+    public DateTime? HiringDate { get; init; }
 }

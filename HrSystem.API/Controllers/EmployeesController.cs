@@ -4,7 +4,10 @@ using HrSystem.Application.Features.Employees.Commands.AddEmployeeSalary;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Employees.Commands.DeleteEmployee;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
+using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeJobInfo;
+using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePersonalInfo;
 using HrSystem.Application.Features.Employees.Commands.UploadEmployeeDocument;
+using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeStatusAndProfile;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeDocuments;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeSalaries;
@@ -67,6 +70,20 @@ public class EmployeesController : APIBaseController
     {
         var query = new GetEmployeeByIdQuery(id);
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Create a new employee with full details
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> CreateEmployee([FromForm] CreateEmployeeFullCommand command)
+    {
+        var result = await _mediator.Send(command);
 
         return result.Match(
             response => Ok(response),
@@ -197,15 +214,58 @@ public class EmployeesController : APIBaseController
     }
 
     /// <summary>
-    /// Create a new employee
+    /// Update personal information for an existing employee
     /// </summary>
-    [HttpPost]
-    public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeCommand command)
+    [HttpPut("{employeeId:guid}/personal-info")]
+    public async Task<IActionResult> UpdateEmployeePersonalInfo(Guid employeeId, [FromBody] UpdateEmployeePersonalInfoCommand command)
     {
+        if (employeeId != command.EmployeeId)
+        {
+            return BadRequest("ID mismatch");
+        }
+
         var result = await _mediator.Send(command);
 
         return result.Match(
-            response => CreatedAtAction(nameof(GetEmployeeById), new { id = response.Data!.Id }, response),
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update job information for an existing employee
+    /// </summary>
+    [HttpPut("{employeeId:guid}/job-info")]
+    public async Task<IActionResult> UpdateEmployeeJobInfo(Guid employeeId, [FromBody] UpdateEmployeeJobInfoCommand command)
+    {
+        if (employeeId != command.EmployeeId)
+        {
+            return BadRequest("ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update employee status and/or profile picture
+    /// </summary>
+    [HttpPost("{employeeId:guid}/status-profile")]
+    public async Task<IActionResult> UpdateEmployeeStatusAndProfile(Guid employeeId, [FromForm] UpdateEmployeeStatusAndProfileCommand command)
+    {
+        if (employeeId != command.EmployeeId)
+        {
+            return BadRequest("ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
             errors => Problem(errors)
         );
     }

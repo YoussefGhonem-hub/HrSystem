@@ -95,7 +95,6 @@ public static class AppDbContextSeed
             }
 
             await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
-            await SeedEmployeeDocumentTypesAsync(context, seedDataPath);
             await SeedEmployeeDocumentsAsync(context);
             await SeedLeaveStatusesAsync(context, seedDataPath);
             await SeedLeaveTypesAsync(context, seedDataPath);
@@ -298,10 +297,24 @@ public static class AppDbContextSeed
 
         if (roles == null || roles.Count == 0) return;
 
+        // Get lookup data for employee creation
+        var departments = await context.Departments.ToListAsync();
+        var jobTitles = await context.JobTitles.ToListAsync();
+
+        // Roles that should have associated employee records
+        var rolesRequiringEmployee = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            RoleNames.HRManager,
+            RoleNames.HRSpecialist,
+            RoleNames.DepartmentManager
+        };
+
         var branchRoleAdded = false;
+        var employeeCodeCounter = 900; // Start with a high number to avoid conflicts
 
         foreach (var roleData in roles)
         {
+            var canonicalRoleName = NormalizeRoleName(roleData.Name) ?? roleData.Name;
             var roleExists = await roleManager.RoleExistsAsync(roleData.Name);
             if (!roleExists)
             {
@@ -315,11 +328,28 @@ public static class AppDbContextSeed
                 continue;
             }
 
-            var email = $"{roleData.Name.ToLowerInvariant()}@{organization.Code.ToLowerInvariant()}.local";
+            var emailPrefix = BuildRoleEmailPrefix(canonicalRoleName);
+            var email = $"{emailPrefix}@{organization.Code.ToLowerInvariant()}.local";
             var existingUser = await userManager.FindByEmailAsync(email);
 
-            var requiresBranchScope = RoleNames.RequiresBranchScope(roleData.Name);
+            var requiresBranchScope = RoleNames.RequiresBranchScope(canonicalRoleName);
             var branchIdForRole = requiresBranchScope ? defaultBranchId : null;
+
+            // Create employee record for specific roles
+            Guid? employeeId = null;
+            if (rolesRequiringEmployee.Contains(canonicalRoleName) && defaultBranchId.HasValue)
+            {
+                employeeId = await CreateRoleEmployeeAsync(
+                    context,
+                    canonicalRoleName,
+                    roleData.DisplayName,
+                    email,
+                    organization.Id,
+                    defaultBranchId.Value,
+                    departments,
+                    jobTitles,
+                    employeeCodeCounter++);
+            }
 
             var user = existingUser ?? new ApplicationUser
             {
@@ -327,11 +357,12 @@ public static class AppDbContextSeed
                 UserName = email,
                 Email = email,
                 EmailConfirmed = true,
-                FullName = roleData.DisplayName,
+                FullName = GetRoleUserFullName(canonicalRoleName),
                 IsActive = true,
                 OrganizationId = organization.Id,
+                EmployeeId = employeeId,
                 CreatedDate = DateTimeOffset.UtcNow,
-                BranchId = branchIdForRole
+                BranchId = branchIdForRole ?? defaultBranchId
             };
 
             if (existingUser == null)
@@ -343,10 +374,37 @@ public static class AppDbContextSeed
                     continue;
                 }
             }
-            else if (requiresBranchScope && branchIdForRole.HasValue && user.BranchId != branchIdForRole)
+            else
             {
-                user.BranchId = branchIdForRole;
-                await userManager.UpdateAsync(user);
+                var requiresUpdate = false;
+
+                if (requiresBranchScope && branchIdForRole.HasValue && user.BranchId != branchIdForRole)
+                {
+                    user.BranchId = branchIdForRole;
+                    requiresUpdate = true;
+                }
+
+                if (employeeId.HasValue && user.EmployeeId != employeeId)
+                {
+                    user.EmployeeId = employeeId;
+                    requiresUpdate = true;
+                }
+
+                if (requiresUpdate)
+                {
+                    await userManager.UpdateAsync(user);
+                }
+            }
+
+            // Link employee to user if created
+            if (employeeId.HasValue)
+            {
+                var employee = await context.Employees.FindAsync(employeeId.Value);
+                if (employee != null)
+                {
+                    employee.UserId = user.Id;
+                    await context.SaveChangesAsync();
+                }
             }
 
             var inRole = await userManager.IsInRoleAsync(user, roleData.Name);
@@ -357,17 +415,111 @@ public static class AppDbContextSeed
 
             if (defaultBranch != null)
             {
-                var assigned = await EnsureUserBranchRoleAsync(context, user.Id, defaultBranch.Id, roleData.Name);
+                var assigned = await EnsureUserBranchRoleAsync(context, user.Id, defaultBranch.Id, canonicalRoleName);
                 branchRoleAdded = branchRoleAdded || assigned;
             }
 
-            Console.WriteLine($"Ensured role user for: {roleData.Name}");
+            Console.WriteLine($"Ensured role user for: {canonicalRoleName}{(employeeId.HasValue ? " (with employee record)" : "")}");
         }
 
         if (branchRoleAdded)
         {
             await context.SaveChangesAsync();
         }
+    }
+
+    private static string GetRoleUserFullName(string roleName)
+    {
+        return roleName switch
+        {
+            RoleNames.HRManager => "Sarah Johnson",
+            RoleNames.HRSpecialist => "Omar Ahmed",
+            RoleNames.DepartmentManager => "Mohamed Ali",
+            _ => roleName
+        };
+    }
+
+    private static async Task<Guid?> CreateRoleEmployeeAsync(
+        ApplicationDbContext context,
+        string roleName,
+        string displayName,
+        string email,
+        Guid tenantId,
+        Guid branchId,
+        List<Department> departments,
+        List<JobTitle> jobTitles,
+        int employeeCodeCounter)
+    {
+        // Find appropriate department and job title based on role
+        var (departmentName, jobTitleName, firstNameEn, lastNameEn, firstNameAr, lastNameAr) = roleName switch
+        {
+            RoleNames.HRManager => ("Human Resources", "HR Manager", "Sarah", "Johnson", "سارة", "جونسون"),
+            RoleNames.HRSpecialist => ("Human Resources", "HR Specialist", "Omar", "Ahmed", "عمر", "أحمد"),
+            RoleNames.DepartmentManager => ("Operations", "Operations Manager", "Mohamed", "Ali", "محمد", "علي"),
+            _ => (null as string, null as string, "System", "User", "مستخدم", "النظام")
+        };
+
+        var department = departments.FirstOrDefault(d =>
+            d.NameEn.Contains(departmentName ?? "Human", StringComparison.OrdinalIgnoreCase))
+            ?? departments.FirstOrDefault();
+
+        var jobTitle = jobTitles.FirstOrDefault(j =>
+            j.TitleEn.Contains(jobTitleName ?? "Manager", StringComparison.OrdinalIgnoreCase))
+            ?? jobTitles.FirstOrDefault();
+
+        if (department == null || jobTitle == null)
+        {
+            Console.WriteLine($"Cannot create employee for {roleName}: missing department or job title");
+            return null;
+        }
+
+        // Use well-known GUIDs from seed data
+        var maleGenderId = Guid.Parse("00000000-0000-0000-0006-000000000001");
+        var femaleGenderId = Guid.Parse("00000000-0000-0000-0006-000000000002");
+        var singleMaritalStatusId = Guid.Parse("00000000-0000-0000-0007-000000000001");
+        var marriedMaritalStatusId = Guid.Parse("00000000-0000-0000-0007-000000000002");
+        var permanentContractTypeId = Guid.Parse("00000000-0000-0000-0005-000000000001");
+        var activeStatusId = Guid.Parse("00000000-0000-0000-0008-000000000001");
+
+        var genderId = roleName == RoleNames.HRManager ? femaleGenderId : maleGenderId;
+        var maritalStatusId = roleName == RoleNames.HRManager ? singleMaritalStatusId : marriedMaritalStatusId;
+
+        var employeeId = Guid.NewGuid();
+        var employee = new Employee
+        {
+            Id = employeeId,
+            EmployeeCode = $"EMP-{employeeCodeCounter:D4}",
+            FirstNameAr = firstNameAr,
+            LastNameAr = lastNameAr,
+            FirstNameEn = firstNameEn,
+            LastNameEn = lastNameEn,
+            NationalId = $"ROLE{employeeCodeCounter:D10}",
+            DateOfBirth = DateTime.UtcNow.AddYears(-35),
+            GenderId = genderId,
+            MaritalStatusId = maritalStatusId,
+            Email = email,
+            PhoneNumber = $"+2012345{employeeCodeCounter:D4}",
+            MobileNumber = $"+2010123{employeeCodeCounter:D5}",
+            AddressAr = "القاهرة، مصر",
+            AddressEn = "Cairo, Egypt",
+            City = "Cairo",
+            Country = "Egypt",
+            DepartmentId = department.Id,
+            JobTitleId = jobTitle.Id,
+            BranchId = branchId,
+            ContractTypeId = permanentContractTypeId,
+            StatusId = activeStatusId,
+            HiringDate = DateTime.UtcNow.AddYears(-3),
+            ProbationPeriodMonths = 0,
+            TenantId = tenantId,
+            CreatedDate = DateTimeOffset.UtcNow
+        };
+
+        await context.Employees.AddAsync(employee);
+        await context.SaveChangesAsync();
+
+        Console.WriteLine($"Created employee {employee.EmployeeCode} for role {roleName}");
+        return employeeId;
     }
 
     private static async Task SeedBranchesAsync(ApplicationDbContext context, string seedDataPath)
@@ -1007,47 +1159,6 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded {deductions.Count} deduction types");
     }
 
-    private static async Task SeedEmployeeDocumentTypesAsync(ApplicationDbContext context, string seedDataPath)
-    {
-        if (await context.EmployeeDocumentTypes.AnyAsync()) return;
-
-        var filePath = Path.Combine(seedDataPath, "EmployeeDocumentTypes.json");
-        if (!File.Exists(filePath)) return;
-
-        var json = await File.ReadAllTextAsync(filePath);
-        var documentTypes = JsonSerializer.Deserialize<List<EmployeeDocumentTypeSeedData>>(json, _jsonOptions);
-
-        if (documentTypes == null) return;
-
-        var organization = await context.Organizations.FirstOrDefaultAsync();
-        if (organization == null) return;
-
-        var defaultBranchId = await GetDefaultBranchIdAsync(context);
-        if (!defaultBranchId.HasValue) return;
-
-        foreach (var docType in documentTypes)
-        {
-            var entity = new EmployeeDocumentType
-            {
-                Id = docType.Id == Guid.Empty ? Guid.NewGuid() : docType.Id,
-                NameEn = docType.NameEn,
-                NameAr = docType.NameAr,
-                Description = docType.Description,
-                CategoryKey = ParseDocumentCategory(docType.CategoryKey),
-                DisplayOrder = docType.DisplayOrder,
-                IsActive = docType.IsActive,
-                TenantId = organization.Id,
-                BranchId = defaultBranchId.Value,
-                CreatedDate = DateTimeOffset.UtcNow
-            };
-
-            await context.EmployeeDocumentTypes.AddAsync(entity);
-        }
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"Seeded {documentTypes.Count} employee document types");
-    }
-
     private static async Task SeedEmployeeDocumentsAsync(ApplicationDbContext context)
     {
         if (await context.EmployeeDocuments.AnyAsync())
@@ -1072,24 +1183,13 @@ public static class AppDbContextSeed
             return;
         }
 
-        var documentTypes = await context.EmployeeDocumentTypes
-            .AsNoTracking()
-            .Where(dt => dt.IsActive)
-            .ToListAsync();
-
-        if (documentTypes.Count == 0)
-        {
-            return;
-        }
-
         var defaultBranchId = await GetDefaultBranchIdAsync(context);
         if (!defaultBranchId.HasValue)
         {
             return;
         }
 
-        var typeLookup = documentTypes.ToDictionary(dt => dt.NameEn, dt => dt.Id, StringComparer.OrdinalIgnoreCase);
-        var templates = BuildDocumentTemplates(typeLookup);
+        var templates = BuildDocumentTemplates();
 
         if (templates.Count == 0)
         {
@@ -1133,7 +1233,7 @@ public static class AppDbContextSeed
                 documents.Add(new EmployeeDocument
                 {
                     EmployeeId = employee.Id,
-                    DocumentTypeId = template.TypeId,
+                    DocumentType = template.DocumentType,
                     DocumentName = $"{template.DisplayName} - {employee.FirstName?.Trim()} {employee.LastName?.Trim()}".Trim(),
                     FilePath = filePath,
                     FileUrl = $"https://cdn.demo-hrsystem.local/{filePath}",
@@ -1156,116 +1256,61 @@ public static class AppDbContextSeed
         }
     }
 
-    private static List<DocumentTemplate> BuildDocumentTemplates(Dictionary<string, Guid> typeLookup)
+    private static List<DocumentTemplate> BuildDocumentTemplates()
     {
-        var templates = new List<DocumentTemplate>();
-
-        void TryAddTemplate(
-            string typeName,
-            string displayName,
-            string slug,
-            string contentType,
-            string description,
-            bool hasExpiry,
-            int expiryYears,
-            long minSize,
-            long maxSize)
+        return new List<DocumentTemplate>
         {
-            if (!typeLookup.TryGetValue(typeName, out var typeId))
-            {
-                return;
-            }
-
-            templates.Add(new DocumentTemplate(
-                typeId,
-                displayName,
-                slug,
-                contentType,
-                description,
-                hasExpiry,
-                expiryYears,
-                minSize,
-                maxSize));
-        }
-
-        TryAddTemplate(
-            "National ID",
-            "National ID Copy",
-            "national-id",
-            "application/pdf",
-            "Scanned national identification card.",
-            true,
-            10,
-            150_000,
-            350_000);
-
-        TryAddTemplate(
-            "Birth Certificate",
-            "Birth Certificate",
-            "birth-certificate",
-            "application/pdf",
-            "Certified copy of the employee birth certificate.",
-            false,
-            0,
-            200_000,
-            400_000);
-
-        TryAddTemplate(
-            "Employment Contract",
-            "Signed Employment Contract",
-            "employment-contract",
-            "application/pdf",
-            "Signed employment contract including compensation terms.",
-            false,
-            0,
-            500_000,
-            900_000);
-
-        TryAddTemplate(
-            "Job Offer Letter",
-            "Job Offer Letter",
-            "offer-letter",
-            "application/pdf",
-            "Accepted job offer letter for reference.",
-            false,
-            0,
-            250_000,
-            450_000);
-
-        TryAddTemplate(
-            "NDA / Company Policy",
-            "Policy & NDA Acknowledgment",
-            "nda-policy",
-            "application/pdf",
-            "Signed NDA and acknowledgement of company policies.",
-            false,
-            0,
-            120_000,
-            240_000);
-
-        TryAddTemplate(
-            "Insurance Form",
-            "Insurance Enrollment Form",
-            "insurance-form",
-            "application/pdf",
-            "Health insurance enrollment paperwork.",
-            true,
-            2,
-            180_000,
-            320_000);
-
-        TryAddTemplate(
-            "Social Insurance Document",
-            "Social Insurance Document",
-            "social-insurance",
-            "application/pdf",
-            "Social insurance registration confirmation.",
-            true,
-            5,
-            160_000,
-            280_000);
-
-        return templates;
+            new(
+                EmployeeDocumentType.NationalId,
+                "National ID Copy",
+                "national-id",
+                "application/pdf",
+                "Scanned national identification card.",
+                true,
+                10,
+                150_000,
+                350_000),
+            new(
+                EmployeeDocumentType.EmploymentContract,
+                "Signed Employment Contract",
+                "employment-contract",
+                "application/pdf",
+                "Signed employment contract including compensation terms.",
+                false,
+                0,
+                500_000,
+                900_000),
+            new(
+                EmployeeDocumentType.CV,
+                "Curriculum Vitae",
+                "curriculum-vitae",
+                "application/pdf",
+                "Latest CV submitted by the employee.",
+                false,
+                0,
+                250_000,
+                450_000),
+            new(
+                EmployeeDocumentType.Certificates,
+                "Professional Certificates",
+                "certificates",
+                "application/pdf",
+                "Supporting certifications or diplomas.",
+                false,
+                0,
+                300_000,
+                650_000),
+            new(
+                EmployeeDocumentType.MedicalReport,
+                "Medical Report",
+                "medical-report",
+                "application/pdf",
+                "Latest medical clearance report.",
+                true,
+                2,
+                250_000,
+                500_000)
+        };
     }
 
     private static string BuildDocumentFolder(string? employeeCode, Guid employeeId)
@@ -1326,18 +1371,6 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {rates.Count} social insurance rates");
-    }
-
-    private static DocumentCategory ParseDocumentCategory(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return DocumentCategory.Other;
-        }
-
-        return Enum.TryParse<DocumentCategory>(value, true, out var category)
-            ? category
-            : DocumentCategory.Other;
     }
 
     private static async Task SeedTaxBracketsAsync(ApplicationDbContext context, string seedDataPath)
@@ -1481,16 +1514,45 @@ public static class AppDbContextSeed
             return null;
         }
 
-        var trimmed = roleName.Trim();
-        if (RoleAliasMap.TryGetValue(trimmed, out var canonical))
+        if (RoleAliasMap.TryGetValue(roleName.Trim(), out var mappedRole))
         {
-            return canonical;
+            return mappedRole;
         }
 
-        var compressed = trimmed.Replace(" ", string.Empty);
-        canonical = RoleNames.All.FirstOrDefault(r => r.Equals(trimmed, StringComparison.OrdinalIgnoreCase)
-            || r.Equals(compressed, StringComparison.OrdinalIgnoreCase));
-        return canonical;
+        var condensed = new string(roleName
+            .Where(char.IsLetterOrDigit)
+            .ToArray());
+
+        if (string.IsNullOrEmpty(condensed))
+        {
+            return null;
+        }
+
+        return RoleAliasMap.TryGetValue(condensed, out var alias)
+            ? alias
+            : condensed;
+    }
+
+    private static string BuildRoleEmailPrefix(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            return "roleuser";
+        }
+
+        var normalized = NormalizeCodeKey(roleName);
+        if (!string.IsNullOrEmpty(normalized))
+        {
+            return normalized.ToLowerInvariant();
+        }
+
+        var filtered = new string(roleName
+            .Where(char.IsLetterOrDigit)
+            .ToArray());
+
+        return string.IsNullOrEmpty(filtered)
+            ? "roleuser"
+            : filtered.ToLowerInvariant();
     }
 
     private static async Task<bool> EnsureUserBranchRoleAsync(ApplicationDbContext context, Guid userId, Guid branchId, string roleName)
@@ -1605,7 +1667,7 @@ public static class AppDbContextSeed
         DateTime? HiringDate);
 
     private sealed record DocumentTemplate(
-        Guid TypeId,
+        EmployeeDocumentType DocumentType,
         string DisplayName,
         string FileSlug,
         string ContentType,
@@ -1927,7 +1989,7 @@ public static class AppDbContextSeed
             {
                 EmployeeId = employee.Id,
                 BasicSalary = baseSalary,
-                EffectiveDate = employee.HiringDate,
+                EffectiveDate = employee.HiringDate ?? DateTime.UtcNow,
                 Notes = "Seeded base salary",
                 IsCurrent = true,
                 TenantId = employee.TenantId,
@@ -2250,7 +2312,8 @@ public static class AppDbContextSeed
             for (var i = 0; i < assetCount; i++)
             {
                 var template = assetTemplates[random.Next(assetTemplates.Length)];
-                var assignedDate = employee.HiringDate.AddDays(random.Next(0, 45));
+            var hiringDate = employee.HiringDate ?? DateTime.UtcNow;
+            var assignedDate = hiringDate.AddDays(random.Next(0, 45));
                 var serialPrefix = template.AssetType[..Math.Min(3, template.AssetType.Length)].ToUpperInvariant();
                 var asset = new EmployeeAsset
                 {

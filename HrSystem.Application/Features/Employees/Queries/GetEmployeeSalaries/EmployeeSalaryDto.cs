@@ -9,4 +9,9 @@ public class EmployeeSalaryDto
     public DateTime? EndDate { get; set; }
     public string? Notes { get; set; }
     public bool IsCurrent { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public bool IncludeSocialInsurance { get; set; }
+    public decimal? SocialInsuranceEmployeeRate { get; set; }
+    public decimal? SocialInsuranceEmployerRate { get; set; }
+    public string? PaymentMethod { get; set; }
 }

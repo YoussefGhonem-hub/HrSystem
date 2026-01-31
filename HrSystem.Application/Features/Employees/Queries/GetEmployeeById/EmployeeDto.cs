@@ -27,25 +27,25 @@ public record EmployeeDto
     public string? City { get; init; }
     public string? Country { get; init; }
     public string? Nationality { get; init; }
-    public Guid DepartmentId { get; init; }
+    public Guid? DepartmentId { get; init; }
     public string DepartmentNameEn { get; init; } = string.Empty;
     public string DepartmentNameAr { get; init; } = string.Empty;
-    public Guid JobTitleId { get; init; }
+    public Guid? JobTitleId { get; init; }
     public string JobTitleEn { get; init; } = string.Empty;
     public string JobTitleAr { get; init; } = string.Empty;
     public Guid? DirectManagerId { get; init; }
     public string? DirectManagerName { get; init; }
     public Guid? BranchId { get; init; }
     public string? BranchName { get; init; }
-    public Guid ContractTypeId { get; init; }
+    public Guid? ContractTypeId { get; init; }
     public string? ContractTypeNameEn { get; init; }
     public string? ContractTypeNameAr { get; init; }
     public Guid StatusId { get; init; }
     public string? StatusNameEn { get; init; }
     public string? StatusNameAr { get; init; }
-    public DateTime HiringDate { get; init; }
+    public DateTime? HiringDate { get; init; }
     public DateTime? ProbationEndDate { get; init; }
-    public int ProbationPeriodMonths { get; init; }
+    public int? ProbationPeriodMonths { get; init; }
     public DateTime? TerminationDate { get; init; }
     public string? TerminationReason { get; init; }
     public string? ProfilePictureUrl { get; init; }
