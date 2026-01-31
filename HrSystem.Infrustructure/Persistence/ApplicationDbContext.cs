@@ -87,6 +87,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     // Organization & Multi-Tenancy
     public DbSet<HrSystem.Domain.Entities.Organization.Organization> Organizations => Set<HrSystem.Domain.Entities.Organization.Organization>();
     public DbSet<HrSystem.Domain.Entities.Organization.Branch> Branches => Set<HrSystem.Domain.Entities.Organization.Branch>();
+    public DbSet<HrSystem.Domain.Entities.Organization.BranchWorkSchedule> BranchWorkSchedules => Set<HrSystem.Domain.Entities.Organization.BranchWorkSchedule>();
+    public DbSet<HrSystem.Domain.Entities.Organization.BranchHoliday> BranchHolidays => Set<HrSystem.Domain.Entities.Organization.BranchHoliday>();
     public DbSet<HrSystem.Domain.Entities.Organization.SubscriptionPlan> SubscriptionPlans => Set<HrSystem.Domain.Entities.Organization.SubscriptionPlan>();
     public DbSet<HrSystem.Domain.Entities.Organization.OrganizationInvoice> OrganizationInvoices => Set<HrSystem.Domain.Entities.Organization.OrganizationInvoice>();
     public DbSet<HrSystem.Domain.Entities.Organization.InvoiceStatus> InvoiceStatuses => Set<HrSystem.Domain.Entities.Organization.InvoiceStatus>();

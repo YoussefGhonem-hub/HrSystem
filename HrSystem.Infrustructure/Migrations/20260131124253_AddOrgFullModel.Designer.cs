@@ -4,6 +4,7 @@ using HrSystem.Infrustructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HrSystem.Infrustructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260131124253_AddOrgFullModel")]
+    partial class AddOrgFullModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2436,8 +2439,7 @@ namespace HrSystem.Infrustructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -2456,13 +2458,11 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.Property<string>("NameAr")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NameEn")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("RecurringDay")
                         .HasColumnType("int");
@@ -2485,9 +2485,7 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("BranchId", "Date", "Year");
-
-                    b.ToTable("BranchHolidays", "Organization");
+                    b.ToTable("BranchHolidays");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Organization.BranchWorkSchedule", b =>
@@ -2561,8 +2559,7 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("time");
@@ -2572,8 +2569,7 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.Property<string>("TimeZone")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("WorkingDaysPerWeek")
                         .HasColumnType("int");
@@ -2587,7 +2583,7 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.HasIndex("IsDeleted");
 
-                    b.ToTable("BranchWorkSchedules", "Organization");
+                    b.ToTable("BranchWorkSchedules");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Organization.Country", b =>
@@ -2772,9 +2768,6 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<decimal>("CurrentStorageGB")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("DefaultLanguage")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -2784,9 +2777,6 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<string>("Email")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Industry")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");

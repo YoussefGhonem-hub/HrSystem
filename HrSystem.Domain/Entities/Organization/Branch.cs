@@ -65,4 +65,6 @@ public class Branch : BaseAuditableEntity
     public virtual ICollection<Employee.Department> Departments { get; set; } = new List<Employee.Department>();
     public virtual ICollection<Employee.Employee> Employees { get; set; } = new List<Employee.Employee>();
     public virtual ICollection<UserBranchRole> UserBranchRoles { get; set; } = new List<UserBranchRole>();
+    public virtual ICollection<BranchWorkSchedule> WorkSchedules { get; set; } = new List<BranchWorkSchedule>();
+    public virtual ICollection<BranchHoliday> Holidays { get; set; } = new List<BranchHoliday>();
 }
