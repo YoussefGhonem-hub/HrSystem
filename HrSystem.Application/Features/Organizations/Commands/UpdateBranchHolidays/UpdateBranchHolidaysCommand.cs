@@ -165,7 +165,16 @@ public class UpdateBranchHolidaysCommandHandler
                     if (input.Description != null) holidayToUpdate.Description = input.Description;
                     if (input.Date.HasValue) holidayToUpdate.Date = input.Date.Value;
                     if (input.Year.HasValue) holidayToUpdate.Year = input.Year.Value;
-                    if (input.IsRecurring.HasValue) holidayToUpdate.IsRecurring = input.IsRecurring.Value;
+                    if (input.IsRecurring.HasValue)
+                    {
+                        holidayToUpdate.IsRecurring = input.IsRecurring.Value;
+                        if (!input.IsRecurring.Value)
+                        {
+                            holidayToUpdate.RecurringMonth = null;
+                            holidayToUpdate.RecurringDay = null;
+                        }
+                    }
+
                     if (input.RecurringMonth.HasValue) holidayToUpdate.RecurringMonth = input.RecurringMonth;
                     if (input.RecurringDay.HasValue) holidayToUpdate.RecurringDay = input.RecurringDay;
                     if (input.Type.HasValue) holidayToUpdate.Type = input.Type.Value;

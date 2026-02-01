@@ -63,6 +63,7 @@ public record CompanyInfoDto
     public string TimeZone { get; init; } = string.Empty;
     public string Currency { get; init; } = string.Empty;
     public string? WeekStartDay { get; init; }
+    public string? DefaultLanguage { get; init; }
     
     // Subscription
     public bool IsActive { get; init; }
@@ -325,6 +326,7 @@ public class GetOrganizationFullDetailsQueryHandler
                 Code = org.Code,
                 NameAr = org.NameAr,
                 NameEn = org.NameEn,
+                Industry = org.Industry,
                 LogoUrl = org.LogoUrl,
                 CommercialRegistrationNumber = org.CommercialRegistrationNumber,
                 TaxRegistrationNumber = org.TaxRegistrationNumber,
@@ -340,6 +342,7 @@ public class GetOrganizationFullDetailsQueryHandler
                 TimeZone = org.TimeZone,
                 Currency = org.Currency,
                 WeekStartDay = org.WeekStartDay,
+                DefaultLanguage = org.DefaultLanguage,
                 IsActive = org.IsActive,
                 IsTrialPeriod = org.IsTrialPeriod,
                 TrialEndDate = org.TrialEndDate,
