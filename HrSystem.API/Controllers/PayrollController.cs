@@ -8,6 +8,7 @@ using HrSystem.Application.Features.Payroll.Queries.GetMyNetSalaryStatus;
 using HrSystem.Application.Features.Payroll.Queries.GetMySalaryBreakdown;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollSummary;
 using HrSystem.Application.Features.Payroll.Queries.GetPayslipsList;
+using HrSystem.Application.Features.Payroll.Queries.GetMyPaymentDetails;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +38,20 @@ public class PayrollController : APIBaseController
         }
 
         var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get transfer/payment details for the currently logged-in user
+    /// </summary>
+    [HttpGet("my-payment-details")]
+    public async Task<IActionResult> GetMyPaymentDetails([FromQuery] int? year = null, [FromQuery] int? month = null)
+    {
+        var result = await _mediator.Send(new GetMyPaymentDetailsQuery(year, month));
 
         return result.Match(
             response => Ok(response),
