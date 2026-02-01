@@ -7,6 +7,7 @@ using HrSystem.Domain.Entities.Lifecycle;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Payroll;
 using HrSystem.Domain.Entities.Performance;
+using HrSystem.Domain.Entities.Requests;
 using HrSystem.Domain.Enums;
 using HrSystem.Shared.Constants;
 using Microsoft.AspNetCore.Hosting;
@@ -84,6 +85,8 @@ public static class AppDbContextSeed
             await SeedMaritalStatusesAsync(context, seedDataPath);
             await SeedEmployeeStatusesAsync(context, seedDataPath);
             await SeedAttendanceStatusesAsync(context, seedDataPath);
+            await SeedRequestTypeMastersAsync(context);
+            await SeedBranchRequestSettingsAsync(context);
 
             if (await HasEmployeeSeedPrerequisitesAsync(context))
             {
@@ -2678,6 +2681,156 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {statuses.Count} attendance statuses");
+    }
+
+    private static async Task SeedRequestTypeMastersAsync(ApplicationDbContext context)
+    {
+        var organization = await context.Organizations.FirstOrDefaultAsync();
+        if (organization == null) return;
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        var now = DateTimeOffset.UtcNow;
+
+        // Seed VacationTypes
+        if (!await context.VacationTypes.AnyAsync())
+        {
+            var vacationTypes = new List<VacationType>
+            {
+                new() { NameEn = "Annual Leave", NameAr = "إجازة سنوية", Description = "Paid annual leave covering standard vacation requests.", IsPaid = true, MaxDaysPerYear = 21, RequiresAttachment = false, RequiresManagerApproval = true, SortOrder = 1, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Sick Leave", NameAr = "إجازة مرضية", Description = "Medical leave that requires proof of illness.", IsPaid = true, MaxDaysPerYear = 14, RequiresAttachment = true, RequiresManagerApproval = true, SortOrder = 2, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Unpaid Leave", NameAr = "إجازة بدون راتب", Description = "Leave without pay for exceptional cases.", IsPaid = false, MaxDaysPerYear = null, RequiresAttachment = false, RequiresManagerApproval = true, SortOrder = 3, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Emergency Leave", NameAr = "إجازة طارئة", Description = "Short-term urgent leave for emergencies.", IsPaid = true, MaxDaysPerYear = 5, RequiresAttachment = false, RequiresManagerApproval = true, SortOrder = 4, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now }
+            };
+            await context.VacationTypes.AddRangeAsync(vacationTypes);
+            Console.WriteLine($"Seeded {vacationTypes.Count} vacation types");
+        }
+
+        // Seed OvertimeTypes
+        if (!await context.OvertimeTypes.AnyAsync())
+        {
+            var overtimeTypes = new List<OvertimeType>
+            {
+                new() { NameEn = "Regular Overtime", NameAr = "وقت إضافي عادي", Description = "Standard weekday overtime.", DefaultMultiplier = 1.5m, RequiresManagerApproval = true, SortOrder = 1, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Weekend Overtime", NameAr = "وقت إضافي نهاية الأسبوع", Description = "Weekend overtime with higher multiplier.", DefaultMultiplier = 2.0m, RequiresManagerApproval = true, SortOrder = 2, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Holiday Overtime", NameAr = "وقت إضافي إجازة رسمية", Description = "Public holiday overtime with premium rate.", DefaultMultiplier = 2.5m, RequiresManagerApproval = true, SortOrder = 3, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now }
+            };
+            await context.OvertimeTypes.AddRangeAsync(overtimeTypes);
+            Console.WriteLine($"Seeded {overtimeTypes.Count} overtime types");
+        }
+
+        // Seed TrainingTypes
+        if (!await context.TrainingTypes.AnyAsync())
+        {
+            var trainingTypes = new List<TrainingType>
+            {
+                new() { NameEn = "Internal Workshop", NameAr = "ورشة عمل داخلية", Description = "Training facilitated by in-house teams.", RequiresBudgetApproval = false, RequiresManagerApproval = true, SortOrder = 1, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "External Course", NameAr = "دورة خارجية", Description = "Paid training delivered by an external vendor.", RequiresBudgetApproval = true, RequiresManagerApproval = true, SortOrder = 2, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Online Learning", NameAr = "تعلم إلكتروني", Description = "Self-paced online courses and certifications.", RequiresBudgetApproval = false, RequiresManagerApproval = true, SortOrder = 3, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Conference/Seminar", NameAr = "مؤتمر/ندوة", Description = "Industry conferences and professional seminars.", RequiresBudgetApproval = true, RequiresManagerApproval = true, SortOrder = 4, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now }
+            };
+            await context.TrainingTypes.AddRangeAsync(trainingTypes);
+            Console.WriteLine($"Seeded {trainingTypes.Count} training types");
+        }
+
+        // Seed MiscellaneousTypes
+        if (!await context.MiscellaneousTypes.AnyAsync())
+        {
+            var miscTypes = new List<MiscellaneousType>
+            {
+                new() { NameEn = "Government Paperwork", NameAr = "معاملات حكومية", Description = "Official paperwork assistance requests.", RequiresAttachment = false, RequiresManagerApproval = false, SortOrder = 1, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Equipment Request", NameAr = "طلب معدات", Description = "Request for office equipment or supplies.", RequiresAttachment = false, RequiresManagerApproval = true, SortOrder = 2, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Travel Arrangement", NameAr = "ترتيبات السفر", Description = "Business travel arrangement requests.", RequiresAttachment = false, RequiresManagerApproval = true, SortOrder = 3, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Other", NameAr = "أخرى", Description = "General miscellaneous requests.", RequiresAttachment = false, RequiresManagerApproval = false, SortOrder = 99, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now }
+            };
+            await context.MiscellaneousTypes.AddRangeAsync(miscTypes);
+            Console.WriteLine($"Seeded {miscTypes.Count} miscellaneous types");
+        }
+
+        // Seed PersonalTypes
+        if (!await context.PersonalTypes.AnyAsync())
+        {
+            var personalTypes = new List<PersonalType>
+            {
+                new() { NameEn = "Family Emergency", NameAr = "طارئ عائلي", Description = "Urgent personal/family situations.", RequiresAttachment = false, RequiresManagerApproval = true, SortOrder = 1, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Medical Appointment", NameAr = "موعد طبي", Description = "Personal medical appointments.", RequiresAttachment = true, RequiresManagerApproval = true, SortOrder = 2, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Personal Matter", NameAr = "أمور شخصية", Description = "General personal matters requiring time off.", RequiresAttachment = false, RequiresManagerApproval = true, SortOrder = 3, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now }
+            };
+            await context.PersonalTypes.AddRangeAsync(personalTypes);
+            Console.WriteLine($"Seeded {personalTypes.Count} personal types");
+        }
+
+        // Seed FeedbackTypes
+        if (!await context.FeedbackTypes.AnyAsync())
+        {
+            var feedbackTypes = new List<FeedbackType>
+            {
+                new() { NameEn = "Product Feedback", NameAr = "ملاحظات المنتج", Description = "Ideas and improvements related to products.", IsAnonymousAllowed = true, RequiresManagerApproval = false, SortOrder = 1, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Process Improvement", NameAr = "تحسين العمليات", Description = "Suggestions for process improvements.", IsAnonymousAllowed = true, RequiresManagerApproval = false, SortOrder = 2, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Workplace Concern", NameAr = "شكوى بيئة العمل", Description = "Workplace environment and safety concerns.", IsAnonymousAllowed = true, RequiresManagerApproval = false, SortOrder = 3, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { NameEn = "Recognition", NameAr = "تقدير", Description = "Recognize colleagues for their contributions.", IsAnonymousAllowed = false, RequiresManagerApproval = false, SortOrder = 4, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now }
+            };
+            await context.FeedbackTypes.AddRangeAsync(feedbackTypes);
+            Console.WriteLine($"Seeded {feedbackTypes.Count} feedback types");
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedBranchRequestSettingsAsync(ApplicationDbContext context)
+    {
+        var branches = await context.Branches.ToListAsync();
+        if (branches.Count == 0) return;
+
+        var existingKeys = new HashSet<string>(
+            await context.BranchRequestSettings
+                .IgnoreQueryFilters()
+                .Select(s => s.BranchId.HasValue ? $"{s.BranchId.Value}-{(int)s.RequestType}" : string.Empty)
+                .ToListAsync());
+
+        var settings = new List<BranchRequestSetting>();
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var branch in branches)
+        {
+            foreach (EmployeeRequestType requestType in Enum.GetValues(typeof(EmployeeRequestType)))
+            {
+                var key = $"{branch.Id}-{(int)requestType}";
+                if (existingKeys.Contains(key))
+                    continue;
+
+                var requireAttachment = requestType switch
+                {
+                    EmployeeRequestType.Training => true,
+                    _ => false
+                };
+
+                var maxOpenRequests = requestType switch
+                {
+                    EmployeeRequestType.Vacation => 2,
+                    EmployeeRequestType.OverTime => 5,
+                    EmployeeRequestType.Personal => 1,
+                    _ => (int?)null
+                };
+
+                settings.Add(new BranchRequestSetting
+                {
+                    RequestType = requestType,
+                    IsVisibleToEmployees = true,
+                    AllowEmployeesToSubmit = true,
+                    RequireAttachment = requireAttachment,
+                    MaxOpenRequests = maxOpenRequests,
+                    TenantId = branch.TenantId,
+                    BranchId = branch.Id,
+                    CreatedDate = now
+                });
+            }
+        }
+
+        if (settings.Count == 0) return;
+
+        await context.BranchRequestSettings.AddRangeAsync(settings);
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {settings.Count} branch request settings");
     }
 
     private static async Task SeedContractTypesAsync(ApplicationDbContext context, string seedDataPath)
