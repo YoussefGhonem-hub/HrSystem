@@ -101,79 +101,76 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
         }
 
         var currentSalary = await _context.Salaries
+            .Include(s => s.Allowances)
+            .Include(s => s.Deductions)
             .Where(s => !s.IsDeleted && s.EmployeeId == request.EmployeeId && s.IsCurrent)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (currentSalary != null)
-        {
-            currentSalary.IsCurrent = false;
-            currentSalary.EndDate = request.EffectiveDate > currentSalary.EffectiveDate
-                ? request.EffectiveDate.AddDays(-1)
-                : request.EffectiveDate;
-            currentSalary.MarkAsModified(CurrentUser.Id ?? Guid.Empty);
-        }
-
-        var salary = new Salary
-        {
-            EmployeeId = request.EmployeeId,
-            BasicSalary = request.BasicSalary,
-            EffectiveDate = request.EffectiveDate,
-            Notes = request.Notes,
-            IsCurrent = true,
-            Currency = currency,
-            IsSocialInsuranceEnabled = request.IncludeSocialInsurance,
-            SocialInsuranceEmployeeRate = request.SocialInsuranceEmployeeRate,
-            SocialInsuranceEmployerRate = request.SocialInsuranceEmployerRate,
-            PaymentMethod = request.PaymentMethod,
-            BankName = request.BankInfo?.BankName,
-            BankBranch = request.BankInfo?.BankBranch,
-            BankAccountNumber = request.BankInfo?.AccountNumber,
-            BankIban = request.BankInfo?.Iban,
-            BankSwiftCode = request.BankInfo?.SwiftCode,
-            TenantId = tenantId,
-            BranchId = branchId
-        };
-
         var currentUserId = CurrentUser.Id ?? Guid.Empty;
-        salary.MarkAsCreated(currentUserId);
+        Salary salary;
+        var updatingExistingRecord = currentSalary != null && currentSalary.EffectiveDate.Date == request.EffectiveDate.Date;
 
-        if (request.Allowances is { Count: > 0 })
+        if (updatingExistingRecord)
         {
-            foreach (var allowance in request.Allowances)
+            salary = currentSalary!;
+            salary.BasicSalary = request.BasicSalary;
+            salary.EffectiveDate = request.EffectiveDate;
+            salary.EndDate = null;
+            salary.Notes = request.Notes;
+            salary.IsCurrent = true;
+            salary.Currency = currency;
+            salary.IsSocialInsuranceEnabled = request.IncludeSocialInsurance;
+            salary.SocialInsuranceEmployeeRate = request.SocialInsuranceEmployeeRate;
+            salary.SocialInsuranceEmployerRate = request.SocialInsuranceEmployerRate;
+            salary.PaymentMethod = request.PaymentMethod;
+            salary.BankName = request.BankInfo?.BankName;
+            salary.BankBranch = request.BankInfo?.BankBranch;
+            salary.BankAccountNumber = request.BankInfo?.AccountNumber;
+            salary.BankIban = request.BankInfo?.Iban;
+            salary.BankSwiftCode = request.BankInfo?.SwiftCode;
+            salary.TenantId = tenantId;
+            salary.BranchId = branchId;
+            salary.MarkAsModified(currentUserId);
+        }
+        else
+        {
+            if (currentSalary != null)
             {
-                var allowanceEntity = new SalaryAllowance
-                {
-                    AllowanceTypeId = allowance.AllowanceTypeId,
-                    Amount = allowance.Amount,
-                    IsPercentage = allowance.IsPercentage,
-                    PercentageValue = allowance.IsPercentage ? allowance.PercentageValue : null,
-                    TenantId = tenantId,
-                    BranchId = branchId
-                };
-                allowanceEntity.MarkAsCreated(currentUserId);
-                salary.Allowances.Add(allowanceEntity);
+                currentSalary.IsCurrent = false;
+                currentSalary.EndDate = request.EffectiveDate > currentSalary.EffectiveDate
+                    ? request.EffectiveDate.AddDays(-1)
+                    : request.EffectiveDate;
+                currentSalary.MarkAsModified(currentUserId);
             }
+
+            salary = new Salary
+            {
+                EmployeeId = request.EmployeeId,
+                BasicSalary = request.BasicSalary,
+                EffectiveDate = request.EffectiveDate,
+                Notes = request.Notes,
+                IsCurrent = true,
+                Currency = currency,
+                IsSocialInsuranceEnabled = request.IncludeSocialInsurance,
+                SocialInsuranceEmployeeRate = request.SocialInsuranceEmployeeRate,
+                SocialInsuranceEmployerRate = request.SocialInsuranceEmployerRate,
+                PaymentMethod = request.PaymentMethod,
+                BankName = request.BankInfo?.BankName,
+                BankBranch = request.BankInfo?.BankBranch,
+                BankAccountNumber = request.BankInfo?.AccountNumber,
+                BankIban = request.BankInfo?.Iban,
+                BankSwiftCode = request.BankInfo?.SwiftCode,
+                TenantId = tenantId,
+                BranchId = branchId
+            };
+
+            salary.MarkAsCreated(currentUserId);
+            _context.Salaries.Add(salary);
         }
 
-        if (request.Deductions is { Count: > 0 })
-        {
-            foreach (var deduction in request.Deductions)
-            {
-                var deductionEntity = new SalaryDeduction
-                {
-                    DeductionTypeId = deduction.DeductionTypeId,
-                    Amount = deduction.Amount,
-                    IsPercentage = deduction.IsPercentage,
-                    PercentageValue = deduction.IsPercentage ? deduction.PercentageValue : null,
-                    TenantId = tenantId,
-                    BranchId = branchId
-                };
-                deductionEntity.MarkAsCreated(currentUserId);
-                salary.Deductions.Add(deductionEntity);
-            }
-        }
+        SyncSalaryAllowances(salary, request.Allowances, tenantId, branchId, currentUserId);
+        SyncSalaryDeductions(salary, request.Deductions, tenantId, branchId, currentUserId);
 
-        _context.Salaries.Add(salary);
         await _context.SaveChangesAsync(cancellationToken);
 
         var response = new EmployeePayrollConfigurationDto
@@ -222,5 +219,93 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             Message = "Employee payroll configuration saved successfully",
             Data = response
         };
+    }
+
+    private void SyncSalaryAllowances(
+        Salary salary,
+        List<PayrollAllowancePayload>? payloads,
+        Guid tenantId,
+        Guid? branchId,
+        Guid currentUserId)
+    {
+        var desired = payloads ?? new List<PayrollAllowancePayload>();
+        var existing = salary.Allowances.Where(a => !a.IsDeleted).ToList();
+        var desiredLookup = desired.ToDictionary(a => a.AllowanceTypeId, a => a);
+
+        foreach (var allowance in existing)
+        {
+            if (!desiredLookup.TryGetValue(allowance.AllowanceTypeId, out var match))
+            {
+                salary.Allowances.Remove(allowance);
+                _context.SalaryAllowances.Remove(allowance);
+                continue;
+            }
+
+            allowance.Amount = match.Amount;
+            allowance.IsPercentage = match.IsPercentage;
+            allowance.PercentageValue = match.IsPercentage ? match.PercentageValue : null;
+            allowance.MarkAsModified(currentUserId);
+            desiredLookup.Remove(allowance.AllowanceTypeId);
+        }
+
+        foreach (var remaining in desiredLookup.Values)
+        {
+            var allowanceEntity = new SalaryAllowance
+            {
+                SalaryId = salary.Id,
+                AllowanceTypeId = remaining.AllowanceTypeId,
+                Amount = remaining.Amount,
+                IsPercentage = remaining.IsPercentage,
+                PercentageValue = remaining.IsPercentage ? remaining.PercentageValue : null,
+                TenantId = tenantId,
+                BranchId = branchId
+            };
+            allowanceEntity.MarkAsCreated(currentUserId);
+            salary.Allowances.Add(allowanceEntity);
+        }
+    }
+
+    private void SyncSalaryDeductions(
+        Salary salary,
+        List<PayrollDeductionPayload>? payloads,
+        Guid tenantId,
+        Guid? branchId,
+        Guid currentUserId)
+    {
+        var desired = payloads ?? new List<PayrollDeductionPayload>();
+        var existing = salary.Deductions.Where(d => !d.IsDeleted).ToList();
+        var desiredLookup = desired.ToDictionary(d => d.DeductionTypeId, d => d);
+
+        foreach (var deduction in existing)
+        {
+            if (!desiredLookup.TryGetValue(deduction.DeductionTypeId, out var match))
+            {
+                salary.Deductions.Remove(deduction);
+                _context.SalaryDeductions.Remove(deduction);
+                continue;
+            }
+
+            deduction.Amount = match.Amount;
+            deduction.IsPercentage = match.IsPercentage;
+            deduction.PercentageValue = match.IsPercentage ? match.PercentageValue : null;
+            deduction.MarkAsModified(currentUserId);
+            desiredLookup.Remove(deduction.DeductionTypeId);
+        }
+
+        foreach (var remaining in desiredLookup.Values)
+        {
+            var deductionEntity = new SalaryDeduction
+            {
+                SalaryId = salary.Id,
+                DeductionTypeId = remaining.DeductionTypeId,
+                Amount = remaining.Amount,
+                IsPercentage = remaining.IsPercentage,
+                PercentageValue = remaining.IsPercentage ? remaining.PercentageValue : null,
+                TenantId = tenantId,
+                BranchId = branchId
+            };
+            deductionEntity.MarkAsCreated(currentUserId);
+            salary.Deductions.Add(deductionEntity);
+        }
     }
 }
