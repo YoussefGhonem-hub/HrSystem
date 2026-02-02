@@ -1,26 +1,135 @@
-using HrSystem.Application.Features.Attendance.Queries.GetAttendancesList;
-using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
+using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
+using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
+using HrSystem.Domain.Enums;
 
 namespace HrSystem.Application.Features.Employees.Queries.GetEmployeeDetails;
 
 public class EmployeeDetailsDto
 {
-    public EmployeeDto Employee { get; set; } = null!;
-    public EmployeePayrollSummaryDto Payroll { get; set; } = new();
-    public EmployeeAttendanceSectionDto Attendance { get; set; } = new();
+    public EmployeePersonalInfoDetailsDto PersonalInfo { get; set; } = new();
+    public EmployeeJobInfoDetailsDto? JobInfo { get; set; }
+    public EmployeePayrollDetailsDto? Payroll { get; set; }
+    public EmployeeAttendanceDetailsDto? Attendance { get; set; }
     public List<LeaveBalanceDto> LeaveBalances { get; set; } = new();
-    public List<EmployeeDocumentDto> Documents { get; set; } = new();
-    public List<EmployeeAssetDto> Assets { get; set; } = new();
+    public List<EmployeeDocumentGroupDetailsDto> Documents { get; set; } = new();
+    public List<EmployeeAssetDetailsDto> Assets { get; set; } = new();
 }
 
-public class EmployeeAttendanceSectionDto
+public class EmployeePersonalInfoDetailsDto
 {
-    public int PresentDays { get; set; }
-    public int LateDays { get; set; }
-    public int AbsentDays { get; set; }
-    public double OvertimeHours { get; set; }
-    public List<EmployeeAttendanceHistoryItemDto> History { get; set; } = new();
+    public string FirstNameAr { get; set; } = string.Empty;
+    public string LastNameAr { get; set; } = string.Empty;
+    public string FirstNameEn { get; set; } = string.Empty;
+    public string LastNameEn { get; set; } = string.Empty;
+    public string NationalId { get; set; } = string.Empty;
+    public string? PassportNumber { get; set; }
+    public DateTime DateOfBirth { get; set; }
+    public Guid GenderId { get; set; }
+    public Guid MaritalStatusId { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string? MobileNumber { get; set; }
+    public string AddressAr { get; set; } = string.Empty;
+    public string? AddressEn { get; set; }
+    public string? City { get; set; }
+    public string? Country { get; set; }
+}
+
+public class EmployeeJobInfoDetailsDto
+{
+    public string EmployeeCode { get; set; } = string.Empty;
+    public Guid StatusId { get; set; }
+    public string EmploymentStatusNameEn { get; set; } = string.Empty;
+    public string EmploymentStatusNameAr { get; set; } = string.Empty;
+    public Guid? DepartmentId { get; set; }
+    public Guid? JobTitleId { get; set; }
+    public Guid? DirectManagerId { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid? ContractTypeId { get; set; }
+    public DateTime? HiringDate { get; set; }
+    public int? ProbationPeriodMonths { get; set; }
+}
+
+public class EmployeePayrollDetailsDto
+{
+    public decimal BasicSalary { get; set; }
+    public DateTime? EffectiveDate { get; set; }
+    public string? Currency { get; set; }
+    public bool IncludeSocialInsurance { get; set; }
+    public decimal? SocialInsuranceEmployeeRate { get; set; }
+    public decimal? SocialInsuranceEmployerRate { get; set; }
+    public string? PaymentMethod { get; set; }
+    public PayrollBankInfoPayload? BankInfo { get; set; }
+    public List<PayrollAllowancePayload> Allowances { get; set; } = new();
+    public List<PayrollDeductionPayload> Deductions { get; set; } = new();
+    public string? Notes { get; set; }
+    public List<EmployeePayslipHistoryItemDto> PayrollHistory { get; set; } = new();
+}
+
+public class EmployeeAttendanceDetailsDto
+{
+    public string? WorkShift { get; set; }
+    public string? WorkDays { get; set; }
+    public string? GracePeriod { get; set; }
+    public string? MaxLatePerMonth { get; set; }
+    public bool OvertimeEligible { get; set; }
+    public string? AttendanceMethod { get; set; }
+    public string? LateDeductionPolicy { get; set; }
+    public string? AbsenceDeductionPolicy { get; set; }
+    public string? HalfDayRule { get; set; }
+    public string? MissingCheckoutHandling { get; set; }
+    public List<EmployeeAttendanceHistoryItemDto> AttendanceHistory { get; set; } = new();
+}
+
+public class EmployeeDocumentGroupDetailsDto
+{
+    public EmployeeDocumentType DocumentType { get; set; }
+    public string DocumentTypeNameEn { get; set; } = string.Empty;
+    public string DocumentTypeNameAr { get; set; } = string.Empty;
+    public List<EmployeeDocumentAttachmentDetailsDto> Attachments { get; set; } = new();
+}
+
+public class EmployeeDocumentAttachmentDetailsDto
+{
+    public Guid Id { get; set; }
+    public string DocumentName { get; set; } = string.Empty;
+    public string? FileUrl { get; set; }
+    public string? Description { get; set; }
+    public DateTime? ExpiryDate { get; set; }
+    public long FileSize { get; set; }
+    public string ContentType { get; set; } = string.Empty;
+}
+
+public class EmployeeAssetDetailsDto
+{
+    public Guid Id { get; set; }
+    public string AssetType { get; set; } = string.Empty;
+    public string AssetName { get; set; } = string.Empty;
+    public string? SerialNumber { get; set; }
+    public string? Model { get; set; }
+    public string? Description { get; set; }
+    public DateTime AssignedDate { get; set; }
+    public DateTime? ExpectedReturnDate { get; set; }
+    public DateTime? ReturnDate { get; set; }
+    public bool IsReturned { get; set; }
+    public string? ReturnNotes { get; set; }
+    public string? Condition { get; set; }
+    public decimal? Value { get; set; }
+}
+
+public class EmployeePayslipHistoryItemDto
+{
+    public Guid PayslipId { get; set; }
+    public string CycleName { get; set; } = string.Empty;
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public decimal GrossSalary { get; set; }
+    public decimal TotalDeductions { get; set; }
+    public decimal NetSalary { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime? GeneratedDate { get; set; }
+    public DateTime? PaidDate { get; set; }
 }
 
 public class EmployeeAttendanceHistoryItemDto
@@ -33,55 +142,6 @@ public class EmployeeAttendanceHistoryItemDto
     public string StatusNameEn { get; set; } = string.Empty;
     public string StatusNameAr { get; set; } = string.Empty;
     public TimeSpan? WorkedHours { get; set; }
-}
-
-public class EmployeePayrollSummaryDto
-{
-    public Guid? PayslipId { get; set; }
-    public int? Year { get; set; }
-    public int? Month { get; set; }
-    public decimal GrossSalary { get; set; }
-    public decimal TotalDeductions { get; set; }
-    public decimal NetSalary { get; set; }
-    public DateTime? GeneratedDate { get; set; }
-    public bool IsPaid { get; set; }
-    public DateTime? PaidDate { get; set; }
-    public string? PaymentMethod { get; set; }
-    public string? PayDayDescription { get; set; }
-    public string Currency { get; set; } = string.Empty;
-    public List<EmployeePayslipHistoryItemDto> History { get; set; } = new();
-}
-
-public class EmployeePayslipHistoryItemDto
-{
-    public Guid PayslipId { get; set; }
-    public string CycleName { get; set; } = string.Empty;
-    public int Year { get; set; }
-    public int Month { get; set; }
-    public decimal GrossSalary { get; set; }
-    public decimal TotalDeductions { get; set; }
-    public decimal NetSalary { get; set; }
-    public string Status { get; set; } = string.Empty; // e.g., "Paid", "Processing"
-}
-
-public class EmployeeDocumentDto
-{
-    public Guid Id { get; set; }
-    public string DocumentName { get; set; } = string.Empty;
-    public string? DocumentTypeNameEn { get; set; }
-    public string? DocumentTypeNameAr { get; set; }
-    public string? FileUrl { get; set; }
-    public DateTime? ExpiryDate { get; set; }
-}
-
-public class EmployeeAssetDto
-{
-    public Guid Id { get; set; }
-    public string AssetType { get; set; } = string.Empty;
-    public string AssetName { get; set; } = string.Empty;
-    public string? SerialNumber { get; set; }
-    public string? Model { get; set; }
-    public DateTime AssignedDate { get; set; }
-    public DateTime? ExpectedReturnDate { get; set; }
-    public bool IsReturned { get; set; }
+    public TimeSpan? OvertimeHours { get; set; }
+    public bool IsLate { get; set; }
 }

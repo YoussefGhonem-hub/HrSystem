@@ -4,8 +4,11 @@ using HrSystem.Application.Features.Payroll.Queries.GetMyLoans;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslips;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslipDetails;
 using HrSystem.Application.Features.Payroll.Queries.GetMySalarySummary;
+using HrSystem.Application.Features.Payroll.Queries.GetMyNetSalaryStatus;
+using HrSystem.Application.Features.Payroll.Queries.GetMySalaryBreakdown;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollSummary;
 using HrSystem.Application.Features.Payroll.Queries.GetPayslipsList;
+using HrSystem.Application.Features.Payroll.Queries.GetMyPaymentDetails;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +38,48 @@ public class PayrollController : APIBaseController
         }
 
         var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get transfer/payment details for the currently logged-in user
+    /// </summary>
+    [HttpGet("my-payment-details")]
+    public async Task<IActionResult> GetMyPaymentDetails([FromQuery] int? year = null, [FromQuery] int? month = null)
+    {
+        var result = await _mediator.Send(new GetMyPaymentDetailsQuery(year, month));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get salary breakdown (earnings, deductions, totals) for current or given month
+    /// </summary>
+    [HttpGet("my-salary-breakdown")]
+    public async Task<IActionResult> GetMySalaryBreakdown([FromQuery] int? year = null, [FromQuery] int? month = null)
+    {
+        var result = await _mediator.Send(new GetMySalaryBreakdownQuery(year, month));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get only net salary and current month paid status for the logged-in user
+    /// </summary>
+    [HttpGet("my-net-salary")]
+    public async Task<IActionResult> GetMyNetSalaryStatus([FromQuery] int? year = null, [FromQuery] int? month = null)
+    {
+        var result = await _mediator.Send(new GetMyNetSalaryStatusQuery(year, month));
 
         return result.Match(
             response => Ok(response),

@@ -28,7 +28,28 @@ public static class EmployeeDocumentTypeExtensions
             [EmployeeDocumentType.MedicalReport] = new("Medical Report", "تقرير طبي", DocumentCategory.Insurance)
         };
 
-    public static EmployeeDocumentTypeInfo GetInfo(this EmployeeDocumentType type) => _metadata[type];
+    private static readonly EmployeeDocumentTypeInfo _unknown = new("Unknown", "غير معروف", DocumentCategory.Other);
+
+    public static EmployeeDocumentTypeInfo GetInfo(this EmployeeDocumentType type)
+    {
+        if (_metadata.TryGetValue(type, out var info))
+        {
+            return info;
+        }
+
+        return _unknown;
+    }
+
+    public static bool TryGetInfo(this EmployeeDocumentType type, out EmployeeDocumentTypeInfo info)
+    {
+        if (_metadata.TryGetValue(type, out info))
+        {
+            return true;
+        }
+
+        info = _unknown;
+        return false;
+    }
 
     public static string GetNameEn(this EmployeeDocumentType type) => type.GetInfo().NameEn;
 

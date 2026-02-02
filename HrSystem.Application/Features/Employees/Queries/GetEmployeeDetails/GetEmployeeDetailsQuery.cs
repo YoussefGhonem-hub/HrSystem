@@ -1,7 +1,6 @@
 using ErrorOr;
-using HrSystem.Application.Features.Attendance.Queries.GetAttendancesList;
-using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
+using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
@@ -27,24 +26,37 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
 
     public async Task<ErrorOr<GenericResponse<EmployeeDetailsDto>>> Handle(GetEmployeeDetailsQuery request, CancellationToken cancellationToken)
     {
-        var employeeDto = await GetEmployeeDtoAsync(request.EmployeeId, cancellationToken);
-        if (employeeDto is null)
+        var employee = await GetEmployeeAsync(request.EmployeeId, cancellationToken);
+        if (employee is null)
         {
             return Error.NotFound(description: "Employee not found");
         }
 
-        var payroll = await GetEmployeePayrollSummaryAsync(request.EmployeeId, cancellationToken);
-        var attendance = await GetAttendanceSectionAsync(request.EmployeeId, 30, cancellationToken);
-
-        var year = request.LeaveBalanceYear ?? DateTime.UtcNow.Year;
-        var leaveBalances = await GetLeaveBalancesAsync(request.EmployeeId, year, cancellationToken);
-
+        var payroll = await GetEmployeePayrollDetailsAsync(request.EmployeeId, cancellationToken);
+        var payrollHistory = await GetPayrollHistoryAsync(request.EmployeeId, cancellationToken);
+        var attendance = await GetAttendanceConfigurationAsync(request.EmployeeId, cancellationToken);
+        var attendanceHistory = await GetAttendanceHistoryAsync(request.EmployeeId, request.AttendanceRecentCount, cancellationToken);
+        var leaveYear = request.LeaveBalanceYear ?? DateTime.UtcNow.Year;
+        var leaveBalances = await GetLeaveBalancesAsync(request.EmployeeId, leaveYear, cancellationToken);
         var documents = await GetEmployeeDocumentsAsync(request.EmployeeId, cancellationToken);
         var assets = await GetEmployeeAssetsAsync(request.EmployeeId, cancellationToken);
 
+        if (payroll is null)
+        {
+            payroll = new EmployeePayrollDetailsDto();
+        }
+        payroll.PayrollHistory = payrollHistory;
+
+        if (attendance is null)
+        {
+            attendance = new EmployeeAttendanceDetailsDto();
+        }
+        attendance.AttendanceHistory = attendanceHistory;
+
         var dto = new EmployeeDetailsDto
         {
-            Employee = employeeDto,
+            PersonalInfo = MapPersonalInfo(employee),
+            JobInfo = MapJobInfo(employee),
             Payroll = payroll,
             Attendance = attendance,
             LeaveBalances = leaveBalances,
@@ -60,90 +72,100 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         };
     }
 
-    private async Task<EmployeeDto?> GetEmployeeDtoAsync(Guid employeeId, CancellationToken cancellationToken)
+    private async Task<HrSystem.Domain.Entities.Employee.Employee?> GetEmployeeAsync(Guid employeeId, CancellationToken cancellationToken)
     {
         var employee = await _context.Employees
-            .Include(e => e.Department)
-            .Include(e => e.JobTitle)
-            .Include(e => e.DirectManager)
-            .Include(e => e.Branch)
-            .Include(e => e.ContractType)
             .Include(e => e.Status)
-            .Include(e => e.Gender)
-            .Include(e => e.MaritalStatus)
             .FirstOrDefaultAsync(e => e.Id == employeeId, cancellationToken);
 
-        if (employee == null)
-        {
-            return null;
-        }
+        return employee;
+    }
 
-        return new EmployeeDto
+    private static EmployeePersonalInfoDetailsDto MapPersonalInfo(HrSystem.Domain.Entities.Employee.Employee employee)
+    {
+        return new EmployeePersonalInfoDetailsDto
         {
-            Id = employee.Id,
-            EmployeeCode = employee.EmployeeCode,
             FirstNameAr = employee.FirstNameAr,
             LastNameAr = employee.LastNameAr,
             FirstNameEn = employee.FirstNameEn,
             LastNameEn = employee.LastNameEn,
-            FullNameAr = employee.FullNameAr,
-            FullNameEn = employee.FullNameEn,
             NationalId = employee.NationalId,
             PassportNumber = employee.PassportNumber,
             DateOfBirth = employee.DateOfBirth,
             GenderId = employee.GenderId,
-            GenderNameEn = employee.Gender?.NameEn,
-            GenderNameAr = employee.Gender?.NameAr,
             MaritalStatusId = employee.MaritalStatusId,
-            MaritalStatusNameEn = employee.MaritalStatus?.NameEn,
-            MaritalStatusNameAr = employee.MaritalStatus?.NameAr,
             Email = employee.Email,
             PhoneNumber = employee.PhoneNumber,
             MobileNumber = employee.MobileNumber,
             AddressAr = employee.AddressAr,
             AddressEn = employee.AddressEn,
             City = employee.City,
-            Country = employee.Country,
-            Nationality = employee.Country,
-            DepartmentId = employee.DepartmentId,
-            DepartmentNameEn = employee.Department?.NameEn ?? string.Empty,
-            DepartmentNameAr = employee.Department?.NameAr ?? string.Empty,
-            JobTitleId = employee.JobTitleId,
-            JobTitleEn = employee.JobTitle?.TitleEn ?? string.Empty,
-            JobTitleAr = employee.JobTitle?.TitleAr ?? string.Empty,
-            DirectManagerId = employee.DirectManagerId,
-            DirectManagerName = employee.DirectManager?.FullNameEn,
-            BranchId = employee.BranchId,
-            BranchName = employee.Branch?.NameEn,
-            ContractTypeId = employee.ContractTypeId,
-            ContractTypeNameEn = employee.ContractType?.NameEn,
-            ContractTypeNameAr = employee.ContractType?.NameAr,
-            StatusId = employee.StatusId,
-            StatusNameEn = employee.Status?.NameEn,
-            StatusNameAr = employee.Status?.NameAr,
-            HiringDate = employee.HiringDate,
-            ProbationEndDate = employee.ProbationEndDate,
-            ProbationPeriodMonths = employee.ProbationPeriodMonths,
-            TerminationDate = employee.TerminationDate,
-            TerminationReason = employee.TerminationReason,
-            ProfilePictureUrl = employee.ProfilePictureUrl,
-            CreatedDate = employee.CreatedDate.DateTime
+            Country = employee.Country
         };
     }
 
-    private async Task<EmployeePayrollSummaryDto> GetEmployeePayrollSummaryAsync(Guid employeeId, CancellationToken cancellationToken)
+    private static EmployeeJobInfoDetailsDto MapJobInfo(HrSystem.Domain.Entities.Employee.Employee employee)
     {
-        // Latest payslip for summary
-        var latestPayslip = await _context.Payslips
-            .Include(p => p.PayrollCycle)
-            .Where(p => p.EmployeeId == employeeId)
-            .OrderByDescending(p => p.PayrollCycle.Year)
-            .ThenByDescending(p => p.PayrollCycle.Month)
-            .ThenByDescending(p => p.GeneratedDate)
+        return new EmployeeJobInfoDetailsDto
+        {
+            EmployeeCode = employee.EmployeeCode,
+            StatusId = employee.StatusId,
+            EmploymentStatusNameEn = employee.Status?.NameEn ?? string.Empty,
+            EmploymentStatusNameAr = employee.Status?.NameAr ?? string.Empty,
+            DepartmentId = employee.DepartmentId,
+            JobTitleId = employee.JobTitleId,
+            DirectManagerId = employee.DirectManagerId,
+            BranchId = employee.BranchId,
+            ContractTypeId = employee.ContractTypeId,
+            HiringDate = employee.HiringDate,
+            ProbationPeriodMonths = employee.ProbationPeriodMonths
+        };
+    }
+
+    private async Task<EmployeePayrollDetailsDto?> GetEmployeePayrollDetailsAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        var salary = await _context.Salaries
+            .Include(s => s.Allowances)
+            .Include(s => s.Deductions)
+            .Where(s => s.EmployeeId == employeeId && s.IsCurrent)
+            .OrderByDescending(s => s.EffectiveDate)
             .FirstOrDefaultAsync(cancellationToken);
 
-        // History (latest 12)
-        var history = await _context.Payslips
+        if (salary is null)
+        {
+            return null;
+        }
+
+        var dto = new EmployeePayrollDetailsDto
+        {
+            BasicSalary = salary.BasicSalary,
+            EffectiveDate = salary.EffectiveDate,
+            Currency = salary.Currency,
+            IncludeSocialInsurance = salary.IsSocialInsuranceEnabled,
+            SocialInsuranceEmployeeRate = salary.SocialInsuranceEmployeeRate,
+            SocialInsuranceEmployerRate = salary.SocialInsuranceEmployerRate,
+            PaymentMethod = salary.PaymentMethod,
+            BankInfo = BuildBankInfoPayload(
+                salary.BankName,
+                salary.BankBranch,
+                salary.BankAccountNumber,
+                salary.BankIban,
+                salary.BankSwiftCode),
+            Notes = salary.Notes,
+            Allowances = salary.Allowances
+                .Select(a => new PayrollAllowancePayload(a.AllowanceTypeId, a.Amount, a.IsPercentage, a.PercentageValue))
+                .ToList(),
+            Deductions = salary.Deductions
+                .Select(d => new PayrollDeductionPayload(d.DeductionTypeId, d.Amount, d.IsPercentage, d.PercentageValue))
+                .ToList()
+        };
+
+        return dto;
+    }
+
+    private async Task<List<EmployeePayslipHistoryItemDto>> GetPayrollHistoryAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        return await _context.Payslips
             .Include(p => p.PayrollCycle)
             .Where(p => p.EmployeeId == employeeId)
             .OrderByDescending(p => p.PayrollCycle.Year)
@@ -159,77 +181,76 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 GrossSalary = p.GrossSalary,
                 TotalDeductions = p.TotalDeductions,
                 NetSalary = p.NetSalary,
-                Status = p.IsPaid ? "Paid" : "Processing"
+                Status = p.IsPaid ? "Paid" : "Processing",
+                GeneratedDate = p.GeneratedDate,
+                PaidDate = p.PaidDate
             })
             .ToListAsync(cancellationToken);
+    }
 
-        var payDayDescription = latestPayslip?.PayrollCycle?.PaymentDate is DateTime pd
-            ? $"{GetOrdinal(pd.Day)} of every month"
-            : null;
+    private static PayrollBankInfoPayload? BuildBankInfoPayload(
+        string? bankName,
+        string? bankBranch,
+        string? accountNumber,
+        string? iban,
+        string? swiftCode)
+    {
+        var hasBankInfo = !string.IsNullOrWhiteSpace(bankName)
+            || !string.IsNullOrWhiteSpace(bankBranch)
+            || !string.IsNullOrWhiteSpace(accountNumber)
+            || !string.IsNullOrWhiteSpace(iban)
+            || !string.IsNullOrWhiteSpace(swiftCode);
 
-        var employeeScope = await _context.Employees
-            .Where(e => e.Id == employeeId)
-            .Select(e => new
-            {
-                e.TenantId,
-                BranchCurrency = e.Branch != null ? e.Branch.Currency : null
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var currency = employeeScope?.BranchCurrency;
-        var tenantId = employeeScope?.TenantId;
-
-        if (string.IsNullOrWhiteSpace(currency) && tenantId.HasValue)
+        if (!hasBankInfo)
         {
-            currency = await _context.Organizations
-                .Where(o => o.Id == tenantId.Value)
-                .Select(o => o.Currency)
-                .FirstOrDefaultAsync(cancellationToken);
+            return null;
         }
 
-        currency ??= string.Empty;
+        return new PayrollBankInfoPayload(bankName, bankBranch, accountNumber, iban, swiftCode);
+    }
 
-        return new EmployeePayrollSummaryDto
+    private async Task<EmployeeAttendanceDetailsDto?> GetAttendanceConfigurationAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        var configuration = await _context.Attendances
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(a => a.EmployeeId == employeeId && a.IsConfigurationRecord)
+            .OrderByDescending(a => a.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (configuration is null)
         {
-            PayslipId = latestPayslip?.Id,
-            Year = latestPayslip?.PayrollCycle?.Year,
-            Month = latestPayslip?.PayrollCycle?.Month,
-            GrossSalary = latestPayslip?.GrossSalary ?? 0m,
-            TotalDeductions = latestPayslip?.TotalDeductions ?? 0m,
-            NetSalary = latestPayslip?.NetSalary ?? 0m,
-            GeneratedDate = latestPayslip?.GeneratedDate,
-            IsPaid = latestPayslip?.IsPaid ?? false,
-            PaidDate = latestPayslip?.PaidDate,
-            PaymentMethod = null, // Not available in schema yet
-            PayDayDescription = payDayDescription,
-            Currency = currency,
-            History = history
+            return null;
+        }
+
+        return new EmployeeAttendanceDetailsDto
+        {
+            WorkShift = configuration.WorkShift,
+            WorkDays = configuration.WorkDays,
+            GracePeriod = configuration.GracePeriod,
+            MaxLatePerMonth = configuration.MaxLatePerMonth,
+            OvertimeEligible = configuration.OvertimeEligible,
+            AttendanceMethod = configuration.AttendanceMethod,
+            LateDeductionPolicy = configuration.LateDeductionPolicy,
+            AbsenceDeductionPolicy = configuration.AbsenceDeductionPolicy,
+            HalfDayRule = configuration.HalfDayRule,
+            MissingCheckoutHandling = configuration.MissingCheckoutHandling
         };
     }
 
-    private static string GetOrdinal(int day)
+    private async Task<List<EmployeeAttendanceHistoryItemDto>> GetAttendanceHistoryAsync(Guid employeeId, int count, CancellationToken cancellationToken)
     {
-        if (day <= 0) return day.ToString();
-        var suffix = day % 100 is 11 or 12 or 13 ? "th" : (day % 10) switch
+        if (count <= 0)
         {
-            1 => "st",
-            2 => "nd",
-            3 => "rd",
-            _ => "th"
-        };
-        return $"{day}{suffix}";
-    }
+            count = 10;
+        }
 
-    private async Task<EmployeeAttendanceSectionDto> GetAttendanceSectionAsync(Guid employeeId, int count, CancellationToken cancellationToken)
-    {
-        var baseQuery = _context.Attendances
-            .Include(a => a.Status)
-            .Where(a => a.EmployeeId == employeeId);
-
-        var history = await baseQuery
+        return await _context.Attendances
+            .AsNoTracking()
+            .Where(a => a.EmployeeId == employeeId && !a.IsConfigurationRecord)
             .OrderByDescending(a => a.Date)
             .ThenByDescending(a => a.CheckInTime)
-            .Take(30)
+            .Take(count)
             .Select(a => new EmployeeAttendanceHistoryItemDto
             {
                 Id = a.Id,
@@ -239,29 +260,11 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 StatusId = a.StatusId,
                 StatusNameEn = a.Status.NameEn,
                 StatusNameAr = a.Status.NameAr,
-                WorkedHours = a.WorkedHours
+                WorkedHours = a.WorkedHours,
+                OvertimeHours = a.OvertimeHours,
+                IsLate = a.IsLate
             })
             .ToListAsync(cancellationToken);
-
-        var now = DateTime.UtcNow;
-        var monthData = await baseQuery
-            .Where(a => a.Date.Year == now.Year && a.Date.Month == now.Month)
-            .Select(a => new { a.IsLate, a.OvertimeHours, StatusNameEn = a.Status.NameEn })
-            .ToListAsync(cancellationToken);
-
-        var presentDays = monthData.Count(x => x.StatusNameEn == "Present");
-        var absentDays = monthData.Count(x => x.StatusNameEn == "Absent");
-        var lateDays = monthData.Count(x => x.IsLate);
-        var overtimeHours = monthData.Where(x => x.OvertimeHours.HasValue).Sum(x => x.OvertimeHours!.Value.TotalHours);
-
-        return new EmployeeAttendanceSectionDto
-        {
-            PresentDays = presentDays,
-            LateDays = lateDays,
-            AbsentDays = absentDays,
-            OvertimeHours = Math.Round(overtimeHours, 2),
-            History = history
-        };
     }
 
     private async Task<List<LeaveBalanceDto>> GetLeaveBalancesAsync(Guid employeeId, int year, CancellationToken cancellationToken)
@@ -345,7 +348,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         return balances;
     }
 
-    private async Task<List<EmployeeDocumentDto>> GetEmployeeDocumentsAsync(Guid employeeId, CancellationToken cancellationToken)
+    private async Task<List<EmployeeDocumentGroupDetailsDto>> GetEmployeeDocumentsAsync(Guid employeeId, CancellationToken cancellationToken)
     {
         var rawDocuments = await _context.EmployeeDocuments
             .AsNoTracking()
@@ -356,52 +359,99 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 d.Id,
                 d.DocumentName,
                 d.DocumentType,
+                d.FilePath,
                 d.FileUrl,
-                d.ExpiryDate
+                d.Description,
+                d.ExpiryDate,
+                d.FileSize,
+                d.ContentType
             })
             .ToListAsync(cancellationToken);
 
-        var documents = rawDocuments.Select(d =>
-        {
-            var info = d.DocumentType.GetInfo();
-            return new EmployeeDocumentDto
-            {
-                Id = d.Id,
-                DocumentName = d.DocumentName,
-                DocumentTypeNameEn = info.NameEn,
-                DocumentTypeNameAr = info.NameAr,
-                FileUrl = d.FileUrl,
-                ExpiryDate = d.ExpiryDate
-            };
-        }).ToList();
+        var processedDocuments = new List<DocumentCacheItem>(rawDocuments.Count);
 
-        // Generate presigned URLs from S3
-        foreach (var doc in documents)
+        foreach (var doc in rawDocuments)
         {
-            if (!string.IsNullOrEmpty(doc.FileUrl))
+            string? resolvedUrl = doc.FileUrl;
+
+            if (!string.IsNullOrWhiteSpace(doc.FilePath))
             {
-                doc.FileUrl = await _storageService.DownloadFileUrl(doc.FileUrl, cancellationToken);
+                resolvedUrl = await _storageService.DownloadFileUrl(doc.FilePath, cancellationToken);
             }
+            else if (!string.IsNullOrWhiteSpace(doc.FileUrl) &&
+                     !doc.FileUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                resolvedUrl = await _storageService.DownloadFileUrl(doc.FileUrl, cancellationToken);
+            }
+
+            processedDocuments.Add(new DocumentCacheItem(
+                doc.Id,
+                doc.DocumentType,
+                doc.DocumentName,
+                doc.Description,
+                doc.ExpiryDate,
+                resolvedUrl,
+                doc.FileSize,
+                doc.ContentType));
         }
 
-        return documents;
+        var grouped = processedDocuments
+            .GroupBy(d => d.DocumentType)
+            .Select(g =>
+            {
+                var typeInfo = g.Key.GetInfo();
+                return new EmployeeDocumentGroupDetailsDto
+                {
+                    DocumentType = g.Key,
+                    DocumentTypeNameEn = typeInfo.NameEn,
+                    DocumentTypeNameAr = typeInfo.NameAr,
+                    Attachments = g.Select(doc => new EmployeeDocumentAttachmentDetailsDto
+                    {
+                        Id = doc.Id,
+                        DocumentName = doc.DocumentName,
+                        Description = doc.Description,
+                        ExpiryDate = doc.ExpiryDate,
+                        FileUrl = doc.FileUrl,
+                        FileSize = doc.FileSize,
+                        ContentType = doc.ContentType
+                    }).ToList()
+                };
+            })
+            .ToList();
+
+        return grouped;
     }
 
-    private async Task<List<EmployeeAssetDto>> GetEmployeeAssetsAsync(Guid employeeId, CancellationToken cancellationToken)
+    private sealed record DocumentCacheItem(
+        Guid Id,
+        EmployeeDocumentType DocumentType,
+        string DocumentName,
+        string? Description,
+        DateTime? ExpiryDate,
+        string? FileUrl,
+        long FileSize,
+        string ContentType);
+
+    private async Task<List<EmployeeAssetDetailsDto>> GetEmployeeAssetsAsync(Guid employeeId, CancellationToken cancellationToken)
     {
         return await _context.EmployeeAssets
             .Where(a => a.EmployeeId == employeeId)
             .OrderByDescending(a => a.AssignedDate)
-            .Select(a => new EmployeeAssetDto
+            .Select(a => new EmployeeAssetDetailsDto
             {
                 Id = a.Id,
                 AssetType = a.AssetType,
                 AssetName = a.AssetName,
                 SerialNumber = a.SerialNumber,
                 Model = a.Model,
+                Description = a.Description,
                 AssignedDate = a.AssignedDate,
                 ExpectedReturnDate = a.ExpectedReturnDate,
-                IsReturned = a.IsReturned
+                ReturnDate = a.ReturnDate,
+                IsReturned = a.IsReturned,
+                ReturnNotes = a.ReturnNotes,
+                Condition = a.Condition,
+                Value = a.Value
             })
             .ToListAsync(cancellationToken);
     }

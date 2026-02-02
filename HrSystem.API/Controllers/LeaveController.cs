@@ -9,6 +9,7 @@ using HrSystem.Application.Features.Leave.Queries.GetLeaveRequestById;
 using HrSystem.Application.Features.Leave.Queries.GetLeaveRequests;
 using HrSystem.Application.Features.Leave.Queries.GetMyLeaveDashboard;
 using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
+using HrSystem.Application.Features.Leave.Queries.GetMyLeaveRequests;
 using HrSystem.Application.Features.Leave.Queries.GetLeavePolicies;
 using HrSystem.Application.Features.Leave.Queries.GetLeavePolicyById;
 using HrSystem.Application.Features.Leave.Queries.Hr.GetHrLeaveSummary;
@@ -229,7 +230,7 @@ public class LeaveController : APIBaseController
     }
 
     /// <summary>
-    /// Explicit endpoint for employees to get their own leave requests
+    /// Explicit endpoint for employees to get their own leave requests, sorted by latest creation date
     /// </summary>
     [HttpGet("my-requests")]
     public async Task<IActionResult> GetMyLeaveRequests(
@@ -237,19 +238,14 @@ public class LeaveController : APIBaseController
         [FromQuery] Guid? leaveTypeId = null,
         [FromQuery] DateTime? startDateFrom = null,
         [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
-        var result = await _mediator.Send(new GetLeaveRequestsQuery(
+        var result = await _mediator.Send(new GetMyLeaveRequestsQuery(
             statusId,
             leaveTypeId,
             startDateFrom,
             startDateTo,
-            null,
-            sortBy,
-            sortDescending,
             pageNumber,
             pageSize));
 
