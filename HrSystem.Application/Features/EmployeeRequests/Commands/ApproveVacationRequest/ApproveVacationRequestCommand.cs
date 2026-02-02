@@ -34,9 +34,10 @@ public class ApproveVacationRequestCommandHandler
         CancellationToken cancellationToken)
     {
         var employeeRequest = await _context.EmployeeRequests
+            .Include(r => r.RequestTypeRef)
             .Include(r => r.VacationDetail)
                 .ThenInclude(v => v!.VacationType)
-            .FirstOrDefaultAsync(r => r.Id == request.RequestId && r.RequestType == EmployeeRequestType.Vacation, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == request.RequestId && r.RequestTypeRef != null && r.RequestTypeRef.Code == "Vacation", cancellationToken);
 
         if (employeeRequest == null)
             return Error.NotFound(description: "Vacation request not found.");
@@ -116,8 +117,8 @@ public class ApproveVacationRequestCommandHandler
         var dto = new EmployeeRequestDto
         {
             Id = employeeRequest.Id,
-            RequestType = employeeRequest.RequestType,
-            RequestTypeName = employeeRequest.RequestType.ToString(),
+            RequestTypeId = employeeRequest.RequestTypeId,
+            RequestTypeName = employeeRequest.RequestTypeRef?.Code ?? "",
             Status = employeeRequest.Status,
             EmployeeId = employeeRequest.EmployeeId,
             BranchId = employeeRequest.BranchId,

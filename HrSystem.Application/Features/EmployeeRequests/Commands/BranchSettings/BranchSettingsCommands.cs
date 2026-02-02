@@ -1,7 +1,6 @@
 using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -12,7 +11,7 @@ namespace HrSystem.Application.Features.EmployeeRequests.Commands.BranchSettings
 #region Create Branch Request Setting
 public record CreateBranchRequestSettingCommand(
     Guid BranchId,
-    EmployeeRequestType RequestType,
+    Guid RequestTypeId,
     bool IsVisibleToEmployees,
     bool AllowEmployeesToSubmit,
     bool RequireAttachment,
@@ -39,15 +38,20 @@ public class CreateBranchRequestSettingCommandHandler : IRequestHandler<CreateBr
 
         // Check if setting already exists
         var existing = await _context.BranchRequestSettings
-            .FirstOrDefaultAsync(s => s.BranchId == request.BranchId && s.RequestType == request.RequestType, cancellationToken);
+            .FirstOrDefaultAsync(s => s.BranchId == request.BranchId && s.RequestTypeId == request.RequestTypeId, cancellationToken);
 
         if (existing != null)
-            return Error.Conflict(description: $"Setting for request type '{request.RequestType}' already exists for this branch.");
+            return Error.Conflict(description: $"Setting for this request type already exists for this branch.");
+
+        // Validate RequestType exists
+        var requestType = await _context.RequestTypes.FindAsync(new object[] { request.RequestTypeId }, cancellationToken);
+        if (requestType == null)
+            return Error.Validation(description: "Invalid request type.");
 
         var entity = new BranchRequestSetting
         {
             BranchId = request.BranchId,
-            RequestType = request.RequestType,
+            RequestTypeId = request.RequestTypeId,
             IsVisibleToEmployees = request.IsVisibleToEmployees,
             AllowEmployeesToSubmit = request.AllowEmployeesToSubmit,
             RequireAttachment = request.RequireAttachment,
@@ -65,8 +69,8 @@ public class CreateBranchRequestSettingCommandHandler : IRequestHandler<CreateBr
             Id = entity.Id,
             BranchId = entity.BranchId ?? Guid.Empty,
             BranchName = branch.NameEn,
-            RequestType = entity.RequestType,
-            RequestTypeName = entity.RequestType.ToString(),
+            RequestTypeId = entity.RequestTypeId,
+            RequestTypeName = requestType.Code,
             IsVisibleToEmployees = entity.IsVisibleToEmployees,
             AllowEmployeesToSubmit = entity.AllowEmployeesToSubmit,
             RequireAttachment = entity.RequireAttachment,
@@ -106,6 +110,7 @@ public class UpdateBranchRequestSettingCommandHandler : IRequestHandler<UpdateBr
     {
         var entity = await _context.BranchRequestSettings
             .Include(s => s.Branch)
+            .Include(s => s.RequestTypeRef)
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
         if (entity == null)
@@ -125,8 +130,8 @@ public class UpdateBranchRequestSettingCommandHandler : IRequestHandler<UpdateBr
             Id = entity.Id,
             BranchId = entity.BranchId ?? Guid.Empty,
             BranchName = entity.Branch?.NameEn,
-            RequestType = entity.RequestType,
-            RequestTypeName = entity.RequestType.ToString(),
+            RequestTypeId = entity.RequestTypeId,
+            RequestTypeName = entity.RequestTypeRef?.Code ?? "",
             IsVisibleToEmployees = entity.IsVisibleToEmployees,
             AllowEmployeesToSubmit = entity.AllowEmployeesToSubmit,
             RequireAttachment = entity.RequireAttachment,
@@ -192,24 +197,28 @@ public class InitializeBranchSettingsCommandHandler : IRequestHandler<Initialize
         if (branch == null)
             return Error.NotFound(description: "Branch not found.");
 
-        // Get existing settings for this branch
-        var existingTypes = await _context.BranchRequestSettings
-            .Where(s => s.BranchId == request.BranchId)
-            .Select(s => s.RequestType)
+        // Get all active request types from master table
+        var allRequestTypes = await _context.RequestTypes
+            .Where(rt => rt.IsActive)
             .ToListAsync(cancellationToken);
 
-        var allRequestTypes = Enum.GetValues<EmployeeRequestType>();
+        // Get existing settings for this branch
+        var existingTypeIds = await _context.BranchRequestSettings
+            .Where(s => s.BranchId == request.BranchId)
+            .Select(s => s.RequestTypeId)
+            .ToListAsync(cancellationToken);
+
         var newSettings = new List<BranchRequestSetting>();
 
         foreach (var requestType in allRequestTypes)
         {
-            if (existingTypes.Contains(requestType))
+            if (existingTypeIds.Contains(requestType.Id))
                 continue;
 
             var setting = new BranchRequestSetting
             {
                 BranchId = request.BranchId,
-                RequestType = requestType,
+                RequestTypeId = requestType.Id,
                 IsVisibleToEmployees = request.EnableAllRequestTypes,
                 AllowEmployeesToSubmit = request.EnableAllRequestTypes,
                 RequireAttachment = false,
@@ -231,8 +240,9 @@ public class InitializeBranchSettingsCommandHandler : IRequestHandler<Initialize
         // Fetch all settings (existing + new)
         var allSettings = await _context.BranchRequestSettings
             .Include(s => s.Branch)
+            .Include(s => s.RequestTypeRef)
             .Where(s => s.BranchId == request.BranchId)
-            .OrderBy(s => s.RequestType)
+            .OrderBy(s => s.RequestTypeRef != null ? s.RequestTypeRef.SortOrder : 0)
             .ToListAsync(cancellationToken);
 
         var dtos = allSettings.Select(e => new BranchRequestSettingDetailDto
@@ -240,8 +250,8 @@ public class InitializeBranchSettingsCommandHandler : IRequestHandler<Initialize
             Id = e.Id,
             BranchId = e.BranchId ?? Guid.Empty,
             BranchName = e.Branch?.NameEn,
-            RequestType = e.RequestType,
-            RequestTypeName = e.RequestType.ToString(),
+            RequestTypeId = e.RequestTypeId,
+            RequestTypeName = e.RequestTypeRef?.Code ?? "",
             IsVisibleToEmployees = e.IsVisibleToEmployees,
             AllowEmployeesToSubmit = e.AllowEmployeesToSubmit,
             RequireAttachment = e.RequireAttachment,

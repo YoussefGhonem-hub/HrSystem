@@ -12,13 +12,19 @@ public class BranchRequestSettingConfiguration : IEntityTypeConfiguration<Branch
 
         builder.Property(s => s.BranchId).IsRequired();
         builder.Property(s => s.CustomInstructions).HasMaxLength(1000);
+        builder.Property(s => s.RequestTypeId).IsRequired();
 
-        builder.HasIndex(s => new { s.BranchId, s.RequestType }).IsUnique();
-        builder.HasIndex(s => new { s.TenantId, s.RequestType });
+        builder.HasIndex(s => new { s.BranchId, s.RequestTypeId }).IsUnique();
+        builder.HasIndex(s => new { s.TenantId, s.RequestTypeId });
 
         builder.HasOne(s => s.Branch)
             .WithMany(b => b.RequestSettings)
             .HasForeignKey(s => s.BranchId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(s => s.RequestTypeRef)
+            .WithMany()
+            .HasForeignKey(s => s.RequestTypeId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

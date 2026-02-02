@@ -90,16 +90,21 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
         {
             var branchSettings = await _context.BranchRequestSettings
                 .AsNoTracking()
+                .Include(s => s.RequestTypeRef)
                 .Where(s => s.BranchId == branchId.Value && s.IsVisibleToEmployees)
-                .OrderBy(s => s.RequestType)
+                .OrderBy(s => s.RequestTypeRef != null ? s.RequestTypeRef.SortOrder : 0)
                 .ToListAsync(cancellationToken);
 
             if (branchSettings.Count > 0)
             {
-                var requestTypes = branchSettings.Select(s => s.RequestType).Distinct().ToList();
+                var requestTypeCodes = branchSettings
+                    .Where(s => s.RequestTypeRef != null)
+                    .Select(s => s.RequestTypeRef!.Code)
+                    .Distinct()
+                    .ToList();
 
                 // Load type-specific options
-                var vacationTypes = requestTypes.Contains(EmployeeRequestType.Vacation)
+                var vacationTypes = requestTypeCodes.Contains("Vacation")
                     ? await _context.VacationTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                         .Select(t => new VacationTypeDto
                         {
@@ -109,7 +114,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         }).ToListAsync(cancellationToken)
                     : null;
 
-                var overtimeTypes = requestTypes.Contains(EmployeeRequestType.OverTime)
+                var overtimeTypes = requestTypeCodes.Contains("OverTime")
                     ? await _context.OvertimeTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                         .Select(t => new OvertimeTypeDto
                         {
@@ -118,7 +123,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         }).ToListAsync(cancellationToken)
                     : null;
 
-                var trainingTypes = requestTypes.Contains(EmployeeRequestType.Training)
+                var trainingTypes = requestTypeCodes.Contains("Training")
                     ? await _context.TrainingTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                         .Select(t => new TrainingTypeDto
                         {
@@ -127,7 +132,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         }).ToListAsync(cancellationToken)
                     : null;
 
-                var miscellaneousTypes = requestTypes.Contains(EmployeeRequestType.Miscellaneous)
+                var miscellaneousTypes = requestTypeCodes.Contains("Miscellaneous")
                     ? await _context.MiscellaneousTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                         .Select(t => new MiscellaneousTypeDto
                         {
@@ -136,7 +141,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         }).ToListAsync(cancellationToken)
                     : null;
 
-                var personalTypes = requestTypes.Contains(EmployeeRequestType.Personal)
+                var personalTypes = requestTypeCodes.Contains("Personal")
                     ? await _context.PersonalTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                         .Select(t => new PersonalTypeDto
                         {
@@ -145,7 +150,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         }).ToListAsync(cancellationToken)
                     : null;
 
-                var feedbackTypes = requestTypes.Contains(EmployeeRequestType.Feedback)
+                var feedbackTypes = requestTypeCodes.Contains("Feedback")
                     ? await _context.FeedbackTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                         .Select(t => new FeedbackTypeDto
                         {
@@ -155,21 +160,24 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                     : null;
 
                 branchRequestAccess = branchSettings
+                    .Where(setting => setting.RequestTypeRef != null)
                     .Select(setting => new BranchRequestAvailabilityDto
                     {
-                        RequestType = setting.RequestType,
-                        DisplayName = setting.RequestType.ToString(),
+                        RequestTypeId = setting.RequestTypeId,
+                        RequestTypeCode = setting.RequestTypeRef!.Code,
+                        DisplayName = setting.RequestTypeRef.NameEn,
+                        DisplayNameAr = setting.RequestTypeRef.NameAr,
                         IsVisibleToEmployees = setting.IsVisibleToEmployees,
                         AllowEmployeesToSubmit = setting.AllowEmployeesToSubmit,
                         RequireAttachment = setting.RequireAttachment,
                         MaxOpenRequests = setting.MaxOpenRequests,
                         CustomInstructions = setting.CustomInstructions,
-                        VacationTypes = setting.RequestType == EmployeeRequestType.Vacation ? vacationTypes : null,
-                        OvertimeTypes = setting.RequestType == EmployeeRequestType.OverTime ? overtimeTypes : null,
-                        TrainingTypes = setting.RequestType == EmployeeRequestType.Training ? trainingTypes : null,
-                        MiscellaneousTypes = setting.RequestType == EmployeeRequestType.Miscellaneous ? miscellaneousTypes : null,
-                        PersonalTypes = setting.RequestType == EmployeeRequestType.Personal ? personalTypes : null,
-                        FeedbackTypes = setting.RequestType == EmployeeRequestType.Feedback ? feedbackTypes : null
+                        VacationTypes = setting.RequestTypeRef.Code == "Vacation" ? vacationTypes : null,
+                        OvertimeTypes = setting.RequestTypeRef.Code == "OverTime" ? overtimeTypes : null,
+                        TrainingTypes = setting.RequestTypeRef.Code == "Training" ? trainingTypes : null,
+                        MiscellaneousTypes = setting.RequestTypeRef.Code == "Miscellaneous" ? miscellaneousTypes : null,
+                        PersonalTypes = setting.RequestTypeRef.Code == "Personal" ? personalTypes : null,
+                        FeedbackTypes = setting.RequestTypeRef.Code == "Feedback" ? feedbackTypes : null
                     })
                     .ToList();
             }

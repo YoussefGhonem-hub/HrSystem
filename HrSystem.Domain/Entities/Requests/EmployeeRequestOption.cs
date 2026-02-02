@@ -1,5 +1,4 @@
 using HrSystem.Domain.Common;
-using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Requests;
 
@@ -9,7 +8,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// </summary>
 public class EmployeeRequestOption : BaseAuditableEntity
 {
-    public EmployeeRequestType RequestType { get; set; }
+    public Guid RequestTypeId { get; set; }
     public string NameAr { get; set; } = string.Empty;
     public string NameEn { get; set; } = string.Empty;
     public string? Description { get; set; }
@@ -20,4 +19,5 @@ public class EmployeeRequestOption : BaseAuditableEntity
     public int SortOrder { get; set; } = 1;
 
     public virtual ICollection<EmployeeRequest> Requests { get; set; } = new List<EmployeeRequest>();
+    public virtual RequestType? RequestTypeRef { get; set; }
 }

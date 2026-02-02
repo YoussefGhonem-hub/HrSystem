@@ -10,7 +10,7 @@ namespace HrSystem.Application.Features.EmployeeRequests.Queries.GetMyRequests;
 
 public record GetMyRequestsQuery(
     Guid EmployeeId,
-    EmployeeRequestType? RequestType = null,
+    string? RequestTypeCode = null,
     EmployeeRequestStatus? Status = null,
     int PageNumber = 1,
     int PageSize = 20
@@ -29,13 +29,14 @@ public class GetMyRequestsQueryHandler
     {
         var query = _context.EmployeeRequests
             .AsNoTracking()
+            .Include(r => r.RequestTypeRef)
             .Include(r => r.VacationDetail).ThenInclude(v => v!.VacationType)
             .Include(r => r.OvertimeDetail)
             .Include(r => r.TrainingDetail).ThenInclude(t => t!.TrainingType)
             .Where(r => r.EmployeeId == request.EmployeeId);
 
-        if (request.RequestType.HasValue)
-            query = query.Where(r => r.RequestType == request.RequestType.Value);
+        if (!string.IsNullOrEmpty(request.RequestTypeCode))
+            query = query.Where(r => r.RequestTypeRef != null && r.RequestTypeRef.Code == request.RequestTypeCode);
 
         if (request.Status.HasValue)
             query = query.Where(r => r.Status == request.Status.Value);
@@ -51,8 +52,8 @@ public class GetMyRequestsQueryHandler
         var dtos = entities.Select(r => new EmployeeRequestDto
         {
             Id = r.Id,
-            RequestType = r.RequestType,
-            RequestTypeName = r.RequestType.ToString(),
+            RequestTypeId = r.RequestTypeId,
+            RequestTypeName = r.RequestTypeRef?.Code ?? "",
             Status = r.Status,
             EmployeeId = r.EmployeeId,
             BranchId = r.BranchId,

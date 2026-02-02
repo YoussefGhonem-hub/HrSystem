@@ -1,5 +1,4 @@
 using FluentValidation;
-using HrSystem.Domain.Enums;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.CreateEmployeeRequest;
 
@@ -27,7 +26,7 @@ public class CreateEmployeeRequestCommandValidator : AbstractValidator<CreateEmp
                 .WithMessage("End date must be greater than or equal to start date.");
         });
 
-        When(x => x.RequestType == EmployeeRequestType.Vacation, () =>
+        When(x => x.RequestTypeCode == "Vacation", () =>
         {
             RuleFor(x => x.StartDate)
                 .NotNull();
@@ -36,14 +35,14 @@ public class CreateEmployeeRequestCommandValidator : AbstractValidator<CreateEmp
                 .NotNull();
         });
 
-        When(x => x.RequestType == EmployeeRequestType.OverTime, () =>
+        When(x => x.RequestTypeCode == "OverTime", () =>
         {
             RuleFor(x => x.StartDate)
                 .NotNull()
                 .WithMessage("Overtime date is required.");
         });
 
-        When(x => x.RequestType == EmployeeRequestType.Training, () =>
+        When(x => x.RequestTypeCode == "Training", () =>
         {
             RuleFor(x => x.Description)
                 .NotEmpty()

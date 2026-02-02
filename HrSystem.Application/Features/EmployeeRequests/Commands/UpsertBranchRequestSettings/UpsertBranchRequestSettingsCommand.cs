@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Domain.Entities.Requests;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -9,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.UpsertBranchRequestSettings;
 
 public record BranchRequestSettingPayload(
-    EmployeeRequestType RequestType,
+    Guid RequestTypeId,
     bool IsVisibleToEmployees,
     bool AllowEmployeesToSubmit,
     bool RequireAttachment,
@@ -44,11 +43,11 @@ public class UpsertBranchRequestSettingsCommandHandler : IRequestHandler<UpsertB
         if (request.Settings.Count == 0)
             return Error.Validation(description: "Please provide at least one request setting.");
 
-        var settingsByType = branch.RequestSettings.ToDictionary(s => s.RequestType);
+        var settingsByTypeId = branch.RequestSettings.ToDictionary(s => s.RequestTypeId);
 
         foreach (var payload in request.Settings)
         {
-            if (settingsByType.TryGetValue(payload.RequestType, out var entity))
+            if (settingsByTypeId.TryGetValue(payload.RequestTypeId, out var entity))
             {
                 entity.IsVisibleToEmployees = payload.IsVisibleToEmployees;
                 entity.AllowEmployeesToSubmit = payload.AllowEmployeesToSubmit;
@@ -60,7 +59,7 @@ public class UpsertBranchRequestSettingsCommandHandler : IRequestHandler<UpsertB
             {
                 var newSetting = new BranchRequestSetting
                 {
-                    RequestType = payload.RequestType,
+                    RequestTypeId = payload.RequestTypeId,
                     IsVisibleToEmployees = payload.IsVisibleToEmployees,
                     AllowEmployeesToSubmit = payload.AllowEmployeesToSubmit,
                     RequireAttachment = payload.RequireAttachment,

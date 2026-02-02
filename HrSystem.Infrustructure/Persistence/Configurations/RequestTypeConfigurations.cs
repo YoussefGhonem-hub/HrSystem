@@ -4,6 +4,34 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace HrSystem.Infrustructure.Persistence.Configurations;
 
+public class RequestTypeConfiguration : IEntityTypeConfiguration<RequestType>
+{
+    public void Configure(EntityTypeBuilder<RequestType> builder)
+    {
+        builder.ToTable("RequestTypes", "Requests");
+
+        builder.Property(r => r.Code)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        builder.Property(r => r.NameAr)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(r => r.NameEn)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(r => r.Description)
+            .HasMaxLength(500);
+
+        builder.Property(r => r.SortOrder)
+            .HasDefaultValue(1);
+
+        builder.HasIndex(r => new { r.TenantId, r.Code }).IsUnique();
+    }
+}
+
 public class VacationTypeConfiguration : IEntityTypeConfiguration<VacationType>
 {
     public void Configure(EntityTypeBuilder<VacationType> builder)

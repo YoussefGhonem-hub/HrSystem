@@ -1,6 +1,5 @@
 using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Organization;
-using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities.Requests;
 
@@ -10,7 +9,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// </summary>
 public class BranchRequestSetting : BaseAuditableEntity
 {
-    public EmployeeRequestType RequestType { get; set; }
+    public Guid RequestTypeId { get; set; }
     public bool IsVisibleToEmployees { get; set; } = true;
     public bool AllowEmployeesToSubmit { get; set; } = true;
     public bool RequireAttachment { get; set; }
@@ -18,4 +17,5 @@ public class BranchRequestSetting : BaseAuditableEntity
     public string? CustomInstructions { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;
+    public virtual RequestType? RequestTypeRef { get; set; }
 }

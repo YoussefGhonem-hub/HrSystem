@@ -98,6 +98,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     // Employee Self-Service Requests
     public DbSet<EmployeeRequest> EmployeeRequests => Set<EmployeeRequest>();
     public DbSet<BranchRequestSetting> BranchRequestSettings => Set<BranchRequestSetting>();
+    public DbSet<RequestType> RequestTypes => Set<RequestType>();
     
     // Request Type Masters
     public DbSet<VacationType> VacationTypes => Set<VacationType>();

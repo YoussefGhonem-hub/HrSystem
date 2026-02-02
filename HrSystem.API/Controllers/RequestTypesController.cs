@@ -14,6 +14,8 @@ using HrSystem.Application.Features.EmployeeRequests.Queries.PermissionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.PersonalTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.TrainingTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.VacationTypes;
+using HrSystem.Application.Features.EmployeeRequests.RequestTypes.Commands;
+using HrSystem.Application.Features.EmployeeRequests.RequestTypes.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -511,6 +513,64 @@ public class RequestTypesController : APIBaseController
     public async Task<IActionResult> DeletePermissionType(Guid id)
     {
         var result = await _mediator.Send(new DeletePermissionTypeCommand(id));
+        return result.Match(Ok, Problem);
+    }
+    #endregion
+
+    #region Master RequestType CRUD
+    /// <summary>
+    /// Get all master request types (categories like Vacation, OverTime, Training, etc.)
+    /// </summary>
+    [HttpGet("master")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetRequestTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetRequestTypesQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get master request type by ID
+    /// </summary>
+    [HttpGet("master/{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetRequestTypeById(Guid id)
+    {
+        var result = await _mediator.Send(new GetRequestTypeByIdQuery(id));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Create a new master request type
+    /// </summary>
+    [HttpPost("master")]
+    public async Task<IActionResult> CreateRequestType([FromBody] CreateRequestTypeMasterDto dto)
+    {
+        var result = await _mediator.Send(new CreateRequestTypeCommand(dto));
+        return result.Match(
+            response => CreatedAtAction(nameof(GetRequestTypeById), new { id = response.Data!.Id }, response),
+            Problem);
+    }
+
+    /// <summary>
+    /// Update an existing master request type
+    /// </summary>
+    [HttpPut("master/{id:guid}")]
+    public async Task<IActionResult> UpdateRequestType(Guid id, [FromBody] UpdateRequestTypeMasterDto dto)
+    {
+        if (id != dto.Id) return BadRequest("ID mismatch");
+
+        var result = await _mediator.Send(new UpdateRequestTypeCommand(dto));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Delete (soft) a master request type
+    /// </summary>
+    [HttpDelete("master/{id:guid}")]
+    public async Task<IActionResult> DeleteRequestType(Guid id)
+    {
+        var result = await _mediator.Send(new DeleteRequestTypeCommand(id));
         return result.Match(Ok, Problem);
     }
     #endregion

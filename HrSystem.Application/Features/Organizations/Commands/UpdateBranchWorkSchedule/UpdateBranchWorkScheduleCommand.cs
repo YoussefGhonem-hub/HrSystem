@@ -22,13 +22,13 @@ public record WorkScheduleUpdateInput(
     Guid? Id,
     ScheduleAction Action,
     string? Name,
-    TimeSpan? StartTime,
-    TimeSpan? EndTime,
-    TimeSpan? BreakDuration,
+    string? StartTime,
+    string? EndTime,
+    string? BreakDuration,
     int? WorkingHoursPerDay,
     int? WorkingDaysPerWeek,
-    TimeSpan? GracePeriodLate,
-    TimeSpan? GracePeriodEarlyLeave,
+    string? GracePeriodLate,
+    string? GracePeriodEarlyLeave,
     bool? IsSunday,
     bool? IsMonday,
     bool? IsTuesday,
@@ -38,7 +38,34 @@ public record WorkScheduleUpdateInput(
     bool? IsSaturday,
     bool? IsDefault,
     string? TimeZone
-);
+)
+{
+    /// <summary>
+    /// Parses a time string to TimeSpan. Supports formats: "HH:mm", "HH:mm:ss", "H:mm:ss"
+    /// </summary>
+    public static TimeSpan? ParseTime(string? timeStr)
+    {
+        if (string.IsNullOrWhiteSpace(timeStr))
+            return null;
+        
+        if (TimeSpan.TryParse(timeStr, out var result))
+            return result;
+        
+        // Try parsing as "HH:mm" format
+        if (TimeSpan.TryParseExact(timeStr, @"hh\:mm", null, out result))
+            return result;
+        if (TimeSpan.TryParseExact(timeStr, @"h\:mm", null, out result))
+            return result;
+            
+        return null;
+    }
+    
+    public TimeSpan? GetStartTime() => ParseTime(StartTime);
+    public TimeSpan? GetEndTime() => ParseTime(EndTime);
+    public TimeSpan? GetBreakDuration() => ParseTime(BreakDuration);
+    public TimeSpan? GetGracePeriodLate() => ParseTime(GracePeriodLate);
+    public TimeSpan? GetGracePeriodEarlyLeave() => ParseTime(GracePeriodEarlyLeave);
+}
 
 public enum ScheduleAction
 {
@@ -118,7 +145,10 @@ public class UpdateBranchWorkScheduleCommandHandler
             switch (input.Action)
             {
                 case ScheduleAction.Add:
-                    if (string.IsNullOrEmpty(input.Name) || !input.StartTime.HasValue || !input.EndTime.HasValue)
+                    var startTime = input.GetStartTime();
+                    var endTime = input.GetEndTime();
+                    
+                    if (string.IsNullOrEmpty(input.Name) || !startTime.HasValue || !endTime.HasValue)
                         return Error.Validation("Schedule.MissingFields", "Name, StartTime, and EndTime are required for new schedules");
 
                     var newSchedule = new BranchWorkSchedule
@@ -127,13 +157,13 @@ public class UpdateBranchWorkScheduleCommandHandler
                         TenantId = branch.OrganizationId,
                         BranchId = branch.Id,
                         Name = input.Name,
-                        StartTime = input.StartTime.Value,
-                        EndTime = input.EndTime.Value,
-                        BreakDuration = input.BreakDuration ?? new TimeSpan(1, 0, 0),
+                        StartTime = startTime.Value,
+                        EndTime = endTime.Value,
+                        BreakDuration = input.GetBreakDuration() ?? new TimeSpan(1, 0, 0),
                         WorkingHoursPerDay = input.WorkingHoursPerDay ?? 8,
                         WorkingDaysPerWeek = input.WorkingDaysPerWeek ?? 5,
-                        GracePeriodLate = input.GracePeriodLate ?? new TimeSpan(0, 15, 0),
-                        GracePeriodEarlyLeave = input.GracePeriodEarlyLeave ?? new TimeSpan(0, 15, 0),
+                        GracePeriodLate = input.GetGracePeriodLate() ?? new TimeSpan(0, 15, 0),
+                        GracePeriodEarlyLeave = input.GetGracePeriodEarlyLeave() ?? new TimeSpan(0, 15, 0),
                         IsSunday = input.IsSunday ?? true,
                         IsMonday = input.IsMonday ?? true,
                         IsTuesday = input.IsTuesday ?? true,
@@ -170,13 +200,20 @@ public class UpdateBranchWorkScheduleCommandHandler
                         return Error.NotFound("Schedule.NotFound", $"Schedule with ID '{input.Id}' not found");
 
                     if (input.Name != null) scheduleToUpdate.Name = input.Name;
-                    if (input.StartTime.HasValue) scheduleToUpdate.StartTime = input.StartTime.Value;
-                    if (input.EndTime.HasValue) scheduleToUpdate.EndTime = input.EndTime.Value;
-                    if (input.BreakDuration.HasValue) scheduleToUpdate.BreakDuration = input.BreakDuration;
+                    
+                    var updateStartTime = input.GetStartTime();
+                    var updateEndTime = input.GetEndTime();
+                    var updateBreakDuration = input.GetBreakDuration();
+                    var updateGracePeriodLate = input.GetGracePeriodLate();
+                    var updateGracePeriodEarlyLeave = input.GetGracePeriodEarlyLeave();
+                    
+                    if (updateStartTime.HasValue) scheduleToUpdate.StartTime = updateStartTime.Value;
+                    if (updateEndTime.HasValue) scheduleToUpdate.EndTime = updateEndTime.Value;
+                    if (updateBreakDuration.HasValue) scheduleToUpdate.BreakDuration = updateBreakDuration;
                     if (input.WorkingHoursPerDay.HasValue) scheduleToUpdate.WorkingHoursPerDay = input.WorkingHoursPerDay.Value;
                     if (input.WorkingDaysPerWeek.HasValue) scheduleToUpdate.WorkingDaysPerWeek = input.WorkingDaysPerWeek.Value;
-                    if (input.GracePeriodLate.HasValue) scheduleToUpdate.GracePeriodLate = input.GracePeriodLate;
-                    if (input.GracePeriodEarlyLeave.HasValue) scheduleToUpdate.GracePeriodEarlyLeave = input.GracePeriodEarlyLeave;
+                    if (updateGracePeriodLate.HasValue) scheduleToUpdate.GracePeriodLate = updateGracePeriodLate;
+                    if (updateGracePeriodEarlyLeave.HasValue) scheduleToUpdate.GracePeriodEarlyLeave = updateGracePeriodEarlyLeave;
                     if (input.IsSunday.HasValue) scheduleToUpdate.IsSunday = input.IsSunday.Value;
                     if (input.IsMonday.HasValue) scheduleToUpdate.IsMonday = input.IsMonday.Value;
                     if (input.IsTuesday.HasValue) scheduleToUpdate.IsTuesday = input.IsTuesday.Value;

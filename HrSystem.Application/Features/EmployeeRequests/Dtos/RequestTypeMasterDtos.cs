@@ -5,6 +5,7 @@ namespace HrSystem.Application.Features.EmployeeRequests.Dtos;
 #region Base Request/Response DTOs
 public record CreateRequestTypeMasterDto
 {
+    public string Code { get; init; } = string.Empty;
     public string NameAr { get; init; } = string.Empty;
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
@@ -15,11 +16,27 @@ public record CreateRequestTypeMasterDto
 public record UpdateRequestTypeMasterDto
 {
     public Guid Id { get; init; }
+    public string Code { get; init; } = string.Empty;
     public string NameAr { get; init; } = string.Empty;
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
     public bool IsActive { get; init; } = true;
     public int SortOrder { get; init; } = 1;
+}
+#endregion
+
+#region RequestType DTOs (new master)
+public record RequestTypeDto
+{
+    public Guid Id { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public bool IsActive { get; init; }
+    public int SortOrder { get; init; }
+    public DateTimeOffset CreatedDate { get; init; }
+    public DateTimeOffset? ModifiedDate { get; init; }
 }
 #endregion
 
@@ -243,7 +260,7 @@ public record BranchRequestSettingDetailDto
     public Guid Id { get; init; }
     public Guid BranchId { get; init; }
     public string? BranchName { get; init; }
-    public EmployeeRequestType RequestType { get; init; }
+    public Guid RequestTypeId { get; init; }
     public string RequestTypeName { get; init; } = string.Empty;
     public bool IsVisibleToEmployees { get; init; }
     public bool AllowEmployeesToSubmit { get; init; }
@@ -257,7 +274,7 @@ public record BranchRequestSettingDetailDto
 public record CreateBranchRequestSettingDto
 {
     public Guid BranchId { get; init; }
-    public EmployeeRequestType RequestType { get; init; }
+    public Guid RequestTypeId { get; init; }
     public bool IsVisibleToEmployees { get; init; } = true;
     public bool AllowEmployeesToSubmit { get; init; } = true;
     public bool RequireAttachment { get; init; }

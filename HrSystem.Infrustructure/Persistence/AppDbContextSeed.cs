@@ -2693,6 +2693,24 @@ public static class AppDbContextSeed
         var defaultBranchId = await GetDefaultBranchIdAsync(context);
         var now = DateTimeOffset.UtcNow;
 
+        // Seed RequestTypes master (replaces enum values)
+        if (!await context.RequestTypes.AnyAsync())
+        {
+            var requestTypes = new List<RequestType>
+            {
+                new() { Code = "Vacation", NameEn = "Vacation", NameAr = "إجازة", Description = "Days-based leave requests", IsActive = true, SortOrder = 1, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { Code = "OverTime", NameEn = "Overtime", NameAr = "وقت إضافي", Description = "Overtime work requests", IsActive = true, SortOrder = 2, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { Code = "Training", NameEn = "Training", NameAr = "تدريب", Description = "Training requests", IsActive = true, SortOrder = 3, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { Code = "Miscellaneous", NameEn = "Miscellaneous", NameAr = "متنوع", Description = "General purpose requests", IsActive = true, SortOrder = 4, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { Code = "Personal", NameEn = "Personal", NameAr = "شخصي", Description = "Personal requests", IsActive = true, SortOrder = 5, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { Code = "Feedback", NameEn = "Feedback", NameAr = "ملاحظات", Description = "Feedback submissions", IsActive = true, SortOrder = 6, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now },
+                new() { Code = "Permission", NameEn = "Permission", NameAr = "إذن", Description = "Short absence / permission requests", IsActive = true, SortOrder = 7, TenantId = organization.Id, BranchId = defaultBranchId, CreatedDate = now }
+            };
+
+            await context.RequestTypes.AddRangeAsync(requestTypes);
+            Console.WriteLine($"Seeded {requestTypes.Count} request types");
+        }
+
         // Seed VacationTypes
         if (!await context.VacationTypes.AnyAsync())
         {
@@ -2783,30 +2801,60 @@ public static class AppDbContextSeed
         var branches = await context.Branches.ToListAsync();
         if (branches.Count == 0) return;
 
+        // Fetch master RequestTypes to get their IDs
+        var requestTypes = await context.RequestTypes
+            .IgnoreQueryFilters()
+            .Where(r => !r.IsDeleted)
+            .ToDictionaryAsync(r => r.Code, r => r.Id);
+
+        if (requestTypes.Count == 0)
+        {
+            Console.WriteLine("No RequestTypes found in master table. Skipping BranchRequestSettings seed.");
+            return;
+        }
+
         var existingKeys = new HashSet<string>(
             await context.BranchRequestSettings
                 .IgnoreQueryFilters()
-                .Select(s => s.BranchId.HasValue ? $"{s.BranchId.Value}-{(int)s.RequestType}" : string.Empty)
+                .Select(s => s.BranchId.HasValue ? $"{s.BranchId.Value}-{s.RequestTypeId}" : string.Empty)
                 .ToListAsync());
 
         var settings = new List<BranchRequestSetting>();
         var now = DateTimeOffset.UtcNow;
 
+        // Map enum names to master RequestType codes
+        var enumCodeMapping = new Dictionary<EmployeeRequestType, string>
+        {
+            { EmployeeRequestType.Vacation, "Vacation" },
+            { EmployeeRequestType.OverTime, "OverTime" },
+            { EmployeeRequestType.Training, "Training" },
+            { EmployeeRequestType.Miscellaneous, "Miscellaneous" },
+            { EmployeeRequestType.Personal, "Personal" },
+            { EmployeeRequestType.Feedback, "Feedback" },
+            { EmployeeRequestType.Permission, "Permission" }
+        };
+
         foreach (var branch in branches)
         {
-            foreach (EmployeeRequestType requestType in Enum.GetValues(typeof(EmployeeRequestType)))
+            foreach (var mapping in enumCodeMapping)
             {
-                var key = $"{branch.Id}-{(int)requestType}";
+                var enumValue = mapping.Key;
+                var code = mapping.Value;
+
+                if (!requestTypes.TryGetValue(code, out var requestTypeId))
+                    continue;
+
+                var key = $"{branch.Id}-{requestTypeId}";
                 if (existingKeys.Contains(key))
                     continue;
 
-                var requireAttachment = requestType switch
+                var requireAttachment = enumValue switch
                 {
                     EmployeeRequestType.Training => true,
                     _ => false
                 };
 
-                var maxOpenRequests = requestType switch
+                var maxOpenRequests = enumValue switch
                 {
                     EmployeeRequestType.Vacation => 2,
                     EmployeeRequestType.OverTime => 5,
@@ -2816,7 +2864,7 @@ public static class AppDbContextSeed
 
                 settings.Add(new BranchRequestSetting
                 {
-                    RequestType = requestType,
+                    RequestTypeId = requestTypeId,
                     IsVisibleToEmployees = true,
                     AllowEmployeesToSubmit = true,
                     RequireAttachment = requireAttachment,

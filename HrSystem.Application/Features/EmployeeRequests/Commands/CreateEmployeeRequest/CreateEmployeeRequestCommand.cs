@@ -69,7 +69,7 @@ public record CreateFeedbackDetailModel(
 #endregion
 
 public record CreateEmployeeRequestCommand(
-    EmployeeRequestType RequestType,
+    string RequestTypeCode,
     string Title,
     string? Description,
     DateTime? StartDate,
@@ -112,13 +112,21 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         if (employee == null)
             return Error.NotFound(description: "Employee record was not found.");
 
+        // Get RequestType by Code
+        var requestType = await _context.RequestTypes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(rt => rt.Code == request.RequestTypeCode && rt.TenantId == employee.TenantId, cancellationToken);
+        
+        if (requestType == null)
+            return Error.NotFound(description: $"Request type '{request.RequestTypeCode}' not configured.");
+
         var branchId = request.BranchId ?? employee.BranchId;
         if (!branchId.HasValue)
             return Error.Validation(description: "BranchId is required for request submission.");
 
         var branchSetting = await _context.BranchRequestSettings
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.BranchId == branchId && s.RequestType == request.RequestType, cancellationToken);
+            .FirstOrDefaultAsync(s => s.BranchId == branchId && s.RequestTypeId == requestType.Id, cancellationToken);
 
         if (branchSetting == null || !branchSetting.IsVisibleToEmployees)
             return Error.Forbidden(description: "This request type is disabled for the selected branch.");
@@ -133,21 +141,21 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         {
             var openRequestsCount = await _context.EmployeeRequests
                 .CountAsync(r => r.EmployeeId == request.EmployeeId
-                                 && r.RequestType == request.RequestType
+                                 && r.RequestTypeId == requestType.Id
                                  && OpenStatuses.Contains(r.Status), cancellationToken);
 
             if (openRequestsCount >= branchSetting.MaxOpenRequests.Value)
                 return Error.Validation(description: "The maximum number of open requests for this type has been reached.");
         }
 
-        // Validate type-specific detail based on RequestType
+        // Validate type-specific detail based on RequestType code
         var validationError = await ValidateTypeSpecificDetail(request, cancellationToken);
         if (validationError is not null)
             return validationError.Value;
 
         var entity = new EmployeeRequest
         {
-            RequestType = request.RequestType,
+            RequestTypeId = requestType.Id,
             Status = EmployeeRequestStatus.Pending,
             EmployeeId = request.EmployeeId,
             Title = request.Title.Trim(),
@@ -166,20 +174,20 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         // Create type-specific detail
         await CreateTypeSpecificDetail(entity.Id, request, employee.TenantId, branchId.Value, cancellationToken);
 
-        var dto = MapToDto(entity, request);
+        var dto = MapToDto(entity, request, requestType);
         return GenericResponse<EmployeeRequestDto>.SuccessResult(dto, "Request submitted successfully");
     }
 
     private async Task<Error?> ValidateTypeSpecificDetail(CreateEmployeeRequestCommand request, CancellationToken ct)
     {
-        return request.RequestType switch
+        return request.RequestTypeCode switch
         {
-            EmployeeRequestType.Vacation => await ValidateVacationDetail(request.VacationDetail, ct),
-            EmployeeRequestType.OverTime => await ValidateOvertimeDetail(request.OvertimeDetail, ct),
-            EmployeeRequestType.Training => await ValidateTrainingDetail(request.TrainingDetail, ct),
-            EmployeeRequestType.Miscellaneous => await ValidateMiscellaneousDetail(request.MiscellaneousDetail, ct),
-            EmployeeRequestType.Personal => await ValidatePersonalDetail(request.PersonalDetail, ct),
-            EmployeeRequestType.Feedback => await ValidateFeedbackDetail(request.FeedbackDetail, ct),
+            "Vacation" => await ValidateVacationDetail(request.VacationDetail, ct),
+            "OverTime" => await ValidateOvertimeDetail(request.OvertimeDetail, ct),
+            "Training" => await ValidateTrainingDetail(request.TrainingDetail, ct),
+            "Miscellaneous" => await ValidateMiscellaneousDetail(request.MiscellaneousDetail, ct),
+            "Personal" => await ValidatePersonalDetail(request.PersonalDetail, ct),
+            "Feedback" => await ValidateFeedbackDetail(request.FeedbackDetail, ct),
             _ => Error.Validation(description: "Invalid request type.")
         };
     }
@@ -258,9 +266,9 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
 
     private async Task CreateTypeSpecificDetail(Guid requestId, CreateEmployeeRequestCommand request, Guid tenantId, Guid branchId, CancellationToken ct)
     {
-        switch (request.RequestType)
+        switch (request.RequestTypeCode)
         {
-            case EmployeeRequestType.Vacation when request.VacationDetail is not null:
+            case "Vacation" when request.VacationDetail is not null:
                 await _context.VacationRequestDetails.AddAsync(new VacationRequestDetail
                 {
                     EmployeeRequestId = requestId,
@@ -274,7 +282,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                 }, ct);
                 break;
 
-            case EmployeeRequestType.OverTime when request.OvertimeDetail is not null:
+            case "OverTime" when request.OvertimeDetail is not null:
                 var overtimeType = await _context.OvertimeTypes.FirstAsync(t => t.Id == request.OvertimeDetail.OvertimeTypeId, ct);
                 await _context.OvertimeRequestDetails.AddAsync(new OvertimeRequestDetail
                 {
@@ -290,7 +298,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                 }, ct);
                 break;
 
-            case EmployeeRequestType.Training when request.TrainingDetail is not null:
+            case "Training" when request.TrainingDetail is not null:
                 await _context.TrainingRequestDetails.AddAsync(new TrainingRequestDetail
                 {
                     EmployeeRequestId = requestId,
@@ -309,7 +317,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                 }, ct);
                 break;
 
-            case EmployeeRequestType.Miscellaneous when request.MiscellaneousDetail is not null:
+            case "Miscellaneous" when request.MiscellaneousDetail is not null:
                 await _context.MiscellaneousRequestDetails.AddAsync(new MiscellaneousRequestDetail
                 {
                     EmployeeRequestId = requestId,
@@ -323,7 +331,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                 }, ct);
                 break;
 
-            case EmployeeRequestType.Personal when request.PersonalDetail is not null:
+            case "Personal" when request.PersonalDetail is not null:
                 await _context.PersonalRequestDetails.AddAsync(new PersonalRequestDetail
                 {
                     EmployeeRequestId = requestId,
@@ -338,7 +346,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                 }, ct);
                 break;
 
-            case EmployeeRequestType.Feedback when request.FeedbackDetail is not null:
+            case "Feedback" when request.FeedbackDetail is not null:
                 await _context.FeedbackRequestDetails.AddAsync(new FeedbackRequestDetail
                 {
                     EmployeeRequestId = requestId,
@@ -359,13 +367,13 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         await _context.SaveChangesAsync(ct);
     }
 
-    private static EmployeeRequestDto MapToDto(EmployeeRequest entity, CreateEmployeeRequestCommand request)
+    private static EmployeeRequestDto MapToDto(EmployeeRequest entity, CreateEmployeeRequestCommand request, Domain.Entities.Requests.RequestType requestType)
     {
         return new EmployeeRequestDto
         {
             Id = entity.Id,
-            RequestType = entity.RequestType,
-            RequestTypeName = entity.RequestType.ToString(),
+            RequestTypeId = entity.RequestTypeId,
+            RequestTypeName = requestType.Code,
             Status = entity.Status,
             EmployeeId = entity.EmployeeId,
             BranchId = entity.BranchId,

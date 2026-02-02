@@ -60,6 +60,14 @@ public class CreatePermissionRequestCommandHandler
         if (employee == null)
             return Error.NotFound(description: "Employee not found.");
 
+        // Get RequestType by Code
+        var requestType = await _context.RequestTypes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(rt => rt.Code == "Permission" && rt.TenantId == employee.TenantId, cancellationToken);
+        
+        if (requestType == null)
+            return Error.NotFound(description: "Permission request type not configured.");
+
         var branchId = request.BranchId ?? employee.BranchId;
         if (!branchId.HasValue)
             return Error.Validation(description: "BranchId is required.");
@@ -68,7 +76,7 @@ public class CreatePermissionRequestCommandHandler
         var branchSetting = await _context.BranchRequestSettings
             .AsNoTracking()
             .FirstOrDefaultAsync(
-                s => s.BranchId == branchId && s.RequestType == EmployeeRequestType.Permission,
+                s => s.BranchId == branchId && s.RequestTypeId == requestType.Id,
                 cancellationToken);
 
         if (branchSetting == null || !branchSetting.AllowEmployeesToSubmit)
@@ -82,7 +90,7 @@ public class CreatePermissionRequestCommandHandler
         {
             var openCount = await _context.EmployeeRequests
                 .CountAsync(r => r.EmployeeId == request.EmployeeId
-                                 && r.RequestType == EmployeeRequestType.Permission
+                                 && r.RequestTypeId == requestType.Id
                                  && OpenStatuses.Contains(r.Status), cancellationToken);
 
             if (openCount >= branchSetting.MaxOpenRequests.Value)
@@ -142,7 +150,7 @@ public class CreatePermissionRequestCommandHandler
         // Create EmployeeRequest
         var employeeRequest = new EmployeeRequest
         {
-            RequestType = EmployeeRequestType.Permission,
+            RequestTypeId = requestType.Id,
             Status = EmployeeRequestStatus.Pending,
             EmployeeId = request.EmployeeId,
             Title = request.Title.Trim(),
@@ -186,8 +194,8 @@ public class CreatePermissionRequestCommandHandler
         var dto = new EmployeeRequestDto
         {
             Id = employeeRequest.Id,
-            RequestType = employeeRequest.RequestType,
-            RequestTypeName = employeeRequest.RequestType.ToString(),
+            RequestTypeId = requestType.Id,
+            RequestTypeName = requestType.Code,
             Status = employeeRequest.Status,
             EmployeeId = employeeRequest.EmployeeId,
             EmployeeName = $"{employee.FirstNameEn} {employee.LastNameEn}",

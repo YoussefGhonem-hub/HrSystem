@@ -90,8 +90,10 @@ public record PermissionTypeDto
 #region Branch Settings DTO
 public record BranchRequestAvailabilityDto
 {
-    public EmployeeRequestType RequestType { get; init; }
+    public Guid RequestTypeId { get; init; }
+    public string RequestTypeCode { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
+    public string DisplayNameAr { get; init; } = string.Empty;
     public bool IsVisibleToEmployees { get; init; }
     public bool AllowEmployeesToSubmit { get; init; }
     public bool RequireAttachment { get; init; }
@@ -113,7 +115,7 @@ public record BranchRequestAvailabilityDto
 public record EmployeeRequestDto
 {
     public Guid Id { get; init; }
-    public EmployeeRequestType RequestType { get; init; }
+    public Guid RequestTypeId { get; init; }
     public string RequestTypeName { get; init; } = string.Empty;
     public EmployeeRequestStatus Status { get; init; }
     public Guid EmployeeId { get; init; }

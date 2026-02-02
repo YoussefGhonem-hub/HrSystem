@@ -24,7 +24,14 @@ public class EmployeeRequestOptionConfiguration : IEntityTypeConfiguration<Emplo
         builder.Property(o => o.SortOrder)
             .HasDefaultValue(1);
 
-        builder.HasIndex(o => new { o.TenantId, o.RequestType, o.NameEn })
+        builder.Property(o => o.RequestTypeId).IsRequired();
+
+        builder.HasIndex(o => new { o.TenantId, o.RequestTypeId, o.NameEn })
             .IsUnique();
+
+        builder.HasOne(o => o.RequestTypeRef)
+            .WithMany()
+            .HasForeignKey(o => o.RequestTypeId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

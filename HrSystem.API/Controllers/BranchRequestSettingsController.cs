@@ -2,7 +2,6 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.EmployeeRequests.Commands.BranchSettings;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Application.Features.EmployeeRequests.Queries.BranchSettings;
-using HrSystem.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +12,7 @@ namespace HrSystem.API.Controllers;
 /// Controller for managing branch-level request settings.
 /// Controls which request types are available for employees in each branch.
 /// </summary>
-[Authorize(Roles = "Admin,OrganizationAdmin,HRManager")]
+[Authorize(Roles = "SuperAdmin,OrganizationAdmin,HRManager,DepartmentManager")]
 [Route("api/[controller]")]
 public class BranchRequestSettingsController : APIBaseController
 {
@@ -30,9 +29,9 @@ public class BranchRequestSettingsController : APIBaseController
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] Guid? branchId,
-        [FromQuery] EmployeeRequestType? requestType)
+        [FromQuery] Guid? requestTypeId)
     {
-        var result = await _mediator.Send(new GetBranchRequestSettingsQuery(branchId, requestType));
+        var result = await _mediator.Send(new GetBranchRequestSettingsQuery(branchId, requestTypeId));
         return result.Match(Ok, Problem);
     }
 
@@ -64,7 +63,7 @@ public class BranchRequestSettingsController : APIBaseController
     {
         var command = new CreateBranchRequestSettingCommand(
             dto.BranchId,
-            dto.RequestType,
+            dto.RequestTypeId,
             dto.IsVisibleToEmployees,
             dto.AllowEmployeesToSubmit,
             dto.RequireAttachment,

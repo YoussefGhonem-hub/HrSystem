@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -24,6 +23,7 @@ public class GetBranchRequestAvailabilityQueryHandler
     {
         var settings = await _context.BranchRequestSettings
             .AsNoTracking()
+            .Include(s => s.RequestTypeRef)
             .Where(s => s.BranchId == request.BranchId && s.IsVisibleToEmployees)
             .ToListAsync(cancellationToken);
 
@@ -34,10 +34,10 @@ public class GetBranchRequestAvailabilityQueryHandler
                 "No request types configured for this branch.");
         }
 
-        var requestTypes = settings.Select(s => s.RequestType).Distinct().ToList();
+        var requestTypeCodes = settings.Select(s => s.RequestTypeRef?.Code).Where(c => c != null).Distinct().ToList();
 
         // Load type-specific options
-        var vacationTypes = requestTypes.Contains(EmployeeRequestType.Vacation)
+        var vacationTypes = requestTypeCodes.Contains("Vacation")
             ? await _context.VacationTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                 .Select(t => new VacationTypeDto
                 {
@@ -47,7 +47,7 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
-        var overtimeTypes = requestTypes.Contains(EmployeeRequestType.OverTime)
+        var overtimeTypes = requestTypeCodes.Contains("OverTime")
             ? await _context.OvertimeTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                 .Select(t => new OvertimeTypeDto
                 {
@@ -56,7 +56,7 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
-        var trainingTypes = requestTypes.Contains(EmployeeRequestType.Training)
+        var trainingTypes = requestTypeCodes.Contains("Training")
             ? await _context.TrainingTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                 .Select(t => new TrainingTypeDto
                 {
@@ -65,7 +65,7 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
-        var miscellaneousTypes = requestTypes.Contains(EmployeeRequestType.Miscellaneous)
+        var miscellaneousTypes = requestTypeCodes.Contains("Miscellaneous")
             ? await _context.MiscellaneousTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                 .Select(t => new MiscellaneousTypeDto
                 {
@@ -74,7 +74,7 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
-        var personalTypes = requestTypes.Contains(EmployeeRequestType.Personal)
+        var personalTypes = requestTypeCodes.Contains("Personal")
             ? await _context.PersonalTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                 .Select(t => new PersonalTypeDto
                 {
@@ -83,7 +83,7 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
-        var feedbackTypes = requestTypes.Contains(EmployeeRequestType.Feedback)
+        var feedbackTypes = requestTypeCodes.Contains("Feedback")
             ? await _context.FeedbackTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                 .Select(t => new FeedbackTypeDto
                 {
@@ -92,7 +92,7 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
-        var permissionTypes = requestTypes.Contains(EmployeeRequestType.Permission)
+        var permissionTypes = requestTypeCodes.Contains("Permission")
             ? await _context.PermissionTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                 .Select(t => new PermissionTypeDto
                 {
@@ -105,20 +105,22 @@ public class GetBranchRequestAvailabilityQueryHandler
 
         var result = settings.Select(s => new BranchRequestAvailabilityDto
         {
-            RequestType = s.RequestType,
-            DisplayName = s.RequestType.ToString(),
+            RequestTypeId = s.RequestTypeId,
+            RequestTypeCode = s.RequestTypeRef?.Code ?? "",
+            DisplayName = s.RequestTypeRef?.Code ?? "",
+            DisplayNameAr = s.RequestTypeRef?.NameAr ?? "",
             IsVisibleToEmployees = s.IsVisibleToEmployees,
             AllowEmployeesToSubmit = s.AllowEmployeesToSubmit,
             RequireAttachment = s.RequireAttachment,
             MaxOpenRequests = s.MaxOpenRequests,
             CustomInstructions = s.CustomInstructions,
-            VacationTypes = s.RequestType == EmployeeRequestType.Vacation ? vacationTypes : null,
-            OvertimeTypes = s.RequestType == EmployeeRequestType.OverTime ? overtimeTypes : null,
-            TrainingTypes = s.RequestType == EmployeeRequestType.Training ? trainingTypes : null,
-            MiscellaneousTypes = s.RequestType == EmployeeRequestType.Miscellaneous ? miscellaneousTypes : null,
-            PersonalTypes = s.RequestType == EmployeeRequestType.Personal ? personalTypes : null,
-            FeedbackTypes = s.RequestType == EmployeeRequestType.Feedback ? feedbackTypes : null,
-            PermissionTypes = s.RequestType == EmployeeRequestType.Permission ? permissionTypes : null
+            VacationTypes = s.RequestTypeRef?.Code == "Vacation" ? vacationTypes : null,
+            OvertimeTypes = s.RequestTypeRef?.Code == "OverTime" ? overtimeTypes : null,
+            TrainingTypes = s.RequestTypeRef?.Code == "Training" ? trainingTypes : null,
+            MiscellaneousTypes = s.RequestTypeRef?.Code == "Miscellaneous" ? miscellaneousTypes : null,
+            PersonalTypes = s.RequestTypeRef?.Code == "Personal" ? personalTypes : null,
+            FeedbackTypes = s.RequestTypeRef?.Code == "Feedback" ? feedbackTypes : null,
+            PermissionTypes = s.RequestTypeRef?.Code == "Permission" ? permissionTypes : null
         }).ToList();
 
         return GenericResponse<List<BranchRequestAvailabilityDto>>.SuccessResult(result);

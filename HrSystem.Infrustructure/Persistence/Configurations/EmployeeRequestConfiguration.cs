@@ -16,8 +16,10 @@ public class EmployeeRequestConfiguration : IEntityTypeConfiguration<EmployeeReq
         builder.Property(r => r.ManagerComments).HasMaxLength(1000);
         builder.Property(r => r.RejectionReason).HasMaxLength(1000);
 
-        builder.HasIndex(r => new { r.EmployeeId, r.RequestType });
-        builder.HasIndex(r => new { r.BranchId, r.RequestType });
+        builder.Property(r => r.RequestTypeId).IsRequired();
+
+        builder.HasIndex(r => new { r.EmployeeId, r.RequestTypeId });
+        builder.HasIndex(r => new { r.BranchId, r.RequestTypeId });
         builder.HasIndex(r => new { r.TenantId, r.Status });
 
         builder.HasOne(r => r.Employee)
@@ -33,6 +35,11 @@ public class EmployeeRequestConfiguration : IEntityTypeConfiguration<EmployeeReq
         builder.HasOne(r => r.ProcessedByUser)
             .WithMany()
             .HasForeignKey(r => r.ProcessedBy)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(r => r.RequestTypeRef)
+            .WithMany()
+            .HasForeignKey(r => r.RequestTypeId)
             .OnDelete(DeleteBehavior.NoAction);
     }
 }

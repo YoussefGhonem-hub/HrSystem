@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Queries.GetMyEmployeeRequests;
 
-public record GetMyEmployeeRequestsQuery(Guid EmployeeId, EmployeeRequestType? RequestType = null)
+public record GetMyEmployeeRequestsQuery(Guid EmployeeId, string? RequestTypeCode = null)
     : IRequest<ErrorOr<GenericResponse<List<EmployeeRequestDto>>>>;
 
 public class GetMyEmployeeRequestsQueryHandler
@@ -27,11 +27,12 @@ public class GetMyEmployeeRequestsQueryHandler
     {
         var query = _context.EmployeeRequests
             .AsNoTracking()
+            .Include(r => r.RequestTypeRef)
             .Where(r => r.EmployeeId == request.EmployeeId);
 
-        if (request.RequestType.HasValue)
+        if (!string.IsNullOrEmpty(request.RequestTypeCode))
         {
-            query = query.Where(r => r.RequestType == request.RequestType.Value);
+            query = query.Where(r => r.RequestTypeRef != null && r.RequestTypeRef.Code == request.RequestTypeCode);
         }
 
         var items = await query
@@ -42,8 +43,8 @@ public class GetMyEmployeeRequestsQueryHandler
         var dtos = items.Select(r => new EmployeeRequestDto
         {
             Id = r.Id,
-            RequestType = r.RequestType,
-            RequestTypeName = r.RequestType.ToString(),
+            RequestTypeId = r.RequestTypeId,
+            RequestTypeName = r.RequestTypeRef?.Code ?? "",
             Status = r.Status,
             EmployeeId = r.EmployeeId,
             BranchId = r.BranchId,

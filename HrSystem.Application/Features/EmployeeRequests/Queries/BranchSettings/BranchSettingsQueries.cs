@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
-using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -11,7 +10,7 @@ namespace HrSystem.Application.Features.EmployeeRequests.Queries.BranchSettings;
 #region Get All Branch Request Settings
 public record GetBranchRequestSettingsQuery(
     Guid? BranchId = null,
-    EmployeeRequestType? RequestType = null
+    Guid? RequestTypeId = null
 ) : IRequest<ErrorOr<GenericResponse<List<BranchRequestSettingDetailDto>>>>;
 
 public class GetBranchRequestSettingsQueryHandler : IRequestHandler<GetBranchRequestSettingsQuery, ErrorOr<GenericResponse<List<BranchRequestSettingDetailDto>>>>
@@ -29,17 +28,18 @@ public class GetBranchRequestSettingsQueryHandler : IRequestHandler<GetBranchReq
     {
         var query = _context.BranchRequestSettings
             .Include(s => s.Branch)
+            .Include(s => s.RequestTypeRef)
             .AsQueryable();
 
         if (request.BranchId.HasValue)
             query = query.Where(s => s.BranchId == request.BranchId.Value);
 
-        if (request.RequestType.HasValue)
-            query = query.Where(s => s.RequestType == request.RequestType.Value);
+        if (request.RequestTypeId.HasValue)
+            query = query.Where(s => s.RequestTypeId == request.RequestTypeId.Value);
 
         var entities = await query
             .OrderBy(s => s.Branch!.NameEn)
-            .ThenBy(s => s.RequestType)
+            .ThenBy(s => s.RequestTypeRef != null ? s.RequestTypeRef.SortOrder : 0)
             .ToListAsync(cancellationToken);
 
         var dtos = entities.Select(e => new BranchRequestSettingDetailDto
@@ -47,8 +47,8 @@ public class GetBranchRequestSettingsQueryHandler : IRequestHandler<GetBranchReq
             Id = e.Id,
             BranchId = e.BranchId ?? Guid.Empty,
             BranchName = e.Branch?.NameEn,
-            RequestType = e.RequestType,
-            RequestTypeName = e.RequestType.ToString(),
+            RequestTypeId = e.RequestTypeId,
+            RequestTypeName = e.RequestTypeRef?.Code ?? "",
             IsVisibleToEmployees = e.IsVisibleToEmployees,
             AllowEmployeesToSubmit = e.AllowEmployeesToSubmit,
             RequireAttachment = e.RequireAttachment,
@@ -81,6 +81,7 @@ public class GetBranchRequestSettingByIdQueryHandler : IRequestHandler<GetBranch
     {
         var entity = await _context.BranchRequestSettings
             .Include(s => s.Branch)
+            .Include(s => s.RequestTypeRef)
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
         if (entity == null)
@@ -91,8 +92,8 @@ public class GetBranchRequestSettingByIdQueryHandler : IRequestHandler<GetBranch
             Id = entity.Id,
             BranchId = entity.BranchId ?? Guid.Empty,
             BranchName = entity.Branch?.NameEn,
-            RequestType = entity.RequestType,
-            RequestTypeName = entity.RequestType.ToString(),
+            RequestTypeId = entity.RequestTypeId,
+            RequestTypeName = entity.RequestTypeRef?.Code ?? "",
             IsVisibleToEmployees = entity.IsVisibleToEmployees,
             AllowEmployeesToSubmit = entity.AllowEmployeesToSubmit,
             RequireAttachment = entity.RequireAttachment,
@@ -132,7 +133,7 @@ public class GetBranchesWithoutSettingsQueryHandler : IRequestHandler<GetBranche
         GetBranchesWithoutSettingsQuery request,
         CancellationToken cancellationToken)
     {
-        var totalRequestTypes = Enum.GetValues<EmployeeRequestType>().Length;
+        var totalRequestTypes = await _context.RequestTypes.CountAsync(rt => rt.IsActive, cancellationToken);
 
         var branches = await _context.Branches
             .Include(b => b.RequestSettings)

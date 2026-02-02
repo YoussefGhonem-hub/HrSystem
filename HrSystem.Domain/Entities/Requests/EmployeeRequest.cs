@@ -10,7 +10,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// </summary>
 public class EmployeeRequest : BaseAuditableEntity
 {
-    public EmployeeRequestType RequestType { get; set; }
+    public Guid RequestTypeId { get; set; }
     public EmployeeRequestStatus Status { get; set; } = EmployeeRequestStatus.Pending;
 
     public Guid EmployeeId { get; set; }
@@ -38,6 +38,7 @@ public class EmployeeRequest : BaseAuditableEntity
     public virtual Employee.Employee Employee { get; set; } = null!;
     public virtual ApplicationUser? ApprovedByUser { get; set; }
     public virtual ApplicationUser? ProcessedByUser { get; set; }
+    public virtual RequestType? RequestTypeRef { get; set; }
 
     // Type-specific detail entities (one-to-one, based on RequestType)
     public virtual VacationRequestDetail? VacationDetail { get; set; }
