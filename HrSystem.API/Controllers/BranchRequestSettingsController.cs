@@ -56,24 +56,14 @@ public class BranchRequestSettingsController : APIBaseController
     }
 
     /// <summary>
-    /// Create a single branch request setting
+    /// Create multiple branch request settings
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateBranchRequestSettingDto dto)
+    public async Task<IActionResult> Create([FromBody] List<CreateBranchRequestSettingDto> dtos)
     {
-        var command = new CreateBranchRequestSettingCommand(
-            dto.BranchId,
-            dto.RequestTypeId,
-            dto.IsVisibleToEmployees,
-            dto.AllowEmployeesToSubmit,
-            dto.RequireAttachment,
-            dto.MaxOpenRequests,
-            dto.CustomInstructions);
-
+        var command = new CreateBranchRequestSettingsCommand(dtos);
         var result = await _mediator.Send(command);
-        return result.Match(
-            response => CreatedAtAction(nameof(GetById), new { id = response.Data!.Id }, response),
-            Problem);
+        return result.Match(Ok, Problem);
     }
 
     /// <summary>

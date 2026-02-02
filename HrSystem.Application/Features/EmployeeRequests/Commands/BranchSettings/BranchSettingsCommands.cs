@@ -19,6 +19,10 @@ public record CreateBranchRequestSettingCommand(
     string? CustomInstructions
 ) : IRequest<ErrorOr<GenericResponse<BranchRequestSettingDetailDto>>>;
 
+public record CreateBranchRequestSettingsCommand(
+    List<CreateBranchRequestSettingDto> Settings
+) : IRequest<ErrorOr<GenericResponse<List<BranchRequestSettingDetailDto>>>>;
+
 public class CreateBranchRequestSettingCommandHandler : IRequestHandler<CreateBranchRequestSettingCommand, ErrorOr<GenericResponse<BranchRequestSettingDetailDto>>>
 {
     private readonly ApplicationDbContext _context;
@@ -81,6 +85,134 @@ public class CreateBranchRequestSettingCommandHandler : IRequestHandler<CreateBr
         };
 
         return GenericResponse<BranchRequestSettingDetailDto>.SuccessResult(dto, "Branch request setting created successfully");
+    }
+}
+
+public class CreateBranchRequestSettingsCommandHandler : IRequestHandler<CreateBranchRequestSettingsCommand, ErrorOr<GenericResponse<List<BranchRequestSettingDetailDto>>>>
+{
+    private readonly ApplicationDbContext _context;
+
+    public CreateBranchRequestSettingsCommandHandler(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<ErrorOr<GenericResponse<List<BranchRequestSettingDetailDto>>>> Handle(
+        CreateBranchRequestSettingsCommand request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Settings == null || !request.Settings.Any())
+            return Error.Validation(description: "At least one setting is required.");
+
+        var createdSettings = new List<BranchRequestSettingDetailDto>();
+        var errors = new List<string>();
+
+        // Get all unique branch IDs and validate them
+        var branchIds = request.Settings.Select(s => s.BranchId).Distinct().ToList();
+        var branches = await _context.Branches
+            .Where(b => branchIds.Contains(b.Id))
+            .ToDictionaryAsync(b => b.Id, cancellationToken);
+
+        // Get all unique request type IDs and validate them
+        var requestTypeIds = request.Settings.Select(s => s.RequestTypeId).Distinct().ToList();
+        var requestTypes = await _context.RequestTypes
+            .Where(rt => requestTypeIds.Contains(rt.Id))
+            .ToDictionaryAsync(rt => rt.Id, cancellationToken);
+
+        // Get existing settings to check for duplicates
+        var existingSettings = await _context.BranchRequestSettings
+            .Where(s => branchIds.Contains(s.BranchId ?? Guid.Empty))
+            .Select(s => new { s.BranchId, s.RequestTypeId })
+            .ToListAsync(cancellationToken);
+
+        var existingSet = existingSettings
+            .Select(s => (s.BranchId, s.RequestTypeId))
+            .ToHashSet();
+
+        var entitiesToAdd = new List<BranchRequestSetting>();
+
+        foreach (var dto in request.Settings)
+        {
+            // Validate branch
+            if (!branches.TryGetValue(dto.BranchId, out var branch))
+            {
+                errors.Add($"Branch with ID {dto.BranchId} not found.");
+                continue;
+            }
+
+            // Validate request type
+            if (!requestTypes.TryGetValue(dto.RequestTypeId, out var requestType))
+            {
+                errors.Add($"Request type with ID {dto.RequestTypeId} not found.");
+                continue;
+            }
+
+            // Check for duplicates
+            if (existingSet.Contains((dto.BranchId, dto.RequestTypeId)))
+            {
+                errors.Add($"Setting for branch '{branch.NameEn}' and request type '{requestType.Code}' already exists.");
+                continue;
+            }
+
+            // Add to set to prevent duplicates within the same request
+            if (!existingSet.Add((dto.BranchId, dto.RequestTypeId)))
+            {
+                errors.Add($"Duplicate setting for branch '{branch.NameEn}' and request type '{requestType.Code}' in request.");
+                continue;
+            }
+
+            var entity = new BranchRequestSetting
+            {
+                BranchId = dto.BranchId,
+                RequestTypeId = dto.RequestTypeId,
+                IsVisibleToEmployees = dto.IsVisibleToEmployees,
+                AllowEmployeesToSubmit = dto.AllowEmployeesToSubmit,
+                RequireAttachment = dto.RequireAttachment,
+                MaxOpenRequests = dto.MaxOpenRequests,
+                CustomInstructions = dto.CustomInstructions,
+                TenantId = branch.TenantId,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            entitiesToAdd.Add(entity);
+        }
+
+        if (entitiesToAdd.Any())
+        {
+            _context.BranchRequestSettings.AddRange(entitiesToAdd);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            foreach (var entity in entitiesToAdd)
+            {
+                branches.TryGetValue(entity.BranchId ?? Guid.Empty, out var branch);
+                requestTypes.TryGetValue(entity.RequestTypeId, out var requestType);
+
+                createdSettings.Add(new BranchRequestSettingDetailDto
+                {
+                    Id = entity.Id,
+                    BranchId = entity.BranchId ?? Guid.Empty,
+                    BranchName = branch?.NameEn,
+                    RequestTypeId = entity.RequestTypeId,
+                    RequestTypeName = requestType?.Code ?? "",
+                    IsVisibleToEmployees = entity.IsVisibleToEmployees,
+                    AllowEmployeesToSubmit = entity.AllowEmployeesToSubmit,
+                    RequireAttachment = entity.RequireAttachment,
+                    MaxOpenRequests = entity.MaxOpenRequests,
+                    CustomInstructions = entity.CustomInstructions,
+                    CreatedDate = entity.CreatedDate,
+                    ModifiedDate = entity.ModifiedDate
+                });
+            }
+        }
+
+        if (errors.Any() && !createdSettings.Any())
+            return Error.Validation(description: string.Join(" ", errors));
+
+        var message = $"{createdSettings.Count} branch request setting(s) created successfully.";
+        if (errors.Any())
+            message += $" {errors.Count} setting(s) skipped: {string.Join(" ", errors)}";
+
+        return GenericResponse<List<BranchRequestSettingDetailDto>>.SuccessResult(createdSettings, message);
     }
 }
 #endregion
