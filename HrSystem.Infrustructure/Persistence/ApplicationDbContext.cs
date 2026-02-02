@@ -1,6 +1,7 @@
 using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Domain.Entities.Organization;
+using HrSystem.Domain.Entities.Requests;
 using HrSystem.Infrustructure.Extensions;
 using HrSystem.Shared.CurrentUser;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -93,6 +94,29 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<HrSystem.Domain.Entities.Organization.OrganizationInvoice> OrganizationInvoices => Set<HrSystem.Domain.Entities.Organization.OrganizationInvoice>();
     public DbSet<HrSystem.Domain.Entities.Organization.InvoiceStatus> InvoiceStatuses => Set<HrSystem.Domain.Entities.Organization.InvoiceStatus>();
     public DbSet<HrSystem.Domain.Entities.Organization.OrganizationInvoiceItem> OrganizationInvoiceItems => Set<HrSystem.Domain.Entities.Organization.OrganizationInvoiceItem>();
+
+    // Employee Self-Service Requests
+    public DbSet<EmployeeRequest> EmployeeRequests => Set<EmployeeRequest>();
+    public DbSet<BranchRequestSetting> BranchRequestSettings => Set<BranchRequestSetting>();
+    public DbSet<RequestType> RequestTypes => Set<RequestType>();
+    
+    // Request Type Masters
+    public DbSet<VacationType> VacationTypes => Set<VacationType>();
+    public DbSet<OvertimeType> OvertimeTypes => Set<OvertimeType>();
+    public DbSet<TrainingType> TrainingTypes => Set<TrainingType>();
+    public DbSet<MiscellaneousType> MiscellaneousTypes => Set<MiscellaneousType>();
+    public DbSet<PersonalType> PersonalTypes => Set<PersonalType>();
+    public DbSet<FeedbackType> FeedbackTypes => Set<FeedbackType>();
+    public DbSet<PermissionType> PermissionTypes => Set<PermissionType>();
+    
+    // Request Details
+    public DbSet<VacationRequestDetail> VacationRequestDetails => Set<VacationRequestDetail>();
+    public DbSet<OvertimeRequestDetail> OvertimeRequestDetails => Set<OvertimeRequestDetail>();
+    public DbSet<TrainingRequestDetail> TrainingRequestDetails => Set<TrainingRequestDetail>();
+    public DbSet<MiscellaneousRequestDetail> MiscellaneousRequestDetails => Set<MiscellaneousRequestDetail>();
+    public DbSet<PersonalRequestDetail> PersonalRequestDetails => Set<PersonalRequestDetail>();
+    public DbSet<FeedbackRequestDetail> FeedbackRequestDetails => Set<FeedbackRequestDetail>();
+    public DbSet<PermissionRequestDetail> PermissionRequestDetails => Set<PermissionRequestDetail>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Shared.Common;
 using MediatR;
 
@@ -12,4 +13,7 @@ public record LoginResponse(
     string UserId,
     string FullName,
     string Email,
-    List<string> Roles);
+    List<string> Roles,
+    Guid? BranchId,
+    Guid? EmployeeId,
+    List<BranchRequestAvailabilityDto> BranchRequestAccess);

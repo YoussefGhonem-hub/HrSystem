@@ -14,7 +14,7 @@ public class LeaveRequestConfiguration : IEntityTypeConfiguration<LeaveRequest>
         builder.Property(l => l.Reason).IsRequired().HasMaxLength(500);
 
         builder.HasOne(l => l.Employee)
-            .WithMany(e => e.LeaveRequests)
+            .WithMany()
             .HasForeignKey(l => l.EmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
 
