@@ -7,7 +7,8 @@ public record BranchListDto
     public Guid Id { get; init; }
     public string NameEn { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
-    public Country Country { get; init; }
+    public Guid CountryId { get; init; }
+    public string? CountryName { get; init; }
     public string? City { get; init; }
     public bool IsHeadquarter { get; init; }
     public bool IsActive { get; init; }

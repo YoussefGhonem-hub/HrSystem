@@ -20,6 +20,7 @@ public record OrganizationInput(
     string NameAr,
     string NameEn,
     string Code,
+    string? Industry,
     Guid? SubscriptionPlanId,
     string? LogoUrl,
     string? CommercialRegistrationNumber,
@@ -36,6 +37,7 @@ public record OrganizationInput(
     string? TimeZone,
     string? Currency,
     string? WeekStartDay,
+    string? DefaultLanguage,
     bool IsTrialPeriod = false,
     int TrialDays = 0
 );
@@ -143,12 +145,16 @@ public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateO
         }
 
         var now = DateTime.UtcNow;
+        var organizationId = Guid.NewGuid();
+
         var organization = new Organization
         {
-            Id = Guid.NewGuid(),
+            Id = organizationId,
+            TenantId = organizationId,
             Code = request.Organization.Code,
             NameAr = request.Organization.NameAr,
             NameEn = request.Organization.NameEn,
+            Industry = request.Organization.Industry,
             LogoUrl = request.Organization.LogoUrl,
             CommercialRegistrationNumber = request.Organization.CommercialRegistrationNumber,
             TaxRegistrationNumber = request.Organization.TaxRegistrationNumber,
@@ -169,7 +175,8 @@ public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateO
             TrialEndDate = request.Organization.TrialDays > 0 ? now.AddDays(request.Organization.TrialDays) : null,
             TimeZone = request.Organization.TimeZone ?? "Egypt Standard Time",
             Currency = request.Organization.Currency ?? "EGP",
-            WeekStartDay = request.Organization.WeekStartDay
+            WeekStartDay = request.Organization.WeekStartDay,
+            DefaultLanguage = request.Organization.DefaultLanguage ?? "en"
         };
 
         var branchCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

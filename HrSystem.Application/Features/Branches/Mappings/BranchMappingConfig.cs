@@ -15,6 +15,8 @@ public class BranchMappingConfig : IRegister
             .Map(dest => dest.DepartmentCount, src => src.Departments.Count);
 
         config.NewConfig<Branch, BranchListDto>()
-            .Map(dest => dest.EmployeeCount, src => src.Employees.Count);
+            .Map(dest => dest.EmployeeCount, src => src.Employees.Count)
+            .Map(dest => dest.CountryId, src => src.CountryId)
+            .Map(dest => dest.CountryName, src => src.Country.NameEn);
     }
 }

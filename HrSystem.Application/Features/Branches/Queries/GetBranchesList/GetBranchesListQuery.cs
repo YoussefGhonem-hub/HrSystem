@@ -2,7 +2,6 @@ using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using Mapster;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,12 +35,22 @@ public class GetBranchesListQueryHandler : IRequestHandler<GetBranchesListQuery,
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var branches = await query
+        var branchDtos = await query
             .ApplySorting(request.SortBy, request.SortDescending)
             .ApplyPaging(request.PageNumber, request.PageSize)
+            .Select(b => new BranchListDto
+            {
+                Id = b.Id,
+                NameEn = b.NameEn,
+                Code = b.Code,
+                CountryId = b.CountryId,
+                CountryName = b.Country.NameEn,
+                City = b.City,
+                IsHeadquarter = b.IsHeadquarter,
+                IsActive = b.IsActive,
+                EmployeeCount = b.Employees.Count
+            })
             .ToListAsync(cancellationToken);
-
-        var branchDtos = branches.Adapt<List<BranchListDto>>();
 
         var pagedResult = new PagedResult<BranchListDto>
         {
