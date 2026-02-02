@@ -4932,6 +4932,12 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<DateTimeOffset?>("ModifiedDate")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<Guid?>("ProcessedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ProcessedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -4963,6 +4969,8 @@ namespace HrSystem.Infrustructure.Migrations
                     b.HasIndex("EmployeeRequestOptionId");
 
                     b.HasIndex("IsDeleted");
+
+                    b.HasIndex("ProcessedBy");
 
                     b.HasIndex("BranchId", "RequestType");
 
@@ -5498,6 +5506,184 @@ namespace HrSystem.Infrustructure.Migrations
                     b.ToTable("OvertimeTypes", "Requests");
                 });
 
+            modelBuilder.Entity("HrSystem.Domain.Entities.Requests.PermissionRequestDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("EmployeeRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<TimeSpan?>("FromTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("LeaveDeduction")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid?>("LeavePolicyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ManagerApprovalDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ManagerComments")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("ManagerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ModifiedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTime>("PermissionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PermissionTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<TimeSpan?>("ToTime")
+                        .HasColumnType("time");
+
+                    b.Property<decimal>("TotalHours")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeRequestId")
+                        .IsUnique();
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("LeavePolicyId");
+
+                    b.HasIndex("ManagerId");
+
+                    b.HasIndex("PermissionTypeId");
+
+                    b.ToTable("PermissionRequestDetails", "Requests");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Requests.PermissionType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("DeductsFromLeave")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("HoursPerLeaveDay")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("MaxHoursPerMonth")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("MaxHoursPerRequest")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ModifiedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("RequiresAttachment")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RequiresManagerApproval")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("TenantId", "NameEn")
+                        .IsUnique();
+
+                    b.ToTable("PermissionTypes", "Requests");
+                });
+
             modelBuilder.Entity("HrSystem.Domain.Entities.Requests.PersonalRequestDetail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5844,8 +6030,24 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Property<Guid>("EmployeeRequestId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("HRApprovalDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("HRApprovedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("HRComments")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<Guid?>("LeavePolicyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("LeaveTypeId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("ManagerApprovalDate")
                         .HasColumnType("datetime2");
@@ -5883,6 +6085,10 @@ namespace HrSystem.Infrustructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("IsDeleted");
+
+                    b.HasIndex("LeavePolicyId");
+
+                    b.HasIndex("LeaveTypeId");
 
                     b.HasIndex("ManagerId");
 
@@ -6350,7 +6556,7 @@ namespace HrSystem.Infrustructure.Migrations
             modelBuilder.Entity("HrSystem.Domain.Entities.Leave.LeaveRequest", b =>
                 {
                     b.HasOne("HrSystem.Domain.Entities.Employee.Employee", "Employee")
-                        .WithMany("LeaveRequests")
+                        .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -6797,7 +7003,7 @@ namespace HrSystem.Infrustructure.Migrations
                     b.HasOne("HrSystem.Domain.Entities.Account.ApplicationUser", "ApprovedByUser")
                         .WithMany()
                         .HasForeignKey("ApprovedBy")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("HrSystem.Domain.Entities.Employee.Employee", "Employee")
                         .WithMany("EmployeeRequests")
@@ -6809,9 +7015,16 @@ namespace HrSystem.Infrustructure.Migrations
                         .WithMany("Requests")
                         .HasForeignKey("EmployeeRequestOptionId");
 
+                    b.HasOne("HrSystem.Domain.Entities.Account.ApplicationUser", "ProcessedByUser")
+                        .WithMany()
+                        .HasForeignKey("ProcessedBy")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("Employee");
+
+                    b.Navigation("ProcessedByUser");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Requests.FeedbackRequestDetail", b =>
@@ -6871,6 +7084,39 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Navigation("OvertimeType");
                 });
 
+            modelBuilder.Entity("HrSystem.Domain.Entities.Requests.PermissionRequestDetail", b =>
+                {
+                    b.HasOne("HrSystem.Domain.Entities.Requests.EmployeeRequest", "EmployeeRequest")
+                        .WithOne("PermissionDetail")
+                        .HasForeignKey("HrSystem.Domain.Entities.Requests.PermissionRequestDetail", "EmployeeRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HrSystem.Domain.Entities.Leave.LeavePolicy", "LeavePolicy")
+                        .WithMany()
+                        .HasForeignKey("LeavePolicyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HrSystem.Domain.Entities.Employee.Employee", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HrSystem.Domain.Entities.Requests.PermissionType", "PermissionType")
+                        .WithMany("PermissionRequests")
+                        .HasForeignKey("PermissionTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EmployeeRequest");
+
+                    b.Navigation("LeavePolicy");
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("PermissionType");
+                });
+
             modelBuilder.Entity("HrSystem.Domain.Entities.Requests.PersonalRequestDetail", b =>
                 {
                     b.HasOne("HrSystem.Domain.Entities.Requests.EmployeeRequest", "EmployeeRequest")
@@ -6917,6 +7163,16 @@ namespace HrSystem.Infrustructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("HrSystem.Domain.Entities.Leave.LeavePolicy", "LeavePolicy")
+                        .WithMany()
+                        .HasForeignKey("LeavePolicyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HrSystem.Domain.Entities.Leave.LeaveType", "LeaveType")
+                        .WithMany()
+                        .HasForeignKey("LeaveTypeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("HrSystem.Domain.Entities.Employee.Employee", "Manager")
                         .WithMany()
                         .HasForeignKey("ManagerId")
@@ -6929,6 +7185,10 @@ namespace HrSystem.Infrustructure.Migrations
                         .IsRequired();
 
                     b.Navigation("EmployeeRequest");
+
+                    b.Navigation("LeavePolicy");
+
+                    b.Navigation("LeaveType");
 
                     b.Navigation("Manager");
 
@@ -7031,8 +7291,6 @@ namespace HrSystem.Infrustructure.Migrations
                     b.Navigation("EmployeeRequests");
 
                     b.Navigation("LeaveBalances");
-
-                    b.Navigation("LeaveRequests");
 
                     b.Navigation("PerformanceReviews");
 
@@ -7199,6 +7457,8 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.Navigation("OvertimeDetail");
 
+                    b.Navigation("PermissionDetail");
+
                     b.Navigation("PersonalDetail");
 
                     b.Navigation("TrainingDetail");
@@ -7224,6 +7484,11 @@ namespace HrSystem.Infrustructure.Migrations
             modelBuilder.Entity("HrSystem.Domain.Entities.Requests.OvertimeType", b =>
                 {
                     b.Navigation("OvertimeRequests");
+                });
+
+            modelBuilder.Entity("HrSystem.Domain.Entities.Requests.PermissionType", b =>
+                {
+                    b.Navigation("PermissionRequests");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Requests.PersonalType", b =>

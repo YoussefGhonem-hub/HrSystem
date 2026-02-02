@@ -13,9 +13,14 @@ public class PermissionType : BaseAuditableEntity
     public string? Description { get; set; }
     
     /// <summary>
-    /// Maximum allowed hours for this permission type
+    /// Maximum allowed hours per single permission request
     /// </summary>
-    public decimal? MaxHours { get; set; }
+    public decimal? MaxHoursPerRequest { get; set; }
+    
+    /// <summary>
+    /// Maximum allowed hours per month for this permission type
+    /// </summary>
+    public decimal? MaxHoursPerMonth { get; set; }
     
     /// <summary>
     /// Whether this permission deducts from leave balance

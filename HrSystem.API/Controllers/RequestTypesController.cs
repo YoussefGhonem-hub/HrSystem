@@ -2,6 +2,7 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.EmployeeRequests.Commands.FeedbackTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.MiscellaneousTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.OvertimeTypes;
+using HrSystem.Application.Features.EmployeeRequests.Commands.PermissionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.PersonalTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.TrainingTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.VacationTypes;
@@ -9,6 +10,7 @@ using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Application.Features.EmployeeRequests.Queries.FeedbackTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.MiscellaneousTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.OvertimeTypes;
+using HrSystem.Application.Features.EmployeeRequests.Queries.PermissionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.PersonalTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.TrainingTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.VacationTypes;
@@ -20,9 +22,9 @@ namespace HrSystem.API.Controllers;
 
 /// <summary>
 /// Controller for managing request type master data (VacationType, OvertimeType, TrainingType, etc.)
-/// Admin/HR only operations for CRUD on dropdown options.
+/// SuperAdmin only operations for CRUD on dropdown options.
 /// </summary>
-[Authorize(Roles = "Admin,OrganizationAdmin,HRManager")]
+[Authorize(Roles = "SuperAdmin")]
 [Route("api/[controller]")]
 public class RequestTypesController : APIBaseController
 {
@@ -437,6 +439,78 @@ public class RequestTypesController : APIBaseController
     public async Task<IActionResult> DeleteFeedbackType(Guid id)
     {
         var result = await _mediator.Send(new DeleteFeedbackTypeCommand(id));
+        return result.Match(Ok, Problem);
+    }
+    #endregion
+
+    #region PermissionType CRUD
+    /// <summary>
+    /// Get all permission types (for leave early, come late, short absence requests)
+    /// </summary>
+    [HttpGet("permission")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPermissionTypes([FromQuery] bool? isActive, [FromQuery] string? searchTerm)
+    {
+        var result = await _mediator.Send(new GetPermissionTypesQuery(isActive, searchTerm));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get permission type by ID
+    /// </summary>
+    [HttpGet("permission/{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPermissionTypeById(Guid id)
+    {
+        var result = await _mediator.Send(new GetPermissionTypeByIdQuery(id));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Create a new permission type
+    /// </summary>
+    [HttpPost("permission")]
+    public async Task<IActionResult> CreatePermissionType([FromBody] CreatePermissionTypeDto dto)
+    {
+        var command = new CreatePermissionTypeCommand(
+            dto.NameAr, dto.NameEn, dto.Description,
+            dto.MaxHoursPerRequest, dto.MaxHoursPerMonth,
+            dto.DeductsFromLeave, dto.HoursPerLeaveDay,
+            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.IsActive, dto.SortOrder);
+
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => CreatedAtAction(nameof(GetPermissionTypeById), new { id = response.Data!.Id }, response),
+            Problem);
+    }
+
+    /// <summary>
+    /// Update an existing permission type
+    /// </summary>
+    [HttpPut("permission/{id:guid}")]
+    public async Task<IActionResult> UpdatePermissionType(Guid id, [FromBody] UpdatePermissionTypeDto dto)
+    {
+        if (id != dto.Id) return BadRequest("ID mismatch");
+
+        var command = new UpdatePermissionTypeCommand(
+            dto.Id, dto.NameAr, dto.NameEn, dto.Description,
+            dto.MaxHoursPerRequest, dto.MaxHoursPerMonth,
+            dto.DeductsFromLeave, dto.HoursPerLeaveDay,
+            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.IsActive, dto.SortOrder);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Delete (soft) a permission type
+    /// </summary>
+    [HttpDelete("permission/{id:guid}")]
+    public async Task<IActionResult> DeletePermissionType(Guid id)
+    {
+        var result = await _mediator.Send(new DeletePermissionTypeCommand(id));
         return result.Match(Ok, Problem);
     }
     #endregion

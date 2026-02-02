@@ -197,6 +197,46 @@ public record FeedbackTypeDetailDto
 }
 #endregion
 
+#region PermissionType DTOs
+public record CreatePermissionTypeDto : CreateRequestTypeMasterDto
+{
+    public decimal? MaxHoursPerRequest { get; init; }
+    public decimal? MaxHoursPerMonth { get; init; }
+    public bool DeductsFromLeave { get; init; }
+    public decimal? HoursPerLeaveDay { get; init; } = 8;
+    public bool RequiresAttachment { get; init; }
+    public bool RequiresManagerApproval { get; init; } = true;
+}
+
+public record UpdatePermissionTypeDto : UpdateRequestTypeMasterDto
+{
+    public decimal? MaxHoursPerRequest { get; init; }
+    public decimal? MaxHoursPerMonth { get; init; }
+    public bool DeductsFromLeave { get; init; }
+    public decimal? HoursPerLeaveDay { get; init; } = 8;
+    public bool RequiresAttachment { get; init; }
+    public bool RequiresManagerApproval { get; init; } = true;
+}
+
+public record PermissionTypeDetailDto
+{
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public decimal? MaxHoursPerRequest { get; init; }
+    public decimal? MaxHoursPerMonth { get; init; }
+    public bool DeductsFromLeave { get; init; }
+    public decimal? HoursPerLeaveDay { get; init; }
+    public bool RequiresAttachment { get; init; }
+    public bool RequiresManagerApproval { get; init; }
+    public bool IsActive { get; init; }
+    public int SortOrder { get; init; }
+    public DateTimeOffset CreatedDate { get; init; }
+    public DateTimeOffset? ModifiedDate { get; init; }
+}
+#endregion
+
 #region Branch Settings DTOs
 public record BranchRequestSettingDetailDto
 {

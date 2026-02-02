@@ -28,11 +28,11 @@ public class EmployeeRequestConfiguration : IEntityTypeConfiguration<EmployeeReq
         builder.HasOne(r => r.ApprovedByUser)
             .WithMany()
             .HasForeignKey(r => r.ApprovedBy)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne(r => r.ProcessedByUser)
             .WithMany()
             .HasForeignKey(r => r.ProcessedBy)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

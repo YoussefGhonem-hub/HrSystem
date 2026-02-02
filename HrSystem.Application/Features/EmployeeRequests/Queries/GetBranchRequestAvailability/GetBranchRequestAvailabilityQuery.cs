@@ -92,6 +92,17 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
+        var permissionTypes = requestTypes.Contains(EmployeeRequestType.Permission)
+            ? await _context.PermissionTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
+                .Select(t => new PermissionTypeDto
+                {
+                    Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
+                    MaxHoursPerRequest = t.MaxHoursPerRequest, MaxHoursPerMonth = t.MaxHoursPerMonth,
+                    DeductsFromLeave = t.DeductsFromLeave, HoursPerLeaveDay = t.HoursPerLeaveDay,
+                    RequiresAttachment = t.RequiresAttachment, RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
+                }).ToListAsync(cancellationToken)
+            : null;
+
         var result = settings.Select(s => new BranchRequestAvailabilityDto
         {
             RequestType = s.RequestType,
@@ -106,7 +117,8 @@ public class GetBranchRequestAvailabilityQueryHandler
             TrainingTypes = s.RequestType == EmployeeRequestType.Training ? trainingTypes : null,
             MiscellaneousTypes = s.RequestType == EmployeeRequestType.Miscellaneous ? miscellaneousTypes : null,
             PersonalTypes = s.RequestType == EmployeeRequestType.Personal ? personalTypes : null,
-            FeedbackTypes = s.RequestType == EmployeeRequestType.Feedback ? feedbackTypes : null
+            FeedbackTypes = s.RequestType == EmployeeRequestType.Feedback ? feedbackTypes : null,
+            PermissionTypes = s.RequestType == EmployeeRequestType.Permission ? permissionTypes : null
         }).ToList();
 
         return GenericResponse<List<BranchRequestAvailabilityDto>>.SuccessResult(result);

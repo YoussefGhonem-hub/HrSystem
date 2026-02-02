@@ -608,6 +608,7 @@ public static class AppDbContextSeed
                 NameEn = deptData.NameEn,
                 Description = deptData.Description,
                 BranchId = headquarter?.Id, // Assign to headquarter by default
+                OrganizationId = organization.Id,
                 TenantId = organization.Id,
                 CreatedDate = DateTimeOffset.UtcNow
             };
@@ -648,6 +649,7 @@ public static class AppDbContextSeed
                 Level = titleData.Level,
                 MinSalary = titleData.MinSalary,
                 MaxSalary = titleData.MaxSalary,
+                OrganizationId = organization.Id,
                 TenantId = organization.Id,
                 BranchId = defaultBranchId.Value,
                 CreatedDate = DateTimeOffset.UtcNow

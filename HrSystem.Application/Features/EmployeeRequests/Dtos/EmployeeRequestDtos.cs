@@ -70,6 +70,21 @@ public record FeedbackTypeDto
     public bool RequiresManagerApproval { get; init; }
     public int SortOrder { get; init; }
 }
+
+public record PermissionTypeDto
+{
+    public Guid Id { get; init; }
+    public string NameEn { get; init; } = string.Empty;
+    public string NameAr { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public decimal? MaxHoursPerRequest { get; init; }
+    public decimal? MaxHoursPerMonth { get; init; }
+    public bool DeductsFromLeave { get; init; }
+    public decimal? HoursPerLeaveDay { get; init; }
+    public bool RequiresAttachment { get; init; }
+    public bool RequiresManagerApproval { get; init; }
+    public int SortOrder { get; init; }
+}
 #endregion
 
 #region Branch Settings DTO
@@ -90,6 +105,7 @@ public record BranchRequestAvailabilityDto
     public IReadOnlyCollection<MiscellaneousTypeDto>? MiscellaneousTypes { get; init; }
     public IReadOnlyCollection<PersonalTypeDto>? PersonalTypes { get; init; }
     public IReadOnlyCollection<FeedbackTypeDto>? FeedbackTypes { get; init; }
+    public IReadOnlyCollection<PermissionTypeDto>? PermissionTypes { get; init; }
 }
 #endregion
 
@@ -123,6 +139,7 @@ public record EmployeeRequestDto
     public MiscellaneousDetailDto? MiscellaneousDetail { get; init; }
     public PersonalDetailDto? PersonalDetail { get; init; }
     public FeedbackDetailDto? FeedbackDetail { get; init; }
+    public PermissionDetailDto? PermissionDetail { get; init; }
 }
 #endregion
 
@@ -213,6 +230,23 @@ public record FeedbackDetailDto
     public bool ResponseRequired { get; init; }
     public string? ResponseContent { get; init; }
     public DateTime? ResponseDate { get; init; }
+}
+
+public record PermissionDetailDto
+{
+    public Guid PermissionTypeId { get; init; }
+    public string? PermissionTypeName { get; init; }
+    public DateTime PermissionDate { get; init; }
+    public TimeSpan? FromTime { get; init; }
+    public TimeSpan? ToTime { get; init; }
+    public decimal TotalHours { get; init; }
+    public string Reason { get; init; } = string.Empty;
+    public Guid? ManagerId { get; init; }
+    public string? ManagerName { get; init; }
+    public DateTime? ManagerApprovalDate { get; init; }
+    public string? ManagerComments { get; init; }
+    public decimal? LeaveDeduction { get; init; }
+    public Guid? LeavePolicyId { get; init; }
 }
 #endregion
 

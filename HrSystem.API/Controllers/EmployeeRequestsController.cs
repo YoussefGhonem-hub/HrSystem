@@ -2,11 +2,13 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveVacationRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateEmployeeRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateOvertimeRequest;
+using HrSystem.Application.Features.EmployeeRequests.Commands.CreatePermissionRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateTrainingRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateVacationRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.UpsertBranchRequestSettings;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetBranchAvailableRequests;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetMyEmployeeRequests;
+using HrSystem.Application.Features.EmployeeRequests.Queries.PermissionTypes;
 using HrSystem.Domain.Enums;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
@@ -16,7 +18,7 @@ using System.Collections.Generic;
 
 namespace HrSystem.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager,Employee")]
 [Route("api/[controller]")]
 public class EmployeeRequestsController : APIBaseController
 {
@@ -94,9 +96,9 @@ public class EmployeeRequestsController : APIBaseController
     }
 
     /// <summary>
-    /// Updates the request settings for a branch. Restricted to administrative roles.
+    /// Updates the request settings for a branch. Restricted to SuperAdmin.
     /// </summary>
-    [Authorize(Roles = "Admin,OrganizationAdmin,HRManager")]
+    [Authorize(Roles = "SuperAdmin")]
     [HttpPut("branches/{branchId:guid}/settings")]
     public async Task<IActionResult> UpsertBranchSettings(
         Guid branchId,
@@ -193,9 +195,64 @@ public class EmployeeRequestsController : APIBaseController
     }
 
     /// <summary>
+    /// Submits a permission request (leave early, come late, short absence).
+    /// This is hours-based and validates against monthly hour limits.
+    /// </summary>
+    [HttpPost("permission")]
+    public async Task<IActionResult> SubmitPermissionRequest([FromBody] SubmitPermissionRequestDto request)
+    {
+        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        var command = new CreatePermissionRequestCommand(
+            employeeId.Value,
+            request.Title,
+            request.Description,
+            request.PermissionDate,
+            request.FromTime,
+            request.ToTime,
+            request.TotalHours,
+            request.PermissionTypeId,
+            request.Reason,
+            request.AttachmentUrl,
+            request.BranchId ?? CurrentUser.BranchId);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Gets the employee's monthly permission hours usage for a specific permission type.
+    /// Useful for showing remaining hours before submitting a permission request.
+    /// </summary>
+    [HttpGet("permission/monthly-hours")]
+    public async Task<IActionResult> GetMonthlyPermissionHours(
+        [FromQuery] Guid permissionTypeId,
+        [FromQuery] int? year,
+        [FromQuery] int? month)
+    {
+        var employeeId = CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        var targetYear = year ?? DateTime.UtcNow.Year;
+        var targetMonth = month ?? DateTime.UtcNow.Month;
+
+        var query = new GetEmployeeMonthlyPermissionHoursQuery(
+            employeeId.Value,
+            permissionTypeId,
+            targetYear,
+            targetMonth);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
     /// Manager approves or rejects a vacation request.
     /// </summary>
-    [Authorize(Roles = "Manager,DepartmentManager,HRManager,Admin,OrganizationAdmin")]
+    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
     [HttpPost("vacation/{requestId:guid}/manager-approval")]
     public async Task<IActionResult> ManagerApproveVacation(
         Guid requestId,
@@ -215,7 +272,7 @@ public class EmployeeRequestsController : APIBaseController
     /// HR approves or rejects a vacation request (after manager approval).
     /// Also updates employee's leave balance when approved.
     /// </summary>
-    [Authorize(Roles = "HRManager,Admin,OrganizationAdmin")]
+    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
     [HttpPost("vacation/{requestId:guid}/hr-approval")]
     public async Task<IActionResult> HRApproveVacation(
         Guid requestId,
@@ -293,6 +350,21 @@ public class EmployeeRequestsController : APIBaseController
         public string? Currency { get; init; }
         public string? Objectives { get; init; }
         public string? ExpectedOutcome { get; init; }
+        public string? AttachmentUrl { get; init; }
+        public Guid? EmployeeId { get; init; }
+        public Guid? BranchId { get; init; }
+    }
+
+    public record SubmitPermissionRequestDto
+    {
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public DateTime PermissionDate { get; init; }
+        public TimeSpan? FromTime { get; init; }
+        public TimeSpan? ToTime { get; init; }
+        public decimal TotalHours { get; init; }
+        public Guid PermissionTypeId { get; init; }
+        public string Reason { get; init; } = string.Empty;
         public string? AttachmentUrl { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
