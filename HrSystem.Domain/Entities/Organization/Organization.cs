@@ -15,6 +15,7 @@ public class Organization : BaseEntity
     public string NameAr { get; set; } = string.Empty;
     public string NameEn { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty; // Unique organization code
+    public string? Industry { get; set; } // e.g., Technology, Healthcare, Finance
     public string? LogoUrl { get; set; }
 
     // Legal Information
@@ -50,6 +51,7 @@ public class Organization : BaseEntity
     public string TimeZone { get; set; } = "Egypt Standard Time";
     public string Currency { get; set; } = "EGP";
     public string? WeekStartDay { get; set; }
+    public string? DefaultLanguage { get; set; } = "en"; // e.g., "en", "ar"
 
 
     // Navigation Properties
