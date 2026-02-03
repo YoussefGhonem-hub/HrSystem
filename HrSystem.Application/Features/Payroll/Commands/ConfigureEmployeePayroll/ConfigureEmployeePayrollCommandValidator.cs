@@ -61,8 +61,15 @@ public class PayrollAllowancePayloadValidator : AbstractValidator<PayrollAllowan
 {
     public PayrollAllowancePayloadValidator()
     {
-        RuleFor(x => x.AllowanceTypeId)
-            .NotEmpty();
+        RuleFor(x => x.NameEn)
+            .NotEmpty().WithMessage("Allowance name (English) is required")
+            .MaximumLength(256);
+
+        RuleFor(x => x.NameAr)
+            .MaximumLength(256);
+
+        RuleFor(x => x.Description)
+            .MaximumLength(500);
 
         RuleFor(x => x.Amount)
             .GreaterThanOrEqualTo(0m)
@@ -79,8 +86,15 @@ public class PayrollDeductionPayloadValidator : AbstractValidator<PayrollDeducti
 {
     public PayrollDeductionPayloadValidator()
     {
-        RuleFor(x => x.DeductionTypeId)
-            .NotEmpty();
+        RuleFor(x => x.NameEn)
+            .NotEmpty().WithMessage("Deduction name (English) is required")
+            .MaximumLength(256);
+
+        RuleFor(x => x.NameAr)
+            .MaximumLength(256);
+
+        RuleFor(x => x.Description)
+            .MaximumLength(500);
 
         RuleFor(x => x.Amount)
             .GreaterThanOrEqualTo(0m)

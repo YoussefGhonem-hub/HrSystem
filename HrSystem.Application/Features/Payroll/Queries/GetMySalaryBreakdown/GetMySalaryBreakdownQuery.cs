@@ -120,8 +120,8 @@ public class GetMySalaryBreakdownQueryHandler : IRequestHandler<GetMySalaryBreak
 
         // Fallback: derive from current salary config
         var salary = await _context.Salaries
-            .Include(s => s.Allowances).ThenInclude(a => a.AllowanceType)
-            .Include(s => s.Deductions).ThenInclude(d => d.DeductionType)
+            .Include(s => s.Allowances)
+            .Include(s => s.Deductions)
             .Where(s => s.EmployeeId == employeeId.Value && s.IsCurrent)
             .OrderByDescending(s => s.EffectiveDate)
             .FirstOrDefaultAsync(cancellationToken);
@@ -142,7 +142,7 @@ public class GetMySalaryBreakdownQueryHandler : IRequestHandler<GetMySalaryBreak
             allowanceTotal += amount;
             breakdown.Earnings.Add(new BreakdownItemDto
             {
-                Name = a.AllowanceType?.NameEn ?? "Allowance",
+                Name = string.IsNullOrWhiteSpace(a.NameEn) ? "Allowance" : a.NameEn,
                 Amount = Math.Round(amount, 2)
             });
         }
@@ -156,7 +156,7 @@ public class GetMySalaryBreakdownQueryHandler : IRequestHandler<GetMySalaryBreak
             deductionTotal += amount;
             breakdown.Deductions.Add(new BreakdownItemDto
             {
-                Name = d.DeductionType?.NameEn ?? "Deduction",
+                Name = string.IsNullOrWhiteSpace(d.NameEn) ? "Deduction" : d.NameEn,
                 Amount = Math.Round(amount, 2)
             });
         }

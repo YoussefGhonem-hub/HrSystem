@@ -100,8 +100,6 @@ public static class AppDbContextSeed
             await SeedLeaveTypesAsync(context, seedDataPath);
             await SeedLeavePoliciesAsync(context, seedDataPath);
             await SeedLeaveBalancesAndHistoryAsync(context);
-            await SeedAllowanceTypesAsync(context, seedDataPath);
-            await SeedDeductionTypesAsync(context, seedDataPath);
             await SeedSocialInsuranceRatesAsync(context, seedDataPath);
             await SeedTaxBracketsAsync(context, seedDataPath);
             await SeedPublicHolidaysAsync(context, seedDataPath);
@@ -1078,85 +1076,6 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {policies.Count} leave policies");
-    }
-
-    private static async Task SeedAllowanceTypesAsync(ApplicationDbContext context, string seedDataPath)
-    {
-        if (await context.AllowanceTypes.AnyAsync()) return;
-
-        var filePath = Path.Combine(seedDataPath, "AllowanceTypes.json");
-        if (!File.Exists(filePath)) return;
-
-        var json = await File.ReadAllTextAsync(filePath);
-        var allowances = JsonSerializer.Deserialize<List<AllowanceTypeSeedData>>(json, _jsonOptions);
-
-        if (allowances == null) return;
-
-        var organization = await context.Organizations.FirstOrDefaultAsync();
-        if (organization == null) return;
-
-        var defaultBranchId = await GetDefaultBranchIdAsync(context);
-        if (!defaultBranchId.HasValue) return;
-
-        foreach (var allowanceData in allowances)
-        {
-            var allowance = new AllowanceType
-            {
-                Id = Guid.NewGuid(),
-                NameAr = allowanceData.NameAr,
-                NameEn = allowanceData.NameEn,
-                Description = allowanceData.Description,
-                IsTaxable = allowanceData.IsTaxable,
-                IsSubjectToInsurance = allowanceData.IsSubjectToInsurance,
-                TenantId = organization.Id,
-                BranchId = defaultBranchId.Value,
-                CreatedDate = DateTimeOffset.UtcNow
-            };
-
-            await context.AllowanceTypes.AddAsync(allowance);
-        }
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"Seeded {allowances.Count} allowance types");
-    }
-
-    private static async Task SeedDeductionTypesAsync(ApplicationDbContext context, string seedDataPath)
-    {
-        if (await context.DeductionTypes.AnyAsync()) return;
-
-        var filePath = Path.Combine(seedDataPath, "DeductionTypes.json");
-        if (!File.Exists(filePath)) return;
-
-        var json = await File.ReadAllTextAsync(filePath);
-        var deductions = JsonSerializer.Deserialize<List<DeductionTypeSeedData>>(json, _jsonOptions);
-
-        if (deductions == null) return;
-
-        var organization = await context.Organizations.FirstOrDefaultAsync();
-        if (organization == null) return;
-
-        var defaultBranchId = await GetDefaultBranchIdAsync(context);
-        if (!defaultBranchId.HasValue) return;
-
-        foreach (var deductionData in deductions)
-        {
-            var deduction = new DeductionType
-            {
-                Id = Guid.NewGuid(),
-                NameAr = deductionData.NameAr,
-                NameEn = deductionData.NameEn,
-                Description = deductionData.Description,
-                IsRecurring = deductionData.IsRecurring,
-                TenantId = organization.Id,
-                BranchId = defaultBranchId.Value,
-                CreatedDate = DateTimeOffset.UtcNow
-            };
-
-            await context.DeductionTypes.AddAsync(deduction);
-        }
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"Seeded {deductions.Count} deduction types");
     }
 
     private static async Task SeedEmployeeDocumentsAsync(ApplicationDbContext context)

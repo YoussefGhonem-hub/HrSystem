@@ -48,7 +48,6 @@ public class MyPayslipDetailsDto
 
 public class MyPayslipAllowanceDto
 {
-    public Guid AllowanceTypeId { get; set; }
     public string AllowanceNameAr { get; set; } = string.Empty;
     public string AllowanceNameEn { get; set; } = string.Empty;
     public decimal Amount { get; set; }
@@ -56,7 +55,6 @@ public class MyPayslipAllowanceDto
 
 public class MyPayslipDeductionDto
 {
-    public Guid DeductionTypeId { get; set; }
     public string DeductionNameAr { get; set; } = string.Empty;
     public string DeductionNameEn { get; set; } = string.Empty;
     public decimal Amount { get; set; }

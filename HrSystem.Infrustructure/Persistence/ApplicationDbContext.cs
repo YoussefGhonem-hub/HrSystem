@@ -29,9 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     // Payroll
     public DbSet<HrSystem.Domain.Entities.Payroll.Salary> Salaries => Set<HrSystem.Domain.Entities.Payroll.Salary>();
-    public DbSet<HrSystem.Domain.Entities.Payroll.AllowanceType> AllowanceTypes => Set<HrSystem.Domain.Entities.Payroll.AllowanceType>();
     public DbSet<HrSystem.Domain.Entities.Payroll.SalaryAllowance> SalaryAllowances => Set<HrSystem.Domain.Entities.Payroll.SalaryAllowance>();
-    public DbSet<HrSystem.Domain.Entities.Payroll.DeductionType> DeductionTypes => Set<HrSystem.Domain.Entities.Payroll.DeductionType>();
     public DbSet<HrSystem.Domain.Entities.Payroll.SalaryDeduction> SalaryDeductions => Set<HrSystem.Domain.Entities.Payroll.SalaryDeduction>();
     public DbSet<HrSystem.Domain.Entities.Payroll.Loan> Loans => Set<HrSystem.Domain.Entities.Payroll.Loan>();
     public DbSet<HrSystem.Domain.Entities.Payroll.PayrollCycle> PayrollCycles => Set<HrSystem.Domain.Entities.Payroll.PayrollCycle>();

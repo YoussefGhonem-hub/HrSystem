@@ -153,10 +153,10 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 salary.BankSwiftCode),
             Notes = salary.Notes,
             Allowances = salary.Allowances
-                .Select(a => new PayrollAllowancePayload(a.AllowanceTypeId, a.Amount, a.IsPercentage, a.PercentageValue))
+                .Select(a => new PayrollAllowancePayload(a.NameAr, a.NameEn, a.Description, a.IsTaxable, a.IsSubjectToInsurance, a.Amount, a.IsPercentage, a.PercentageValue))
                 .ToList(),
             Deductions = salary.Deductions
-                .Select(d => new PayrollDeductionPayload(d.DeductionTypeId, d.Amount, d.IsPercentage, d.PercentageValue))
+                .Select(d => new PayrollDeductionPayload(d.NameAr, d.NameEn, d.Description, d.IsRecurring, d.Amount, d.IsPercentage, d.PercentageValue))
                 .ToList()
         };
 

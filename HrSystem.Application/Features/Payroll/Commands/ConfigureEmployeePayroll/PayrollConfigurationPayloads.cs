@@ -9,14 +9,21 @@ public record PayrollBankInfoPayload(
 );
 
 public record PayrollAllowancePayload(
-    Guid AllowanceTypeId,
+    string NameAr,
+    string NameEn,
+    string? Description,
+    bool IsTaxable,
+    bool IsSubjectToInsurance,
     decimal Amount,
     bool IsPercentage,
     decimal? PercentageValue
 );
 
 public record PayrollDeductionPayload(
-    Guid DeductionTypeId,
+    string NameAr,
+    string NameEn,
+    string? Description,
+    bool IsRecurring,
     decimal Amount,
     bool IsPercentage,
     decimal? PercentageValue

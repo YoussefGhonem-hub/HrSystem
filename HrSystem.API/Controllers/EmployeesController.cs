@@ -6,6 +6,7 @@ using HrSystem.Application.Features.Employees.Commands.DeleteEmployee;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeJobInfo;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePersonalInfo;
+using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePayroll;
 using HrSystem.Application.Features.Employees.Commands.UploadEmployeeDocument;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeStatusAndProfile;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
@@ -70,6 +71,25 @@ public class EmployeesController : APIBaseController
     {
         var query = new GetEmployeeByIdQuery(id);
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update payroll configuration for a specific employee (salary, allowances, deductions, payment method)
+    /// </summary>
+    [HttpPut("{employeeId:guid}/payroll")]
+    public async Task<IActionResult> UpdateEmployeePayroll(Guid employeeId, [FromBody] UpdateEmployeePayrollCommand command)
+    {
+        if (employeeId != command.EmployeeId)
+        {
+            return BadRequest("ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
 
         return result.Match(
             response => Ok(response),

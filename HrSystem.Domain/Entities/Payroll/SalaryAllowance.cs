@@ -12,12 +12,15 @@ namespace HrSystem.Domain.Entities.Payroll;
 public class SalaryAllowance : BaseAuditableEntity
 {
     public Guid SalaryId { get; set; }
-    public Guid AllowanceTypeId { get; set; }
+    public string NameAr { get; set; } = string.Empty;
+    public string NameEn { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsTaxable { get; set; } = true;
+    public bool IsSubjectToInsurance { get; set; } = true;
     public decimal Amount { get; set; }
     public bool IsPercentage { get; set; } = false;
     public decimal? PercentageValue { get; set; }
 
     // Navigation Properties
     public virtual Salary Salary { get; set; } = null!;
-    public virtual AllowanceType AllowanceType { get; set; } = null!;
 }

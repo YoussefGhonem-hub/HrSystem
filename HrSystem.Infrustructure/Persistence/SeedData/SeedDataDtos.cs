@@ -180,23 +180,6 @@ public class SeedDataDtos
         public string? Description { get; set; }
     }
 
-    public class AllowanceTypeSeedData
-    {
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public bool IsTaxable { get; set; }
-        public bool IsSubjectToInsurance { get; set; }
-    }
-
-    public class DeductionTypeSeedData
-    {
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public bool IsRecurring { get; set; }
-    }
-
     public class SocialInsuranceRateSeedData
     {
         public int Year { get; set; }

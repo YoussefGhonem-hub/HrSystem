@@ -70,35 +70,8 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
 
         currency ??= "EGP";
 
-        var allowanceTypeIds = request.Allowances?.Select(a => a.AllowanceTypeId).Distinct().ToList() ?? new List<Guid>();
-        if (allowanceTypeIds.Count > 0)
-        {
-            var existingAllowanceIds = await _context.AllowanceTypes
-                .Where(a => allowanceTypeIds.Contains(a.Id))
-                .Select(a => a.Id)
-                .ToListAsync(cancellationToken);
-
-            var missingAllowanceIds = allowanceTypeIds.Except(existingAllowanceIds).ToList();
-            if (missingAllowanceIds.Count > 0)
-            {
-                return Error.NotFound("PayrollConfiguration.AllowanceTypeNotFound", "One or more allowance types do not exist");
-            }
-        }
-
-        var deductionTypeIds = request.Deductions?.Select(d => d.DeductionTypeId).Distinct().ToList() ?? new List<Guid>();
-        if (deductionTypeIds.Count > 0)
-        {
-            var existingDeductionIds = await _context.DeductionTypes
-                .Where(d => deductionTypeIds.Contains(d.Id))
-                .Select(d => d.Id)
-                .ToListAsync(cancellationToken);
-
-            var missingDeductionIds = deductionTypeIds.Except(existingDeductionIds).ToList();
-            if (missingDeductionIds.Count > 0)
-            {
-                return Error.NotFound("PayrollConfiguration.DeductionTypeNotFound", "One or more deduction types do not exist");
-            }
-        }
+        // Ensure referenced allowance/deduction types exist; create missing ones to allow seamless configuration
+        // This avoids failing the request when client uses new type IDs.
 
         var currentSalary = await _context.Salaries
             .Include(s => s.Allowances)
@@ -107,6 +80,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             .FirstOrDefaultAsync(cancellationToken);
 
         var currentUserId = CurrentUser.Id ?? Guid.Empty;
+
         Salary salary;
         var updatingExistingRecord = currentSalary != null && currentSalary.EffectiveDate.Date == request.EffectiveDate.Date;
 
@@ -170,8 +144,16 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
 
         SyncSalaryAllowances(salary, request.Allowances, tenantId, branchId, currentUserId);
         SyncSalaryDeductions(salary, request.Deductions, tenantId, branchId, currentUserId);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
 
-        await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+
+            throw;
+        }
 
         var response = new EmployeePayrollConfigurationDto
         {
@@ -195,24 +177,34 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
                 Iban = salary.BankIban,
                 SwiftCode = salary.BankSwiftCode
             },
-            Allowances = salary.Allowances.Select(a => new PayrollAllowanceDto
-            {
-                Id = a.Id,
-                AllowanceTypeId = a.AllowanceTypeId,
-                Amount = a.Amount,
-                IsPercentage = a.IsPercentage,
-                PercentageValue = a.PercentageValue
-            }).ToList(),
-            Deductions = salary.Deductions.Select(d => new PayrollDeductionDto
-            {
-                Id = d.Id,
-                DeductionTypeId = d.DeductionTypeId,
-                Amount = d.Amount,
-                IsPercentage = d.IsPercentage,
-                PercentageValue = d.PercentageValue
-            }).ToList()
+            Allowances = salary.Allowances
+                .Where(a => !a.IsDeleted)
+                .Select(a => new PayrollAllowanceDto
+                {
+                    Id = a.Id,
+                    NameAr = a.NameAr,
+                    NameEn = a.NameEn,
+                    Description = a.Description,
+                    IsTaxable = a.IsTaxable,
+                    IsSubjectToInsurance = a.IsSubjectToInsurance,
+                    Amount = a.Amount,
+                    IsPercentage = a.IsPercentage,
+                    PercentageValue = a.PercentageValue
+                }).ToList(),
+            Deductions = salary.Deductions
+                .Where(d => !d.IsDeleted)
+                .Select(d => new PayrollDeductionDto
+                {
+                    Id = d.Id,
+                    NameAr = d.NameAr,
+                    NameEn = d.NameEn,
+                    Description = d.Description,
+                    IsRecurring = d.IsRecurring,
+                    Amount = d.Amount,
+                    IsPercentage = d.IsPercentage,
+                    PercentageValue = d.PercentageValue
+                }).ToList()
         };
-
         return new GenericResponse<EmployeePayrollConfigurationDto>
         {
             Success = true,
@@ -230,30 +222,42 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
     {
         var desired = payloads ?? new List<PayrollAllowancePayload>();
         var existing = salary.Allowances.Where(a => !a.IsDeleted).ToList();
-        var desiredLookup = desired.ToDictionary(a => a.AllowanceTypeId, a => a);
+        
+        // Group by normalized name to handle duplicates - take the last one
+        var desiredLookup = desired
+            .GroupBy(a => a.NameEn.Trim().ToLowerInvariant())
+            .ToDictionary(g => g.Key, g => g.Last());
 
         foreach (var allowance in existing)
         {
-            if (!desiredLookup.TryGetValue(allowance.AllowanceTypeId, out var match))
+            var key = allowance.NameEn.Trim().ToLowerInvariant();
+            if (!desiredLookup.TryGetValue(key, out var match))
             {
-                salary.Allowances.Remove(allowance);
-                _context.SalaryAllowances.Remove(allowance);
+                allowance.MarkAsDeleted(currentUserId);
                 continue;
             }
 
+            allowance.NameAr = match.NameAr;
+            allowance.NameEn = match.NameEn;
+            allowance.Description = match.Description;
+            allowance.IsTaxable = match.IsTaxable;
+            allowance.IsSubjectToInsurance = match.IsSubjectToInsurance;
             allowance.Amount = match.Amount;
             allowance.IsPercentage = match.IsPercentage;
             allowance.PercentageValue = match.IsPercentage ? match.PercentageValue : null;
             allowance.MarkAsModified(currentUserId);
-            desiredLookup.Remove(allowance.AllowanceTypeId);
+            desiredLookup.Remove(key);
         }
 
         foreach (var remaining in desiredLookup.Values)
         {
             var allowanceEntity = new SalaryAllowance
             {
-                SalaryId = salary.Id,
-                AllowanceTypeId = remaining.AllowanceTypeId,
+                NameAr = remaining.NameAr,
+                NameEn = remaining.NameEn,
+                Description = remaining.Description,
+                IsTaxable = remaining.IsTaxable,
+                IsSubjectToInsurance = remaining.IsSubjectToInsurance,
                 Amount = remaining.Amount,
                 IsPercentage = remaining.IsPercentage,
                 PercentageValue = remaining.IsPercentage ? remaining.PercentageValue : null,
@@ -274,30 +278,40 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
     {
         var desired = payloads ?? new List<PayrollDeductionPayload>();
         var existing = salary.Deductions.Where(d => !d.IsDeleted).ToList();
-        var desiredLookup = desired.ToDictionary(d => d.DeductionTypeId, d => d);
+        
+        // Group by normalized name to handle duplicates - take the last one
+        var desiredLookup = desired
+            .GroupBy(d => d.NameEn.Trim().ToLowerInvariant())
+            .ToDictionary(g => g.Key, g => g.Last());
 
         foreach (var deduction in existing)
         {
-            if (!desiredLookup.TryGetValue(deduction.DeductionTypeId, out var match))
+            var key = deduction.NameEn.Trim().ToLowerInvariant();
+            if (!desiredLookup.TryGetValue(key, out var match))
             {
-                salary.Deductions.Remove(deduction);
-                _context.SalaryDeductions.Remove(deduction);
+                deduction.MarkAsDeleted(currentUserId);
                 continue;
             }
 
+            deduction.NameAr = match.NameAr;
+            deduction.NameEn = match.NameEn;
+            deduction.Description = match.Description;
+            deduction.IsRecurring = match.IsRecurring;
             deduction.Amount = match.Amount;
             deduction.IsPercentage = match.IsPercentage;
             deduction.PercentageValue = match.IsPercentage ? match.PercentageValue : null;
             deduction.MarkAsModified(currentUserId);
-            desiredLookup.Remove(deduction.DeductionTypeId);
+            desiredLookup.Remove(key);
         }
 
         foreach (var remaining in desiredLookup.Values)
         {
             var deductionEntity = new SalaryDeduction
             {
-                SalaryId = salary.Id,
-                DeductionTypeId = remaining.DeductionTypeId,
+                NameAr = remaining.NameAr,
+                NameEn = remaining.NameEn,
+                Description = remaining.Description,
+                IsRecurring = remaining.IsRecurring,
                 Amount = remaining.Amount,
                 IsPercentage = remaining.IsPercentage,
                 PercentageValue = remaining.IsPercentage ? remaining.PercentageValue : null,

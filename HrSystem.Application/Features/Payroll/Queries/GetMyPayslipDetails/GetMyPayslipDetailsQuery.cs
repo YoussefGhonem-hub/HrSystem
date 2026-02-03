@@ -77,14 +77,12 @@ public class GetMyPayslipDetailsQueryHandler : IRequestHandler<GetMyPayslipDetai
                 PaidDate = p.PaidDate,
                 Allowances = p.PayslipAllowances.Select(a => new MyPayslipAllowanceDto
                 {
-                    AllowanceTypeId = a.AllowanceTypeId,
                     AllowanceNameAr = a.AllowanceNameAr,
                     AllowanceNameEn = a.AllowanceNameEn,
                     Amount = a.Amount
                 }).ToList(),
                 Deductions = p.PayslipDeductions.Select(d => new MyPayslipDeductionDto
                 {
-                    DeductionTypeId = d.DeductionTypeId,
                     DeductionNameAr = d.DeductionNameAr,
                     DeductionNameEn = d.DeductionNameEn,
                     Amount = d.Amount

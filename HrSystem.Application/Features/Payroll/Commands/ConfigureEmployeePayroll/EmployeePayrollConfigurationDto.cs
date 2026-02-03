@@ -31,7 +31,11 @@ public class PayrollBankInfoDto
 public class PayrollAllowanceDto
 {
     public Guid Id { get; set; }
-    public Guid AllowanceTypeId { get; set; }
+    public string NameAr { get; set; } = string.Empty;
+    public string NameEn { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsTaxable { get; set; }
+    public bool IsSubjectToInsurance { get; set; }
     public decimal Amount { get; set; }
     public bool IsPercentage { get; set; }
     public decimal? PercentageValue { get; set; }
@@ -40,7 +44,10 @@ public class PayrollAllowanceDto
 public class PayrollDeductionDto
 {
     public Guid Id { get; set; }
-    public Guid DeductionTypeId { get; set; }
+    public string NameAr { get; set; } = string.Empty;
+    public string NameEn { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsRecurring { get; set; }
     public decimal Amount { get; set; }
     public bool IsPercentage { get; set; }
     public decimal? PercentageValue { get; set; }
