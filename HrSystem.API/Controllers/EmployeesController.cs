@@ -3,7 +3,10 @@ using HrSystem.Application.Features.Employees.Commands.AssignDirectManager;
 using HrSystem.Application.Features.Employees.Commands.AddEmployeeSalary;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Employees.Commands.DeleteEmployee;
+using HrSystem.Application.Features.Employees.Commands.SyncEmployeeAssets;
+using HrSystem.Application.Features.Employees.Commands.SyncEmployeeDocuments;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
+using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeDocument;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeJobInfo;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePersonalInfo;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePayroll;
@@ -170,13 +173,27 @@ public class EmployeesController : APIBaseController
     /// <summary>
     /// Get a pre-signed download URL for an employee document
     /// </summary>
-    [HttpGet("documents/{documentId:guid}/download")]
+    [HttpGet("documents/{documentId:guid}/download-url")]
     public async Task<IActionResult> GetDocumentDownloadUrl(Guid documentId)
     {
         var result = await _mediator.Send(new GetEmployeeDocumentDownloadUrlQuery(documentId));
 
         return result.Match(
             response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Download an employee document file directly
+    /// </summary>
+    [HttpGet("documents/{documentId:guid}/download")]
+    public async Task<IActionResult> DownloadDocument(Guid documentId)
+    {
+        var result = await _mediator.Send(new DownloadEmployeeDocumentQuery(documentId));
+
+        return result.Match(
+            file => File(file.Contents, file.ContentType, file.FileName),
             errors => Problem(errors)
         );
     }
@@ -190,6 +207,47 @@ public class EmployeesController : APIBaseController
         if (id != command.EmployeeId)
         {
             return BadRequest("ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update an existing employee document with optional file replacement (HR or owner)
+    /// </summary>
+    [HttpPut("documents/{documentId:guid}")]
+    public async Task<IActionResult> UpdateEmployeeDocument(Guid documentId, [FromForm] UpdateEmployeeDocumentCommand command)
+    {
+        if (documentId != command.DocumentId)
+        {
+            return BadRequest("Document ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Sync employee documents: create new, update existing, delete removed
+    /// - Documents with DocumentId: update existing
+    /// - Documents without DocumentId: create new
+    /// - Documents in DB but not in request: delete
+    /// </summary>
+    [HttpPut("{id:guid}/documents/sync")]
+    public async Task<IActionResult> SyncEmployeeDocuments(Guid id, [FromForm] SyncEmployeeDocumentsCommand command)
+    {
+        if (id != command.EmployeeId)
+        {
+            return BadRequest("Employee ID mismatch");
         }
 
         var result = await _mediator.Send(command);
@@ -329,6 +387,28 @@ public class EmployeesController : APIBaseController
     public async Task<IActionResult> DeleteEmployee(Guid id)
     {
         var command = new DeleteEmployeeCommand(id);
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Sync employee assets (create new, update existing, remove by ID)
+    /// - Assets with AssetId: update existing
+    /// - Assets without AssetId: create new
+    /// - AssetsToRemove: list of asset IDs to delete
+    /// </summary>
+    [HttpPut("{id:guid}/assets/sync")]
+    public async Task<IActionResult> SyncEmployeeAssets(Guid id, [FromBody] SyncEmployeeAssetsCommand command)
+    {
+        if (id != command.EmployeeId)
+        {
+            return BadRequest("Employee ID mismatch");
+        }
+
         var result = await _mediator.Send(command);
 
         return result.Match(

@@ -201,35 +201,46 @@ namespace Storage.AWS3.Services
         }
         public async Task<DownloadedFile> DownloadFile(string key, CancellationToken cancellationToken)
         {
-            var options = AWS3OptionsExtension.GetAWSConfigurationOptions(_configuration);
-            var bucketName = options.DefaultBucket;
-            var region = RegionEndpoint.EUNorth1;
-            var credential = AWS3ConfigurationExtension.GetBasicAWSCredentials(_configuration);
-            using (var s3Client = new AmazonS3Client(credential, region))
+            try
             {
-                using (var transferUtility = new TransferUtility(s3Client))
+                var options = AWS3OptionsExtension.GetAWSConfigurationOptions(_configuration);
+                var bucketName = options.DefaultBucket;
+                var region = RegionEndpoint.EUNorth1;
+                var credential = AWS3ConfigurationExtension.GetBasicAWSCredentials(_configuration);
+                
+                using (var s3Client = new AmazonS3Client(credential, region))
                 {
-                    var downloadRequest = new TransferUtilityDownloadRequest
+                    // Download directly to memory without saving to disk
+                    var request = new GetObjectRequest
                     {
                         BucketName = bucketName,
-                        Key = key,
-                        FilePath = "D:\\images\\" + key
+                        Key = key
                     };
 
+                    using (var response = await s3Client.GetObjectAsync(request, cancellationToken))
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
+                        
+                        // Determine the content type
+                        string contentType = !string.IsNullOrEmpty(response.Headers.ContentType) 
+                            ? response.Headers.ContentType 
+                            : GetContentType(key);
 
-                    // Download the file asynchronously
-                    await transferUtility.DownloadAsync(downloadRequest, cancellationToken);
+                        // Get filename from key
+                        var fileName = Path.GetFileName(key);
 
-                    // Determine the content type based on the file extension
-                    string contentType = GetContentType(key);
-
-                    // Read the file from the local file path
-                    var fileBytes = File.ReadAllBytes(downloadRequest.FilePath);
-
-                    // Return the file as a FileContentResult
-                    return new DownloadedFile(fileBytes, contentType, key);
-
+                        return new DownloadedFile(memoryStream.ToArray(), contentType, fileName);
+                    }
                 }
+            }
+            catch (AmazonS3Exception ex)
+            {
+                throw new Exception($"S3 Error downloading file '{key}': {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error downloading file '{key}': {ex.Message}", ex);
             }
         }
         public async Task<string> DownloadVideoFromS3ToLocalAsync(string keyOrUrl, string localFileName, CancellationToken cancellationToken)
