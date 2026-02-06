@@ -74,8 +74,8 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
         // This avoids failing the request when client uses new type IDs.
 
         var currentSalary = await _context.Salaries
-            .Include(s => s.Allowances)
-            .Include(s => s.Deductions)
+            .Include(s => s.Allowances.Where(a => !a.IsDeleted))
+            .Include(s => s.Deductions.Where(d => !d.IsDeleted))
             .Where(s => !s.IsDeleted && s.EmployeeId == request.EmployeeId && s.IsCurrent)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -221,7 +221,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
         Guid currentUserId)
     {
         var desired = payloads ?? new List<PayrollAllowancePayload>();
-        var existing = salary.Allowances.Where(a => !a.IsDeleted).ToList();
+        var existing = salary.Allowances.ToList();
         
         // Group by normalized name to handle duplicates - take the last one
         var desiredLookup = desired
@@ -233,7 +233,9 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             var key = allowance.NameEn.Trim().ToLowerInvariant();
             if (!desiredLookup.TryGetValue(key, out var match))
             {
-                allowance.MarkAsDeleted(currentUserId);
+                // Remove from collection instead of soft-delete to avoid concurrency issues
+                salary.Allowances.Remove(allowance);
+                _context.SalaryAllowances.Remove(allowance);
                 continue;
             }
 
@@ -277,7 +279,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
         Guid currentUserId)
     {
         var desired = payloads ?? new List<PayrollDeductionPayload>();
-        var existing = salary.Deductions.Where(d => !d.IsDeleted).ToList();
+        var existing = salary.Deductions.ToList();
         
         // Group by normalized name to handle duplicates - take the last one
         var desiredLookup = desired
@@ -289,7 +291,9 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             var key = deduction.NameEn.Trim().ToLowerInvariant();
             if (!desiredLookup.TryGetValue(key, out var match))
             {
-                deduction.MarkAsDeleted(currentUserId);
+                // Remove from collection instead of soft-delete to avoid concurrency issues
+                salary.Deductions.Remove(deduction);
+                _context.SalaryDeductions.Remove(deduction);
                 continue;
             }
 
