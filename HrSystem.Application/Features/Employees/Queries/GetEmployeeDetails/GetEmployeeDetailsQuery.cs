@@ -53,9 +53,11 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         }
         attendance.AttendanceHistory = attendanceHistory;
 
+        var personalInfo = await MapPersonalInfoAsync(employee, cancellationToken);
+
         var dto = new EmployeeDetailsDto
         {
-            PersonalInfo = MapPersonalInfo(employee),
+            PersonalInfo = personalInfo,
             JobInfo = MapJobInfo(employee),
             Payroll = payroll,
             Attendance = attendance,
@@ -81,14 +83,17 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         return employee;
     }
 
-    private static EmployeePersonalInfoDetailsDto MapPersonalInfo(HrSystem.Domain.Entities.Employee.Employee employee)
+    private async Task<EmployeePersonalInfoDetailsDto> MapPersonalInfoAsync(HrSystem.Domain.Entities.Employee.Employee employee, CancellationToken cancellationToken)
     {
+        var profileUrl = await ResolveProfileImageUrl(employee.ProfilePictureUrl, cancellationToken);
+
         return new EmployeePersonalInfoDetailsDto
         {
             FirstNameAr = employee.FirstNameAr,
             LastNameAr = employee.LastNameAr,
             FirstNameEn = employee.FirstNameEn,
             LastNameEn = employee.LastNameEn,
+            ProfilePictureUrl = profileUrl,
             NationalId = employee.NationalId,
             PassportNumber = employee.PassportNumber,
             DateOfBirth = employee.DateOfBirth,
@@ -102,6 +107,23 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             City = employee.City,
             Country = employee.Country
         };
+    }
+
+    private async Task<string?> ResolveProfileImageUrl(string? storedValue, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(storedValue)) return null;
+        if (storedValue.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return storedValue;
+
+        try
+        {
+            var url = await _storageService.DownloadFileUrl(storedValue, cancellationToken);
+            return string.IsNullOrWhiteSpace(url) ? storedValue : url;
+        }
+        catch
+        {
+            // If presign fails, return stored key to avoid blocking the response
+            return storedValue;
+        }
     }
 
     private static EmployeeJobInfoDetailsDto MapJobInfo(HrSystem.Domain.Entities.Employee.Employee employee)

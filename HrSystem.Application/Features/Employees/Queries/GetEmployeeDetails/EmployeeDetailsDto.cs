@@ -22,6 +22,7 @@ public class EmployeePersonalInfoDetailsDto
     public string LastNameAr { get; set; } = string.Empty;
     public string FirstNameEn { get; set; } = string.Empty;
     public string LastNameEn { get; set; } = string.Empty;
+    public string? ProfilePictureUrl { get; set; }
     public string NationalId { get; set; } = string.Empty;
     public string? PassportNumber { get; set; }
     public DateTime DateOfBirth { get; set; }

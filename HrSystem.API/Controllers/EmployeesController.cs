@@ -11,6 +11,8 @@ using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeJobInfo;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePersonalInfo;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePayroll;
 using HrSystem.Application.Features.Employees.Commands.UploadEmployeeDocument;
+using HrSystem.Application.Features.Employees.Commands.UpdateMyProfileImage;
+using HrSystem.Application.Features.Employees.Commands.UpdateProfileImage;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeStatusAndProfile;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeDocuments;
@@ -157,6 +159,20 @@ public class EmployeesController : APIBaseController
     }
 
     /// <summary>
+    /// Update the current user's profile image (stored on S3)
+    /// </summary>
+    [HttpPost("me/profile-image")]
+    public async Task<IActionResult> UpdateMyProfileImage([FromForm] UpdateMyProfileImageCommand command)
+    {
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
     /// Get documents for a specific employee (HR or owner)
     /// </summary>
     [HttpGet("{id:guid}/documents")]
@@ -207,6 +223,26 @@ public class EmployeesController : APIBaseController
         if (id != command.EmployeeId)
         {
             return BadRequest("ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update profile image for a specific employee (HR/admin)
+    /// </summary>
+    [HttpPost("{id:guid}/profile-image")]
+    public async Task<IActionResult> UpdateEmployeeProfileImage(Guid id, [FromForm] UpdateProfileImageCommand command)
+    {
+        if (id != command.EmployeeId)
+        {
+            // Ensure route id is authoritative
+            command = command with { EmployeeId = id };
         }
 
         var result = await _mediator.Send(command);
