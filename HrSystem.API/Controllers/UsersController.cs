@@ -3,7 +3,10 @@ using HrSystem.Application.Features.Users.Commands.ActivateAccount;
 using HrSystem.Application.Features.Users.Commands.ChangeUserRole;
 using HrSystem.Application.Features.Users.Commands.CreateUserWithBranchRoles;
 using HrSystem.Application.Features.Users.Commands.DeactivateAccount;
+using HrSystem.Application.Features.Users.Commands.ResetUserPassword;
+using HrSystem.Application.Features.Users.Commands.UpdateAccountSettings;
 using HrSystem.Application.Features.Users.Commands.UpdateUser;
+using HrSystem.Application.Features.Users.Queries.GetAccountSettings;
 using HrSystem.Application.Features.Users.Queries.GetUsersList;
 using HrSystem.Application.Features.Users.Queries.GetUserById;
 using HrSystem.Domain.Entities.Account;
@@ -136,6 +139,58 @@ public class UsersController : APIBaseController
     /// </summary>
     [HttpPut("{id:guid}/roles")]
     public async Task<IActionResult> ChangeUserRole(Guid id, [FromBody] ChangeUserRoleCommand command)
+    {
+        if (id != command.UserId)
+        {
+            return BadRequest("User ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get account settings for a specific user
+    /// </summary>
+    [HttpGet("{id:guid}/account-settings")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist)]
+    public async Task<IActionResult> GetAccountSettings(Guid id)
+    {
+        var result = await _mediator.Send(new GetAccountSettingsQuery(id));
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update account settings (username, email, status)
+    /// </summary>
+    [HttpPut("{id:guid}/account-settings")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist)]
+    public async Task<IActionResult> UpdateAccountSettings(Guid id, [FromBody] UpdateAccountSettingsCommand command)
+    {
+        if (id != command.UserId)
+        {
+            return BadRequest("User ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Reset user password (Admin action)
+    /// </summary>
+    [HttpPost("{id:guid}/reset-password")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist)]
+    public async Task<IActionResult> ResetUserPassword(Guid id, [FromBody] ResetUserPasswordCommand command)
     {
         if (id != command.UserId)
         {

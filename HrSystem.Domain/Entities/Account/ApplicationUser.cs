@@ -22,6 +22,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public Guid? BranchId { get; set; }
     
     // Audit
+    public DateTimeOffset? LastLogin { get; set; }
     public DateTimeOffset CreatedDate { get; set; } = DateTimeOffset.UtcNow;
     public Guid? CreatedBy { get; set; }
     public DateTimeOffset? ModifiedDate { get; set; }

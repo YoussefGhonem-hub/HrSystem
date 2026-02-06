@@ -12,6 +12,7 @@ namespace HrSystem.Infrustructure.Persistence.Configurations.Security
             builder.Property(u => u.FullName).HasMaxLength(200);
             builder.Property(u => u.AvatarUrl).HasMaxLength(500);
             builder.Property(u => u.IsActive).HasDefaultValue(true);
+            builder.Property(u => u.LastLogin).HasColumnType("datetimeoffset");
 
             builder.HasOne(u => u.Branch)
                 .WithMany()

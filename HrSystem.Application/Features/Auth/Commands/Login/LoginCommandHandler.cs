@@ -85,6 +85,11 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        // Best-effort update of last successful login timestamp
+        var loginTime = DateTimeOffset.UtcNow;
+        user.LastLogin = loginTime;
+        await _userManager.UpdateAsync(user);
+
         var branchRequestAccess = new List<BranchRequestAvailabilityDto>();
         if (branchId.HasValue)
         {
