@@ -1,18 +1,15 @@
 using HrSystem.API.Controllers.Shared;
-using HrSystem.Application.Features.EmployeeRequests.Commands.ApprovePermissionRequest;
-using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveVacationRequest;
-using HrSystem.Application.Features.EmployeeRequests.Commands.CreateEmployeeRequest;
+using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveRequest;
+using HrSystem.Application.Features.EmployeeRequests.Commands.CancelRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreatePermissionRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateTrainingRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateVacationRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.UpsertBranchRequestSettings;
-using HrSystem.Application.Features.EmployeeRequests.Commands.Training;
-using HrSystem.Application.Features.EmployeeRequests.Commands.Miscellaneous;
-using HrSystem.Application.Features.EmployeeRequests.Commands.Personal;
-using HrSystem.Application.Features.EmployeeRequests.Commands.Feedback;
+using HrSystem.Application.Features.EmployeeRequests.Queries.GetAllMyRequests;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetBranchAvailableRequests;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetEmployeeRequests;
-using HrSystem.Application.Features.EmployeeRequests.Queries.GetMyEmployeeRequests;
+using HrSystem.Application.Features.EmployeeRequests.Queries.GetPendingApprovalRequests;
+using HrSystem.Application.Features.EmployeeRequests.Queries.GetRequestById;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Permission;
 using HrSystem.Application.Features.EmployeeRequests.Queries.PermissionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Vacation;
@@ -26,7 +23,6 @@ using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
 
 namespace HrSystem.API.Controllers;
 
@@ -41,109 +37,114 @@ public class EmployeeRequestsController : APIBaseController
         _mediator = mediator;
     }
 
+    #region Unified Queries
+
     /// <summary>
-    /// Returns the request types that are enabled for the user's branch (or the provided branchId).
+    /// Returns all requests submitted by the logged-in employee across every request type
+    /// (Vacation, Permission, Training, Overtime, Miscellaneous, Personal, Feedback).
+    /// Supports filtering by request type code, status, date range, and pagination.
+    /// </summary>
+    [HttpGet("my-requests")]
+    public async Task<IActionResult> GetMyRequests(
+        [FromQuery] string? requestTypeCode = null,
+        [FromQuery] EmployeeRequestStatus? status = null,
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var employeeId = CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("The logged-in user is not linked to an employee profile.");
+
+        var query = new GetAllMyRequestsQuery(
+            employeeId.Value,
+            requestTypeCode,
+            status,
+            startDateFrom,
+            startDateTo,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Returns requests waiting for the current user's approval, across all request types.
+    /// - Department Manager: sees Pending requests from direct reports.
+    /// - HR Manager / HR Specialist / Org Admin: sees ManagerApproved requests for their branch.
+    /// Supports filtering by request type code, date range, sorting, and pagination.
+    /// </summary>
+    [Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager")]
+    [HttpGet("pending-approval")]
+    public async Task<IActionResult> GetPendingApprovalRequests(
+        [FromQuery] string? requestTypeCode = null,
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var query = new GetPendingApprovalRequestsQuery(
+            requestTypeCode,
+            startDateFrom,
+            startDateTo,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Returns all requests for a specific employee with status statistics and pagination.
+    /// Used by managers and HR to review an employee's full request history.
+    /// </summary>
+    [Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager")]
+    [HttpGet("employee/{employeeId:guid}")]
+    public async Task<IActionResult> GetEmployeeRequests(
+        Guid employeeId,
+        [FromQuery] string? requestTypeCode = null,
+        [FromQuery] EmployeeRequestStatus? status = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var result = await _mediator.Send(new GetEmployeeRequestsQuery(
+            employeeId, requestTypeCode, status, pageNumber, pageSize));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Returns the request types that are enabled for the current user's branch
+    /// (or a specified branch). Used to build the "New Request" form dropdown.
     /// </summary>
     [HttpGet("available")]
     public async Task<IActionResult> GetAvailableRequests([FromQuery] Guid? branchId)
     {
         var resolvedBranchId = branchId ?? CurrentUser.BranchId;
         if (!resolvedBranchId.HasValue)
-        {
             return BadRequest("Unable to resolve branch context for the current user.");
-        }
 
         var result = await _mediator.Send(new GetBranchAvailableRequestsQuery(resolvedBranchId.Value));
-        return result.Match(response => Ok(response), Problem);
+        return result.Match(Ok, Problem);
     }
 
-    /// <summary>
-    /// Returns the current employee's submitted requests with optional filtering by type.
-    /// </summary>
-    [HttpGet("me")]
-    public async Task<IActionResult> GetMyRequests([FromQuery] string? requestTypeCode)
-    {
-        var employeeId = CurrentUser.EmployeeId;
-        if (!employeeId.HasValue)
-        {
-            return BadRequest("The logged-in user is not linked to an employee profile.");
-        }
+    #endregion
 
-        var result = await _mediator.Send(new GetMyEmployeeRequestsQuery(employeeId.Value, requestTypeCode));
-        return result.Match(response => Ok(response), Problem);
-    }
+    #region Submit Requests
 
     /// <summary>
-    /// Returns all requests for a specific employee with status statistics.
-    /// Used by managers/HR to view an employee's requests.
-    /// </summary>
-    [Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager")]
-    [HttpGet("employee/{employeeId:guid}")]
-    public async Task<IActionResult> GetEmployeeRequests(
-        Guid employeeId,
-        [FromQuery] string? requestTypeCode,
-        [FromQuery] EmployeeRequestStatus? status,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 20)
-    {
-        var result = await _mediator.Send(new GetEmployeeRequestsQuery(
-            employeeId,
-            requestTypeCode,
-            status,
-            pageNumber,
-            pageSize));
-        return result.Match(response => Ok(response), Problem);
-    }
-
-    /// <summary>
-    /// Submits a new self-service request on behalf of the logged-in employee (or the provided employee Id for admins).
-    /// </summary>
-    [HttpPost]
-    public async Task<IActionResult> SubmitRequest([FromBody] SubmitEmployeeRequestDto request)
-    {
-        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
-        if (!employeeId.HasValue)
-        {
-            return BadRequest("Employee context is required to submit a request.");
-        }
-
-        var branchId = request.BranchId ?? CurrentUser.BranchId;
-        var command = new CreateEmployeeRequestCommand(
-            request.RequestTypeCode,
-            request.Title,
-            request.Description,
-            request.StartDate,
-            request.EndDate,
-            request.AttachmentUrl,
-            employeeId.Value,
-            branchId,
-            null, // VacationDetail
-            null, // TrainingDetail
-            null, // MiscellaneousDetail
-            null, // PersonalDetail
-            null  // FeedbackDetail
-        );
-
-        var result = await _mediator.Send(command);
-        return result.Match(response => Ok(response), Problem);
-    }
-
-    /// <summary>
-    /// Updates the request settings for a branch. Restricted to SuperAdmin.
-    /// </summary>
-    [Authorize(Roles = "SuperAdmin")]
-    [HttpPut("branches/{branchId:guid}/settings")]
-    public async Task<IActionResult> UpsertBranchSettings(
-        Guid branchId,
-        [FromBody] List<BranchRequestSettingPayload> settings)
-    {
-        var command = new UpsertBranchRequestSettingsCommand(branchId, settings);
-        var result = await _mediator.Send(command);
-        return result.Match(response => Ok(response), Problem);
-    }
-
-    /// <summary>
-    /// Submits a vacation/leave request with type-specific details.
+    /// Submits a new vacation/leave request with type-specific details.
+    /// Validates against branch settings, attachment requirements, open request limits,
+    /// and the employee's annual vacation day limit.
     /// </summary>
     [HttpPost("vacation")]
     public async Task<IActionResult> SubmitVacationRequest([FromBody] SubmitVacationRequestDto request)
@@ -170,7 +171,36 @@ public class EmployeeRequestsController : APIBaseController
     }
 
     /// <summary>
-    /// Submits a training request with type-specific details.
+    /// Submits a new permission request (leave early, come late, short absence).
+    /// Hours-based request that validates against the employee's monthly permission hours limit.
+    /// </summary>
+    [HttpPost("permission")]
+    public async Task<IActionResult> SubmitPermissionRequest([FromBody] SubmitPermissionRequestDto request)
+    {
+        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        var command = new CreatePermissionRequestCommand(
+            employeeId.Value,
+            request.Title,
+            request.Description,
+            request.PermissionDate,
+            request.FromTime,
+            request.ToTime,
+            request.TotalHours,
+            request.PermissionTypeId,
+            request.Reason,
+            request.AttachmentUrl,
+            request.BranchId ?? CurrentUser.BranchId);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Submits a new training request with course details, cost estimate, and objectives.
+    /// Validated against branch settings and attachment rules.
     /// </summary>
     [HttpPost("training")]
     public async Task<IActionResult> SubmitTrainingRequest([FromBody] SubmitTrainingRequestDto request)
@@ -201,37 +231,69 @@ public class EmployeeRequestsController : APIBaseController
         return result.Match(Ok, Problem);
     }
 
+    #endregion
+
+    #region Request Details
+
     /// <summary>
-    /// Submits a permission request (leave early, come late, short absence).
-    /// This is hours-based and validates against monthly hour limits.
+    /// Returns full details for any request (Vacation, Permission, Training, Overtime,
+    /// Miscellaneous, Personal, Feedback) by its ID. The response includes the type-specific
+    /// detail DTO populated automatically based on the request type.
     /// </summary>
-    [HttpPost("permission")]
-    public async Task<IActionResult> SubmitPermissionRequest([FromBody] SubmitPermissionRequestDto request)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetRequestById(Guid id)
     {
-        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
-        if (!employeeId.HasValue)
-            return BadRequest("Employee context is required.");
+        var result = await _mediator.Send(new GetRequestByIdQuery(id));
+        return result.Match(Ok, Problem);
+    }
 
-        var command = new CreatePermissionRequestCommand(
-            employeeId.Value,
-            request.Title,
-            request.Description,
-            request.PermissionDate,
-            request.FromTime,
-            request.ToTime,
-            request.TotalHours,
-            request.PermissionTypeId,
-            request.Reason,
-            request.AttachmentUrl,
-            request.BranchId ?? CurrentUser.BranchId);
+    #endregion
 
+    #region Approval & Lifecycle
+
+    /// <summary>
+    /// Unified approval endpoint for any request type.
+    /// The approval level (Manager → HR) is auto-detected from the request's current status
+    /// and the caller's role:
+    /// - Pending + Manager/Admin role → Manager approval
+    /// - ManagerApproved + HR role → HR (final) approval
+    /// Type-specific logic is applied automatically (e.g. leave balance deduction for vacations).
+    /// Pass IsApproved = false to reject at either stage.
+    /// </summary>
+    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
+    [HttpPost("{requestId:guid}/approve")]
+    public async Task<IActionResult> ApproveRequest(
+        Guid requestId,
+        [FromBody] ApprovalDto approval)
+    {
+        var command = new ApproveRequestCommand(requestId, approval.IsApproved, approval.Comments);
         var result = await _mediator.Send(command);
         return result.Match(Ok, Problem);
     }
 
     /// <summary>
-    /// Gets the employee's monthly permission hours usage for a specific permission type.
-    /// Useful for showing remaining hours before submitting a permission request.
+    /// Allows the requesting employee to cancel their own request.
+    /// Only requests in Draft or Pending status may be cancelled.
+    /// Once a request has been manager-approved or fully approved, it cannot be cancelled.
+    /// </summary>
+    [HttpPost("{requestId:guid}/cancel")]
+    public async Task<IActionResult> CancelRequest(
+        Guid requestId,
+        [FromBody] CancelDto? cancelDto)
+    {
+        var command = new CancelRequestCommand(requestId, cancelDto?.Reason);
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    #endregion
+
+    #region Utility
+
+    /// <summary>
+    /// Returns the employee's monthly permission hours usage for a specific permission type.
+    /// Shows how many hours have been used and what the limit is.
+    /// Useful for UI widgets that display remaining hours before submitting.
     /// </summary>
     [HttpGet("permission/monthly-hours")]
     public async Task<IActionResult> GetMonthlyPermissionHours(
@@ -243,933 +305,131 @@ public class EmployeeRequestsController : APIBaseController
         if (!employeeId.HasValue)
             return BadRequest("Employee context is required.");
 
-        var targetYear = year ?? DateTime.UtcNow.Year;
-        var targetMonth = month ?? DateTime.UtcNow.Month;
-
         var query = new GetEmployeeMonthlyPermissionHoursQuery(
             employeeId.Value,
             permissionTypeId,
-            targetYear,
-            targetMonth);
+            year ?? DateTime.UtcNow.Year,
+            month ?? DateTime.UtcNow.Month);
 
         var result = await _mediator.Send(query);
         return result.Match(Ok, Problem);
     }
 
     /// <summary>
-    /// Manager approves or rejects a vacation request.
-    /// </summary>
-    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("vacation/{requestId:guid}/manager-approval")]
-    public async Task<IActionResult> ManagerApproveVacation(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveVacationRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.Manager);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// HR approves or rejects a vacation request (after manager approval).
-    /// Also updates employee's leave balance when approved.
-    /// </summary>
-    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("vacation/{requestId:guid}/hr-approval")]
-    public async Task<IActionResult> HRApproveVacation(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveVacationRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.HR);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    #region Vacation Requests - Role-Based Endpoints
-
-    /// <summary>
-    /// Get vacation requests based on current user's role
-    /// - Employee: Gets all their own vacation requests
-    /// - Department Manager: Gets pending requests from direct reports
-    /// - HR Manager: Gets manager-approved requests waiting for HR approval
-    /// </summary>
-    [HttpGet("vacation")]
-    public async Task<IActionResult> GetVacationRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? vacationTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetVacationRequestsQuery(
-            status,
-            vacationTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get vacation request details by ID
-    /// </summary>
-    [HttpGet("vacation/{id:guid}")]
-    public async Task<IActionResult> GetVacationRequestById(Guid id)
-    {
-        var result = await _mediator.Send(new GetVacationRequestByIdQuery(id));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get HR branch vacation summary (counts by status)
+    /// Returns HR-level vacation status summary (count by status) for the branch.
+    /// Used for dashboard widgets.
     /// </summary>
     [HttpGet("vacation/hr/summary")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrVacationSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
+    public async Task<IActionResult> GetHrVacationSummary(
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null)
     {
         var result = await _mediator.Send(new GetHrVacationSummaryQuery(startDateFrom, startDateTo));
         return result.Match(Ok, Problem);
     }
 
     /// <summary>
-    /// Get HR branch vacation requests (all statuses)
-    /// </summary>
-    [HttpGet("vacation/hr/requests")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrVacationRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? vacationTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetHrVacationRequestsQuery(
-            status,
-            vacationTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager overview: own vacation requests + pending approvals from direct reports
-    /// </summary>
-    [HttpGet("vacation/manager/overview")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
-    public async Task<IActionResult> GetManagerVacationOverview(
-        [FromQuery] int myPageNumber = 1,
-        [FromQuery] int myPageSize = 10,
-        [FromQuery] int pendingPageNumber = 1,
-        [FromQuery] int pendingPageSize = 10)
-    {
-        var result = await _mediator.Send(new GetManagerVacationOverviewQuery(myPageNumber, myPageSize, pendingPageNumber, pendingPageSize));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Explicit endpoint for employees to get their own vacation requests
-    /// </summary>
-    [HttpGet("vacation/my-requests")]
-    public async Task<IActionResult> GetMyVacationRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? vacationTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var result = await _mediator.Send(new GetVacationRequestsQuery(
-            status,
-            vacationTypeId,
-            startDateFrom,
-            startDateTo,
-            null,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize));
-
-        return result.Match(Ok, Problem);
-    }
-
-    #endregion
-
-    #region Permission Requests - Role-Based Endpoints
-
-    /// <summary>
-    /// Get permission requests based on current user's role
-    /// - Employee: Gets all their own permission requests
-    /// - Department Manager: Gets pending requests from direct reports
-    /// - HR Manager: Gets manager-approved requests waiting for HR approval
-    /// </summary>
-    [HttpGet("permission/list")]
-    public async Task<IActionResult> GetPermissionRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? permissionTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetPermissionRequestsQuery(
-            status,
-            permissionTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get permission request details by ID
-    /// </summary>
-    [HttpGet("permission/{id:guid}")]
-    public async Task<IActionResult> GetPermissionRequestById(Guid id)
-    {
-        var result = await _mediator.Send(new GetPermissionRequestByIdQuery(id));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get HR branch permission summary (counts by status)
+    /// Returns HR-level permission status summary (count by status) for the branch.
+    /// Used for dashboard widgets.
     /// </summary>
     [HttpGet("permission/hr/summary")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrPermissionSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
+    public async Task<IActionResult> GetHrPermissionSummary(
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null)
     {
         var result = await _mediator.Send(new GetHrPermissionSummaryQuery(startDateFrom, startDateTo));
         return result.Match(Ok, Problem);
     }
 
     /// <summary>
-    /// Get HR branch permission requests (all statuses)
-    /// </summary>
-    [HttpGet("permission/hr/requests")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrPermissionRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? permissionTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetHrPermissionRequestsQuery(
-            status,
-            permissionTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager overview: own permission requests + pending approvals from direct reports
-    /// </summary>
-    [HttpGet("permission/manager/overview")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
-    public async Task<IActionResult> GetManagerPermissionOverview(
-        [FromQuery] int myPageNumber = 1,
-        [FromQuery] int myPageSize = 10,
-        [FromQuery] int pendingPageNumber = 1,
-        [FromQuery] int pendingPageSize = 10)
-    {
-        var result = await _mediator.Send(new GetManagerPermissionOverviewQuery(myPageNumber, myPageSize, pendingPageNumber, pendingPageSize));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Explicit endpoint for employees to get their own permission requests
-    /// </summary>
-    [HttpGet("permission/my-requests")]
-    public async Task<IActionResult> GetMyPermissionRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? permissionTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var result = await _mediator.Send(new GetPermissionRequestsQuery(
-            status,
-            permissionTypeId,
-            startDateFrom,
-            startDateTo,
-            null,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize));
-
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager approves or rejects a permission request.
-    /// </summary>
-    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("permission/{requestId:guid}/manager-approval")]
-    public async Task<IActionResult> ManagerApprovePermission(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApprovePermissionRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.Manager);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// HR approves or rejects a permission request (after manager approval).
-    /// May update employee's leave balance if the permission type deducts from leave.
-    /// </summary>
-    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("permission/{requestId:guid}/hr-approval")]
-    public async Task<IActionResult> HRApprovePermission(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApprovePermissionRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.HR);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    #endregion
-
-    #region Training Requests - Role-Based Endpoints
-
-    /// <summary>
-    /// Get training requests based on current user's role
-    /// </summary>
-    [HttpGet("training/list")]
-    public async Task<IActionResult> GetTrainingRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? trainingTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetTrainingRequestsQuery(
-            status,
-            trainingTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get training request details by ID
-    /// </summary>
-    [HttpGet("training/{id:guid}")]
-    public async Task<IActionResult> GetTrainingRequestById(Guid id)
-    {
-        var result = await _mediator.Send(new GetTrainingRequestByIdQuery(id));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get HR branch training summary
+    /// Returns HR-level training status summary (count by status) for the branch.
+    /// Used for dashboard widgets.
     /// </summary>
     [HttpGet("training/hr/summary")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrTrainingSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
+    public async Task<IActionResult> GetHrTrainingSummary(
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null)
     {
         var result = await _mediator.Send(new GetHrTrainingSummaryQuery(startDateFrom, startDateTo));
         return result.Match(Ok, Problem);
     }
 
     /// <summary>
-    /// Get HR branch training requests
-    /// </summary>
-    [HttpGet("training/hr/requests")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrTrainingRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? trainingTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetHrTrainingRequestsQuery(
-            status,
-            trainingTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager overview: own training requests + pending approvals
-    /// </summary>
-    [HttpGet("training/manager/overview")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
-    public async Task<IActionResult> GetManagerTrainingOverview(
-        [FromQuery] int myPageNumber = 1,
-        [FromQuery] int myPageSize = 10,
-        [FromQuery] int pendingPageNumber = 1,
-        [FromQuery] int pendingPageSize = 10)
-    {
-        var result = await _mediator.Send(new GetManagerTrainingOverviewQuery(myPageNumber, myPageSize, pendingPageNumber, pendingPageSize));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager approves or rejects a training request
-    /// </summary>
-    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("training/{requestId:guid}/manager-approval")]
-    public async Task<IActionResult> ManagerApproveTraining(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveTrainingRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.Manager);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// HR approves or rejects a training request
-    /// </summary>
-    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("training/{requestId:guid}/hr-approval")]
-    public async Task<IActionResult> HRApproveTraining(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveTrainingRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.HR);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    #endregion
-
-    #region Miscellaneous Requests - Role-Based Endpoints
-
-    /// <summary>
-    /// Get miscellaneous requests based on current user's role
-    /// </summary>
-    [HttpGet("miscellaneous/list")]
-    public async Task<IActionResult> GetMiscellaneousRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? miscellaneousTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetMiscellaneousRequestsQuery(
-            status,
-            miscellaneousTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get miscellaneous request details by ID
-    /// </summary>
-    [HttpGet("miscellaneous/{id:guid}")]
-    public async Task<IActionResult> GetMiscellaneousRequestById(Guid id)
-    {
-        var result = await _mediator.Send(new GetMiscellaneousRequestByIdQuery(id));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get HR branch miscellaneous summary
+    /// Returns HR-level miscellaneous status summary (count by status) for the branch.
+    /// Used for dashboard widgets.
     /// </summary>
     [HttpGet("miscellaneous/hr/summary")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrMiscellaneousSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
+    public async Task<IActionResult> GetHrMiscellaneousSummary(
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null)
     {
         var result = await _mediator.Send(new GetHrMiscellaneousSummaryQuery(startDateFrom, startDateTo));
         return result.Match(Ok, Problem);
     }
 
     /// <summary>
-    /// Get HR branch miscellaneous requests
-    /// </summary>
-    [HttpGet("miscellaneous/hr/requests")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrMiscellaneousRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? miscellaneousTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetHrMiscellaneousRequestsQuery(
-            status,
-            miscellaneousTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager overview: own miscellaneous requests + pending approvals
-    /// </summary>
-    [HttpGet("miscellaneous/manager/overview")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
-    public async Task<IActionResult> GetManagerMiscellaneousOverview(
-        [FromQuery] int myPageNumber = 1,
-        [FromQuery] int myPageSize = 10,
-        [FromQuery] int pendingPageNumber = 1,
-        [FromQuery] int pendingPageSize = 10)
-    {
-        var result = await _mediator.Send(new GetManagerMiscellaneousOverviewQuery(myPageNumber, myPageSize, pendingPageNumber, pendingPageSize));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager approves or rejects a miscellaneous request
-    /// </summary>
-    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("miscellaneous/{requestId:guid}/manager-approval")]
-    public async Task<IActionResult> ManagerApproveMiscellaneous(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveMiscellaneousRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.Manager);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// HR approves or rejects a miscellaneous request
-    /// </summary>
-    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("miscellaneous/{requestId:guid}/hr-approval")]
-    public async Task<IActionResult> HRApproveMiscellaneous(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveMiscellaneousRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.HR);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    #endregion
-
-    #region Personal Requests - Role-Based Endpoints
-
-    /// <summary>
-    /// Get personal requests based on current user's role
-    /// </summary>
-    [HttpGet("personal/list")]
-    public async Task<IActionResult> GetPersonalRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? personalTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetPersonalRequestsQuery(
-            status,
-            personalTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get personal request details by ID
-    /// </summary>
-    [HttpGet("personal/{id:guid}")]
-    public async Task<IActionResult> GetPersonalRequestById(Guid id)
-    {
-        var result = await _mediator.Send(new GetPersonalRequestByIdQuery(id));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get HR branch personal summary
+    /// Returns HR-level personal request status summary (count by status) for the branch.
+    /// Used for dashboard widgets.
     /// </summary>
     [HttpGet("personal/hr/summary")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrPersonalSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
+    public async Task<IActionResult> GetHrPersonalSummary(
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null)
     {
         var result = await _mediator.Send(new GetHrPersonalSummaryQuery(startDateFrom, startDateTo));
         return result.Match(Ok, Problem);
     }
 
     /// <summary>
-    /// Get HR branch personal requests
-    /// </summary>
-    [HttpGet("personal/hr/requests")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrPersonalRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? personalTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetHrPersonalRequestsQuery(
-            status,
-            personalTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager overview: own personal requests + pending approvals
-    /// </summary>
-    [HttpGet("personal/manager/overview")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
-    public async Task<IActionResult> GetManagerPersonalOverview(
-        [FromQuery] int myPageNumber = 1,
-        [FromQuery] int myPageSize = 10,
-        [FromQuery] int pendingPageNumber = 1,
-        [FromQuery] int pendingPageSize = 10)
-    {
-        var result = await _mediator.Send(new GetManagerPersonalOverviewQuery(myPageNumber, myPageSize, pendingPageNumber, pendingPageSize));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager approves or rejects a personal request
-    /// </summary>
-    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("personal/{requestId:guid}/manager-approval")]
-    public async Task<IActionResult> ManagerApprovePersonal(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApprovePersonalRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.Manager);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// HR approves or rejects a personal request
-    /// </summary>
-    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("personal/{requestId:guid}/hr-approval")]
-    public async Task<IActionResult> HRApprovePersonal(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApprovePersonalRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.HR);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    #endregion
-
-    #region Feedback Requests - Role-Based Endpoints
-
-    /// <summary>
-    /// Get feedback requests based on current user's role
-    /// </summary>
-    [HttpGet("feedback/list")]
-    public async Task<IActionResult> GetFeedbackRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? feedbackTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetFeedbackRequestsQuery(
-            status,
-            feedbackTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get feedback request details by ID
-    /// </summary>
-    [HttpGet("feedback/{id:guid}")]
-    public async Task<IActionResult> GetFeedbackRequestById(Guid id)
-    {
-        var result = await _mediator.Send(new GetFeedbackRequestByIdQuery(id));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get HR branch feedback summary
+    /// Returns HR-level feedback request status summary (count by status) for the branch.
+    /// Used for dashboard widgets.
     /// </summary>
     [HttpGet("feedback/hr/summary")]
     [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrFeedbackSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
+    public async Task<IActionResult> GetHrFeedbackSummary(
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null)
     {
         var result = await _mediator.Send(new GetHrFeedbackSummaryQuery(startDateFrom, startDateTo));
         return result.Match(Ok, Problem);
     }
 
     /// <summary>
-    /// Get HR branch feedback requests
+    /// Creates or updates the request settings for a branch (which types are enabled, limits, etc.).
+    /// Restricted to SuperAdmin.
     /// </summary>
-    [HttpGet("feedback/hr/requests")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrFeedbackRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? feedbackTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
+    [Authorize(Roles = "SuperAdmin")]
+    [HttpPut("branches/{branchId:guid}/settings")]
+    public async Task<IActionResult> UpsertBranchSettings(
+        Guid branchId,
+        [FromBody] List<BranchRequestSettingPayload> settings)
     {
-        var query = new GetHrFeedbackRequestsQuery(
-            status,
-            feedbackTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager overview: own feedback requests + pending approvals
-    /// </summary>
-    [HttpGet("feedback/manager/overview")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
-    public async Task<IActionResult> GetManagerFeedbackOverview(
-        [FromQuery] int myPageNumber = 1,
-        [FromQuery] int myPageSize = 10,
-        [FromQuery] int pendingPageNumber = 1,
-        [FromQuery] int pendingPageSize = 10)
-    {
-        var result = await _mediator.Send(new GetManagerFeedbackOverviewQuery(myPageNumber, myPageSize, pendingPageNumber, pendingPageSize));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager approves or rejects a feedback request
-    /// </summary>
-    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("feedback/{requestId:guid}/manager-approval")]
-    public async Task<IActionResult> ManagerApproveFeedback(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveFeedbackRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.Manager);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// HR approves or rejects a feedback request
-    /// </summary>
-    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("feedback/{requestId:guid}/hr-approval")]
-    public async Task<IActionResult> HRApproveFeedback(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveFeedbackRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.HR);
-
+        var command = new UpsertBranchRequestSettingsCommand(branchId, settings);
         var result = await _mediator.Send(command);
         return result.Match(Ok, Problem);
     }
 
     #endregion
 
+    #region DTOs
+
     public record ApprovalDto
     {
+        /// <summary>True to approve, false to reject.</summary>
         public bool IsApproved { get; init; }
+        /// <summary>Optional comments from the approver.</summary>
         public string? Comments { get; init; }
     }
 
-    public record SubmitEmployeeRequestDto
+    public record CancelDto
     {
-        public string RequestTypeCode { get; init; } = string.Empty;
-        public string Title { get; init; } = string.Empty;
-        public string? Description { get; init; }
-        public DateTime? StartDate { get; init; }
-        public DateTime? EndDate { get; init; }
-        public string? AttachmentUrl { get; init; }
-        public Guid? EmployeeId { get; init; }
-        public Guid? BranchId { get; init; }
+        /// <summary>Optional reason for cancelling the request.</summary>
+        public string? Reason { get; init; }
     }
 
     public record SubmitVacationRequestDto
@@ -1183,6 +443,21 @@ public class EmployeeRequestsController : APIBaseController
         public string? AttachmentUrl { get; init; }
         public string? EmergencyContactName { get; init; }
         public string? EmergencyContactPhone { get; init; }
+        public Guid? EmployeeId { get; init; }
+        public Guid? BranchId { get; init; }
+    }
+
+    public record SubmitPermissionRequestDto
+    {
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public DateTime PermissionDate { get; init; }
+        public TimeSpan? FromTime { get; init; }
+        public TimeSpan? ToTime { get; init; }
+        public decimal TotalHours { get; init; }
+        public Guid PermissionTypeId { get; init; }
+        public string Reason { get; init; } = string.Empty;
+        public string? AttachmentUrl { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
     }
@@ -1207,33 +482,5 @@ public class EmployeeRequestsController : APIBaseController
         public Guid? BranchId { get; init; }
     }
 
-    public record SubmitPermissionRequestDto
-    {
-        public string Title { get; init; } = string.Empty;
-        public string? Description { get; init; }
-        public DateTime PermissionDate { get; init; }
-        public TimeSpan? FromTime { get; init; }
-        public TimeSpan? ToTime { get; init; }
-        public decimal TotalHours { get; init; }
-        public Guid PermissionTypeId { get; init; }
-        public string Reason { get; init; } = string.Empty;
-        public string? AttachmentUrl { get; init; }
-        public Guid? EmployeeId { get; init; }
-        public Guid? BranchId { get; init; }
-    }
-
-    public record TrainingApprovalDto
-    {
-        public bool IsApproved { get; init; }
-        public string? RejectionReason { get; init; }
-        public decimal? ApprovedBudget { get; init; }
-        public string? ApprovalNotes { get; init; }
-    }
-
-    public record FeedbackApprovalDto
-    {
-        public bool IsApproved { get; init; }
-        public string? RejectionReason { get; init; }
-        public string? ResponseContent { get; init; }
-    }
+    #endregion
 }
