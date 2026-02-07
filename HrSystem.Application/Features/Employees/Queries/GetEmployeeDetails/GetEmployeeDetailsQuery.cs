@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using ErrorOr;
 using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Domain.Enums;
@@ -37,6 +40,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         var attendanceHistory = await GetAttendanceHistoryAsync(request.EmployeeId, request.AttendanceRecentCount, cancellationToken);
         var documents = await GetEmployeeDocumentsAsync(request.EmployeeId, cancellationToken);
         var assets = await GetEmployeeAssetsAsync(request.EmployeeId, cancellationToken);
+        var balanceSnapshot = await GetEmployeeBalanceSnapshotAsync(request.EmployeeId, cancellationToken);
 
         if (payroll is null)
         {
@@ -59,7 +63,8 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             Payroll = payroll,
             Attendance = attendance,
             Documents = documents,
-            Assets = assets
+            Assets = assets,
+            Balances = balanceSnapshot
         };
 
         return new GenericResponse<EmployeeDetailsDto>
@@ -309,6 +314,116 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             })
             .ToListAsync(cancellationToken);
     }
+
+    private async Task<EmployeeBalanceSnapshotDto> GetEmployeeBalanceSnapshotAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+
+        var snapshot = new EmployeeBalanceSnapshotDto
+        {
+            VacationYear = now.Year,
+            PermissionYear = now.Year,
+            PermissionMonth = now.Month
+        };
+
+        var latestBalanceYear = await _context.EmployeeLeaveBalances
+            .Where(b => b.EmployeeId == employeeId)
+            .MaxAsync(b => (int?)b.Year, cancellationToken);
+
+        if (latestBalanceYear.HasValue)
+        {
+            snapshot.VacationYear = latestBalanceYear.Value;
+            snapshot.VacationBalances = await _context.EmployeeLeaveBalances
+                .AsNoTracking()
+                .Where(b => b.EmployeeId == employeeId && b.Year == latestBalanceYear.Value)
+                .OrderBy(b => b.VacationType.SortOrder)
+                .ThenBy(b => b.VacationType.NameEn)
+                .Select(b => new EmployeeVacationBalanceSummaryDto
+                {
+                    VacationTypeId = b.VacationTypeId,
+                    VacationTypeNameEn = b.VacationType.NameEn,
+                    VacationTypeNameAr = b.VacationType.NameAr,
+                    AllocatedDays = b.AllocatedDays,
+                    CarryOverDays = b.CarryOverDays,
+                    ManualAdjustmentDays = b.ManualAdjustmentDays,
+                    UsedDays = b.UsedDays,
+                    AvailableDays = b.AllocatedDays + b.CarryOverDays + b.ManualAdjustmentDays - b.UsedDays,
+                    Notes = b.Notes
+                })
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            snapshot.VacationBalances = Array.Empty<EmployeeVacationBalanceSummaryDto>();
+        }
+
+        var permissionLimits = await _context.EmployeePermissionLimits
+            .AsNoTracking()
+            .Where(l => l.EmployeeId == employeeId)
+            .OrderBy(l => l.PermissionType.SortOrder)
+            .ThenBy(l => l.PermissionType.NameEn)
+            .Select(l => new PermissionLimitProjection(
+                l.PermissionTypeId,
+                l.PermissionType.NameEn,
+                l.PermissionType.NameAr,
+                l.MaxHoursPerMonth,
+                l.Notes))
+            .ToListAsync(cancellationToken);
+
+        var permissionSummaries = new List<EmployeePermissionBalanceSummaryDto>(permissionLimits.Count);
+
+        if (permissionLimits.Count > 0)
+        {
+            var startOfMonth = new DateTime(snapshot.PermissionYear, snapshot.PermissionMonth, 1);
+            var endOfMonth = startOfMonth.AddMonths(1);
+            var approvedStatuses = new[] { EmployeeRequestStatus.Approved, EmployeeRequestStatus.Completed };
+
+            var usageLookup = await _context.PermissionRequestDetails
+                .AsNoTracking()
+                .Where(d => d.EmployeeRequest.EmployeeId == employeeId
+                            && d.PermissionDate >= startOfMonth
+                            && d.PermissionDate < endOfMonth
+                            && approvedStatuses.Contains(d.EmployeeRequest.Status))
+                .GroupBy(d => d.PermissionTypeId)
+                .Select(g => new
+                {
+                    PermissionTypeId = g.Key,
+                    TotalHours = g.Sum(x => x.TotalHours)
+                })
+                .ToDictionaryAsync(x => x.PermissionTypeId, x => x.TotalHours, cancellationToken);
+
+            foreach (var limit in permissionLimits)
+            {
+                usageLookup.TryGetValue(limit.PermissionTypeId, out var usedHours);
+
+                var remaining = limit.MaxHoursPerMonth.HasValue
+                    ? Math.Max(0, limit.MaxHoursPerMonth.Value - usedHours)
+                    : (decimal?)null;
+
+                permissionSummaries.Add(new EmployeePermissionBalanceSummaryDto
+                {
+                    PermissionTypeId = limit.PermissionTypeId,
+                    PermissionTypeNameEn = limit.PermissionTypeNameEn,
+                    PermissionTypeNameAr = limit.PermissionTypeNameAr,
+                    MaxHoursPerMonth = limit.MaxHoursPerMonth,
+                    UsedHoursThisMonth = usedHours,
+                    RemainingHoursThisMonth = remaining,
+                    Notes = limit.Notes
+                });
+            }
+        }
+
+        snapshot.PermissionBalances = permissionSummaries;
+
+        return snapshot;
+    }
+
+    private sealed record PermissionLimitProjection(
+        Guid PermissionTypeId,
+        string PermissionTypeNameEn,
+        string PermissionTypeNameAr,
+        decimal? MaxHoursPerMonth,
+        string? Notes);
 
     private async Task<List<EmployeeDocumentGroupDetailsDto>> GetEmployeeDocumentsAsync(Guid employeeId, CancellationToken cancellationToken)
     {

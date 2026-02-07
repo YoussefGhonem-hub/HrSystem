@@ -1,5 +1,6 @@
 using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
+using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Infrustructure.Extensions;
@@ -91,6 +92,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<PersonalType> PersonalTypes => Set<PersonalType>();
     public DbSet<FeedbackType> FeedbackTypes => Set<FeedbackType>();
     public DbSet<PermissionType> PermissionTypes => Set<PermissionType>();
+    public DbSet<EmployeeLeaveBalance> EmployeeLeaveBalances => Set<EmployeeLeaveBalance>();
+    public DbSet<EmployeeLeaveTransaction> EmployeeLeaveTransactions => Set<EmployeeLeaveTransaction>();
+    public DbSet<EmployeeVacationLimit> EmployeeVacationLimits => Set<EmployeeVacationLimit>();
+    public DbSet<EmployeePermissionLimit> EmployeePermissionLimits => Set<EmployeePermissionLimit>();
     
     // Request Details
     public DbSet<VacationRequestDetail> VacationRequestDetails => Set<VacationRequestDetail>();

@@ -1,5 +1,7 @@
 using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
+using HrSystem.Domain.Entities.Leave;
+using HrSystem.Domain.Entities.Requests;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
@@ -81,6 +83,12 @@ public class ApproveVacationRequestCommandHandler
 
             if (request.IsApproved)
             {
+                var deductionError = await TryDeductLeaveBalanceAsync(employeeRequest, cancellationToken);
+                if (deductionError is Error error)
+                {
+                    return error;
+                }
+
                 employeeRequest.Status = EmployeeRequestStatus.Approved;
                 employeeRequest.ProcessedBy = currentUserId;
                 employeeRequest.ProcessedDate = DateTime.UtcNow;
@@ -135,5 +143,61 @@ public class ApproveVacationRequestCommandHandler
         var levelText = request.Level == ApprovalLevel.Manager ? "Manager" : "HR";
 
         return GenericResponse<EmployeeRequestDto>.SuccessResult(dto, $"Vacation request {actionText} by {levelText} successfully.");
+    }
+
+    private async Task<Error?> TryDeductLeaveBalanceAsync(EmployeeRequest employeeRequest, CancellationToken cancellationToken)
+    {
+        if (!employeeRequest.StartDate.HasValue || !employeeRequest.EndDate.HasValue)
+        {
+            return Error.Validation(description: "Vacation request must have both start and end dates before approval.");
+        }
+
+        if (employeeRequest.StartDate.Value.Year != employeeRequest.EndDate.Value.Year)
+        {
+            return Error.Validation(description: "Leave requests spanning multiple calendar years must be split per year before approval.");
+        }
+
+        var approvalYear = employeeRequest.StartDate.Value.Year;
+        var vacationDetail = employeeRequest.VacationDetail!;
+        var requestedDays = vacationDetail.TotalDays;
+
+        var leaveBalance = await _context.EmployeeLeaveBalances
+            .FirstOrDefaultAsync(b => b.EmployeeId == employeeRequest.EmployeeId
+                                      && b.VacationTypeId == vacationDetail.VacationTypeId
+                                      && b.Year == approvalYear,
+                cancellationToken);
+
+        if (leaveBalance is null)
+        {
+            return Error.Validation(description: "Leave balance is not configured for this employee, vacation type, and year.");
+        }
+
+        var availableDays = leaveBalance.CalculateAvailableDays();
+        if (availableDays < requestedDays)
+        {
+            return Error.Validation(description: $"Insufficient leave balance. Requested {requestedDays:0.##} day(s) but only {availableDays:0.##} day(s) are available.");
+        }
+
+        leaveBalance.UsedDays += requestedDays;
+
+        var transaction = new EmployeeLeaveTransaction
+        {
+            EmployeeLeaveBalanceId = leaveBalance.Id,
+            EmployeeId = leaveBalance.EmployeeId,
+            VacationTypeId = leaveBalance.VacationTypeId,
+            Year = leaveBalance.Year,
+            TransactionType = LeaveTransactionType.Deduction,
+            DaysChanged = -requestedDays,
+            BalanceAfter = leaveBalance.CalculateAvailableDays(),
+            ReferenceType = "VacationRequest",
+            ReferenceId = employeeRequest.Id,
+            Notes = employeeRequest.Title,
+            TenantId = leaveBalance.TenantId,
+            BranchId = leaveBalance.BranchId
+        };
+
+        await _context.EmployeeLeaveTransactions.AddAsync(transaction, cancellationToken);
+
+        return null;
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Domain.Enums;
@@ -12,6 +13,7 @@ public class EmployeeDetailsDto
     public EmployeeAttendanceDetailsDto? Attendance { get; set; }
     public List<EmployeeDocumentGroupDetailsDto> Documents { get; set; } = new();
     public List<EmployeeAssetDetailsDto> Assets { get; set; } = new();
+    public EmployeeBalanceSnapshotDto Balances { get; set; } = new();
 }
 
 public class EmployeePersonalInfoDetailsDto
@@ -144,6 +146,39 @@ public class EmployeeAttendanceHistoryItemDto
     public TimeSpan? WorkedHours { get; set; }
     public TimeSpan? OvertimeHours { get; set; }
     public bool IsLate { get; set; }
+}
+
+public class EmployeeBalanceSnapshotDto
+{
+    public int VacationYear { get; set; }
+    public IReadOnlyCollection<EmployeeVacationBalanceSummaryDto> VacationBalances { get; set; } = Array.Empty<EmployeeVacationBalanceSummaryDto>();
+    public int PermissionYear { get; set; }
+    public int PermissionMonth { get; set; }
+    public IReadOnlyCollection<EmployeePermissionBalanceSummaryDto> PermissionBalances { get; set; } = Array.Empty<EmployeePermissionBalanceSummaryDto>();
+}
+
+public class EmployeeVacationBalanceSummaryDto
+{
+    public Guid VacationTypeId { get; set; }
+    public string VacationTypeNameEn { get; set; } = string.Empty;
+    public string VacationTypeNameAr { get; set; } = string.Empty;
+    public decimal AllocatedDays { get; set; }
+    public decimal CarryOverDays { get; set; }
+    public decimal ManualAdjustmentDays { get; set; }
+    public decimal UsedDays { get; set; }
+    public decimal AvailableDays { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class EmployeePermissionBalanceSummaryDto
+{
+    public Guid PermissionTypeId { get; set; }
+    public string PermissionTypeNameEn { get; set; } = string.Empty;
+    public string PermissionTypeNameAr { get; set; } = string.Empty;
+    public decimal? MaxHoursPerMonth { get; set; }
+    public decimal UsedHoursThisMonth { get; set; }
+    public decimal? RemainingHoursThisMonth { get; set; }
+    public string? Notes { get; set; }
 }
 
 public class EmployeeRoleDto
