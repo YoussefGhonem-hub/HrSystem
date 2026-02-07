@@ -87,9 +87,7 @@ public class GetBranchRequestAvailabilityQueryHandler
                 .Select(t => new PermissionTypeDto
                 {
                     Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
-                    MaxHoursPerRequest = t.MaxHoursPerRequest, MaxHoursPerMonth = t.MaxHoursPerMonth,
-                    DeductsFromLeave = t.DeductsFromLeave, HoursPerLeaveDay = t.HoursPerLeaveDay,
-                    RequiresAttachment = t.RequiresAttachment, RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
+                    RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
                 }).ToListAsync(cancellationToken)
             : null;
 

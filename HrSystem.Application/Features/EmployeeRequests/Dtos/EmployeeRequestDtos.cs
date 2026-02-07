@@ -61,11 +61,6 @@ public record PermissionTypeDto
     public string NameEn { get; init; } = string.Empty;
     public string NameAr { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public decimal? MaxHoursPerRequest { get; init; }
-    public decimal? MaxHoursPerMonth { get; init; }
-    public bool DeductsFromLeave { get; init; }
-    public decimal? HoursPerLeaveDay { get; init; }
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; }
     public int SortOrder { get; init; }
 }

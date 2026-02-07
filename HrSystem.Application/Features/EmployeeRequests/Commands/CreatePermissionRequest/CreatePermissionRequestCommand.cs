@@ -37,13 +37,6 @@ public class CreatePermissionRequestCommandHandler
         EmployeeRequestStatus.Pending
     };
 
-    // Count approved permissions for monthly limit
-    private static readonly EmployeeRequestStatus[] ApprovedStatuses =
-    {
-        EmployeeRequestStatus.Approved,
-        EmployeeRequestStatus.Completed
-    };
-
     private readonly ApplicationDbContext _context;
 
     public CreatePermissionRequestCommandHandler(ApplicationDbContext context) => _context = context;
@@ -105,48 +98,6 @@ public class CreatePermissionRequestCommandHandler
         if (permissionType == null)
             return Error.Validation(description: "Invalid permission type.");
 
-        // Validate hours per request
-        if (permissionType.MaxHoursPerRequest.HasValue && request.TotalHours > permissionType.MaxHoursPerRequest.Value)
-        {
-            return Error.Validation(description: $"Total hours ({request.TotalHours}) exceeds maximum allowed per request ({permissionType.MaxHoursPerRequest.Value} hours).");
-        }
-
-        // Validate monthly hours limit
-        if (permissionType.MaxHoursPerMonth.HasValue)
-        {
-            var startOfMonth = new DateTime(request.PermissionDate.Year, request.PermissionDate.Month, 1);
-            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-
-            // Get total approved hours for this month (same permission type)
-            var usedHoursThisMonth = await _context.PermissionRequestDetails
-                .AsNoTracking()
-                .Where(pd => pd.PermissionTypeId == request.PermissionTypeId
-                            && pd.EmployeeRequest.EmployeeId == request.EmployeeId
-                            && pd.PermissionDate >= startOfMonth
-                            && pd.PermissionDate <= endOfMonth
-                            && ApprovedStatuses.Contains(pd.EmployeeRequest.Status))
-                .SumAsync(pd => pd.TotalHours, cancellationToken);
-
-            // Also include pending requests to prevent over-booking
-            var pendingHoursThisMonth = await _context.PermissionRequestDetails
-                .AsNoTracking()
-                .Where(pd => pd.PermissionTypeId == request.PermissionTypeId
-                            && pd.EmployeeRequest.EmployeeId == request.EmployeeId
-                            && pd.PermissionDate >= startOfMonth
-                            && pd.PermissionDate <= endOfMonth
-                            && pd.EmployeeRequest.Status == EmployeeRequestStatus.Pending)
-                .SumAsync(pd => pd.TotalHours, cancellationToken);
-
-            var totalHoursUsed = usedHoursThisMonth + pendingHoursThisMonth;
-            var remainingHours = permissionType.MaxHoursPerMonth.Value - totalHoursUsed;
-
-            if (request.TotalHours > remainingHours)
-            {
-                return Error.Validation(description: 
-                    $"Monthly hours limit exceeded. Used: {totalHoursUsed} hours, Remaining: {remainingHours} hours, Requested: {request.TotalHours} hours. Maximum allowed per month: {permissionType.MaxHoursPerMonth.Value} hours.");
-            }
-        }
-
         // Create EmployeeRequest
         var employeeRequest = new EmployeeRequest
         {
@@ -163,13 +114,6 @@ public class CreatePermissionRequestCommandHandler
             RequestedDate = DateTime.UtcNow
         };
 
-        // Calculate leave deduction if applicable
-        decimal? leaveDeduction = null;
-        if (permissionType.DeductsFromLeave && permissionType.HoursPerLeaveDay.HasValue && permissionType.HoursPerLeaveDay.Value > 0)
-        {
-            leaveDeduction = request.TotalHours / permissionType.HoursPerLeaveDay.Value;
-        }
-
         // Create PermissionDetail
         var permissionDetail = new PermissionRequestDetail
         {
@@ -180,7 +124,7 @@ public class CreatePermissionRequestCommandHandler
             TotalHours = request.TotalHours,
             Reason = request.Reason.Trim(),
             ManagerId = employee.DirectManagerId,
-            LeaveDeduction = leaveDeduction
+            LeaveDeduction = null
         };
 
         employeeRequest.PermissionDetail = permissionDetail;

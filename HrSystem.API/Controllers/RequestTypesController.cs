@@ -404,9 +404,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreatePermissionTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.MaxHoursPerRequest, dto.MaxHoursPerMonth,
-            dto.DeductsFromLeave, dto.HoursPerLeaveDay,
-            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -425,9 +423,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdatePermissionTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.MaxHoursPerRequest, dto.MaxHoursPerMonth,
-            dto.DeductsFromLeave, dto.HoursPerLeaveDay,
-            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);

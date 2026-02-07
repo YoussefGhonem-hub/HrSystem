@@ -2173,6 +2173,20 @@ public static class AppDbContextSeed
             Console.WriteLine($"Seeded {feedbackTypes.Count} feedback types");
         }
 
+        // Seed PermissionTypes
+        if (!await context.PermissionTypes.AnyAsync())
+        {
+            var permissionTypes = new List<PermissionType>
+            {
+                new() { NameEn = "Late Arrival", NameAr = "تأخر عن الدوام", Description = "Permission to arrive after scheduled start time.", RequiresManagerApproval = true, SortOrder = 1, CreatedDate = now },
+                new() { NameEn = "Early Departure", NameAr = "الخروج مبكراً", Description = "Leave work before official end time for personal matters.", RequiresManagerApproval = true, SortOrder = 2, CreatedDate = now },
+                new() { NameEn = "Short Leave", NameAr = "إجازة قصيرة", Description = "Short absence during working hours (e.g., paperwork).", RequiresManagerApproval = true, SortOrder = 3, CreatedDate = now },
+                new() { NameEn = "Field Visit", NameAr = "زيارة ميدانية", Description = "Authorized out-of-office visit during working hours.", RequiresManagerApproval = true, SortOrder = 4, CreatedDate = now }
+            };
+            await context.PermissionTypes.AddRangeAsync(permissionTypes);
+            Console.WriteLine($"Seeded {permissionTypes.Count} permission types");
+        }
+
         await context.SaveChangesAsync();
     }
 
