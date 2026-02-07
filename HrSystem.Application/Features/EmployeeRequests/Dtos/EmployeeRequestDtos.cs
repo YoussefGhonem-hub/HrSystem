@@ -14,6 +14,17 @@ public record VacationTypeDto
     public int SortOrder { get; init; }
 }
 
+public record OvertimeTypeDto
+{
+    public Guid Id { get; init; }
+    public string NameEn { get; init; } = string.Empty;
+    public string NameAr { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public decimal DefaultMultiplier { get; init; }
+    public bool RequiresManagerApproval { get; init; }
+    public int SortOrder { get; init; }
+}
+
 public record TrainingTypeDto
 {
     public Guid Id { get; init; }

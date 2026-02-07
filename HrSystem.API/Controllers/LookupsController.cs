@@ -10,6 +10,7 @@ using HrSystem.Application.Features.Lookups.Queries.GetDirectManagersLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetMaritalStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetJobTitlesLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetPayrollStatuses;
+using HrSystem.Application.Features.Lookups.Queries.GetRequestMasterLookups;
 using HrSystem.Application.Features.Performance.Queries.GetGoalPriorities;
 using HrSystem.Application.Features.Performance.Queries.GetGoalStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetReviewStatuses;
@@ -36,6 +37,90 @@ public class LookupsController : APIBaseController
     {
         _mediator = mediator;
     }
+
+    #region Request Master Lookups
+
+    /// <summary>
+    /// Get master request types (categories) for dropdowns
+    /// </summary>
+    [HttpGet("request-types")]
+    public async Task<IActionResult> GetRequestTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetRequestTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get vacation request sub-types for dropdowns
+    /// </summary>
+    [HttpGet("vacation-types")]
+    public async Task<IActionResult> GetVacationTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetVacationTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get training request sub-types for dropdowns
+    /// </summary>
+    [HttpGet("training-types")]
+    public async Task<IActionResult> GetTrainingTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetTrainingTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get personal request sub-types for dropdowns
+    /// </summary>
+    [HttpGet("personal-types")]
+    public async Task<IActionResult> GetPersonalTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetPersonalTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get permission request sub-types for dropdowns
+    /// </summary>
+    [HttpGet("permission-types")]
+    public async Task<IActionResult> GetPermissionTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetPermissionTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get overtime request sub-types for dropdowns
+    /// </summary>
+    [HttpGet("overtime-types")]
+    public async Task<IActionResult> GetOvertimeTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetOvertimeTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get miscellaneous request sub-types for dropdowns
+    /// </summary>
+    [HttpGet("miscellaneous-types")]
+    public async Task<IActionResult> GetMiscellaneousTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetMiscellaneousTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get feedback request sub-types for dropdowns
+    /// </summary>
+    [HttpGet("feedback-types")]
+    public async Task<IActionResult> GetFeedbackTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetFeedbackTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
+    #endregion
 
     #region Performance Module
 
