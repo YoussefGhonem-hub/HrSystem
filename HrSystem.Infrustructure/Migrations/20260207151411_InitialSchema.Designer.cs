@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HrSystem.Infrustructure.Persistence.Migrations
+namespace HrSystem.Infrustructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260207150146_RemovePermissionTypeLimitColumns")]
-    partial class RemovePermissionTypeLimitColumns
+    [Migration("20260207151411_InitialSchema")]
+    partial class InitialSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -4,19 +4,16 @@ using HrSystem.Infrustructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HrSystem.Infrustructure.Persistence.Migrations
+namespace HrSystem.Infrustructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260207140644_AddEmployeeRequestLimits")]
-    partial class AddEmployeeRequestLimits
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4163,9 +4160,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("EmployeeRequestOptionId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -4216,8 +4210,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
 
                     b.HasIndex("ApprovedBy");
 
-                    b.HasIndex("EmployeeRequestOptionId");
-
                     b.HasIndex("IsDeleted");
 
                     b.HasIndex("ProcessedBy");
@@ -4231,85 +4223,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.HasIndex("TenantId", "Status");
 
                     b.ToTable("EmployeeRequests", "Requests");
-                });
-
-            modelBuilder.Entity("HrSystem.Domain.Entities.Requests.EmployeeRequestOption", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("DeletedDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid?>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("ModifiedDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("NameAr")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("NameEn")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid>("RequestTypeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("RequiresAttachment")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("RequiresManagerApproval")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("RequestTypeId");
-
-                    b.HasIndex("TenantId", "RequestTypeId", "NameEn")
-                        .IsUnique();
-
-                    b.ToTable("EmployeeRequestOptions", "Requests");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Requests.EmployeeVacationLimit", b =>
@@ -4374,9 +4287,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
@@ -4445,9 +4355,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeRequestId")
@@ -4464,9 +4371,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
@@ -4516,14 +4420,11 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("TenantId", "NameEn")
+                    b.HasIndex("NameEn")
                         .IsUnique();
 
                     b.ToTable("FeedbackTypes", "Requests");
@@ -4538,9 +4439,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Property<string>("AdditionalNotes")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
@@ -4580,9 +4478,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeRequestId")
@@ -4599,9 +4494,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
@@ -4642,23 +4534,17 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<bool>("RequiresAttachment")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("RequiresManagerApproval")
                         .HasColumnType("bit");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("TenantId", "NameEn")
+                    b.HasIndex("NameEn")
                         .IsUnique();
 
                     b.ToTable("MiscellaneousTypes", "Requests");
@@ -4685,9 +4571,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
 
                     b.Property<DateTime?>("ApprovedDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
@@ -4736,9 +4619,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovedByUserId");
@@ -4757,9 +4637,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
@@ -4810,14 +4687,11 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("TenantId", "NameEn")
+                    b.HasIndex("NameEn")
                         .IsUnique();
 
                     b.ToTable("OvertimeTypes", "Requests");
@@ -4827,9 +4701,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
@@ -4888,9 +4759,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<TimeSpan?>("ToTime")
                         .HasColumnType("time");
 
@@ -4918,17 +4786,11 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("datetimeoffset");
-
-                    b.Property<bool>("DeductsFromLeave")
-                        .HasColumnType("bit");
 
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uniqueidentifier");
@@ -4940,23 +4802,11 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<decimal?>("HoursPerLeaveDay")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
-
-                    b.Property<decimal?>("MaxHoursPerMonth")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<decimal?>("MaxHoursPerRequest")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
 
                     b.Property<Guid?>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -4974,23 +4824,17 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("RequiresAttachment")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("RequiresManagerApproval")
                         .HasColumnType("bit");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("TenantId", "NameEn")
+                    b.HasIndex("NameEn")
                         .IsUnique();
 
                     b.ToTable("PermissionTypes", "Requests");
@@ -5005,9 +4849,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Property<string>("AdditionalContactInfo")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
@@ -5055,9 +4896,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeRequestId")
@@ -5074,9 +4912,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
@@ -5117,23 +4952,17 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<bool>("RequiresAttachment")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("RequiresManagerApproval")
                         .HasColumnType("bit");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("TenantId", "NameEn")
+                    b.HasIndex("NameEn")
                         .IsUnique();
 
                     b.ToTable("PersonalTypes", "Requests");
@@ -5143,9 +4972,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Code")
@@ -5196,15 +5022,12 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("TenantId", "Code")
+                    b.HasIndex("Code")
                         .IsUnique();
+
+                    b.HasIndex("IsDeleted");
 
                     b.ToTable("RequestTypes", "Requests");
                 });
@@ -5218,9 +5041,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Property<decimal?>("ApprovedBudget")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CertificateUrl")
                         .HasMaxLength(1024)
@@ -5274,9 +5094,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("TrainingEndDate")
                         .HasColumnType("datetime2");
 
@@ -5317,9 +5134,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -5358,23 +5172,17 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<bool>("RequiresBudgetApproval")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("RequiresManagerApproval")
                         .HasColumnType("bit");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("TenantId", "NameEn")
+                    b.HasIndex("NameEn")
                         .IsUnique();
 
                     b.ToTable("TrainingTypes", "Requests");
@@ -5384,9 +5192,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CreatedBy")
@@ -5445,9 +5250,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<decimal>("TotalDays")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
@@ -5475,9 +5277,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -5503,9 +5302,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Property<bool>("IsPaid")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("MaxDaysPerYear")
-                        .HasColumnType("int");
-
                     b.Property<Guid?>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -5522,23 +5318,17 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<bool>("RequiresAttachment")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("RequiresManagerApproval")
                         .HasColumnType("bit");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("TenantId", "NameEn")
+                    b.HasIndex("NameEn")
                         .IsUnique();
 
                     b.ToTable("VacationTypes", "Requests");
@@ -6262,10 +6052,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("HrSystem.Domain.Entities.Requests.EmployeeRequestOption", null)
-                        .WithMany("Requests")
-                        .HasForeignKey("EmployeeRequestOptionId");
-
                     b.HasOne("HrSystem.Domain.Entities.Account.ApplicationUser", "ProcessedByUser")
                         .WithMany()
                         .HasForeignKey("ProcessedBy")
@@ -6282,17 +6068,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Navigation("Employee");
 
                     b.Navigation("ProcessedByUser");
-
-                    b.Navigation("RequestTypeRef");
-                });
-
-            modelBuilder.Entity("HrSystem.Domain.Entities.Requests.EmployeeRequestOption", b =>
-                {
-                    b.HasOne("HrSystem.Domain.Entities.Requests.RequestType", "RequestTypeRef")
-                        .WithMany()
-                        .HasForeignKey("RequestTypeId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
 
                     b.Navigation("RequestTypeRef");
                 });
@@ -6702,11 +6477,6 @@ namespace HrSystem.Infrustructure.Persistence.Migrations
                     b.Navigation("TrainingDetail");
 
                     b.Navigation("VacationDetail");
-                });
-
-            modelBuilder.Entity("HrSystem.Domain.Entities.Requests.EmployeeRequestOption", b =>
-                {
-                    b.Navigation("Requests");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Requests.FeedbackType", b =>
