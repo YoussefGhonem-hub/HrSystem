@@ -1,16 +1,12 @@
 ﻿using HrSystem.API.Controllers.Shared;
-using HrSystem.Application.Features.Attendance.Commands.AssignEmployeeWorkSchedule;
 using HrSystem.Application.Features.Attendance.Commands.CreateAttendance;
-using HrSystem.Application.Features.Attendance.Commands.CreateWorkSchedule;
 using HrSystem.Application.Features.Attendance.Commands.DeleteAttendance;
 using HrSystem.Application.Features.Attendance.Commands.EnrollEmployeeBiometric;
 using HrSystem.Application.Features.Attendance.Commands.UpdateAttendance;
-using HrSystem.Application.Features.Attendance.Commands.UpdateWorkSchedule;
 using HrSystem.Application.Features.Attendance.Commands.VerifyBiometricAttendance;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendanceById;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendancesList;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendanceDashboard;
-using HrSystem.Application.Features.Attendance.Queries.GetWorkSchedules;
 using HrSystem.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -200,63 +196,6 @@ public class AttendanceController : APIBaseController
     {
         var result = await _mediator.Send(command);
 
-        return result.Match(
-            response => Ok(response),
-            errors => Problem(errors)
-        );
-    }
-
-    /// <summary>
-    /// Get all work schedules for the organization
-    /// </summary>
-    [HttpGet("work-schedules")]
-    public async Task<IActionResult> GetWorkSchedules()
-    {
-        var result = await _mediator.Send(new GetWorkSchedulesQuery());
-        return result.Match(
-            response => Ok(response),
-            errors => Problem(errors)
-        );
-    }
-
-    /// <summary>
-    /// Create a new work schedule
-    /// </summary>
-    [HttpPost("work-schedules")]
-    public async Task<IActionResult> CreateWorkSchedule([FromBody] CreateWorkScheduleCommand command)
-    {
-        var result = await _mediator.Send(command);
-        return result.Match(
-            response => CreatedAtAction(nameof(GetWorkSchedules), new { id = response.Data!.Id }, response),
-            errors => Problem(errors)
-        );
-    }
-
-    /// <summary>
-    /// Update an existing work schedule
-    /// </summary>
-    [HttpPut("work-schedules/{id:guid}")]
-    public async Task<IActionResult> UpdateWorkSchedule(Guid id, [FromBody] UpdateWorkScheduleCommand command)
-    {
-        if (id != command.Id)
-        {
-            return BadRequest("ID mismatch");
-        }
-
-        var result = await _mediator.Send(command);
-        return result.Match(
-            response => Ok(response),
-            errors => Problem(errors)
-        );
-    }
-
-    /// <summary>
-    /// Assign a work schedule to an employee
-    /// </summary>
-    [HttpPost("work-schedules/assign")]
-    public async Task<IActionResult> AssignEmployeeWorkSchedule([FromBody] AssignEmployeeWorkScheduleCommand command)
-    {
-        var result = await _mediator.Send(command);
         return result.Match(
             response => Ok(response),
             errors => Problem(errors)

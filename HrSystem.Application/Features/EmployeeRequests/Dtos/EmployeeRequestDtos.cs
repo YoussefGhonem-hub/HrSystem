@@ -16,17 +16,6 @@ public record VacationTypeDto
     public int SortOrder { get; init; }
 }
 
-public record OvertimeTypeDto
-{
-    public Guid Id { get; init; }
-    public string NameEn { get; init; } = string.Empty;
-    public string NameAr { get; init; } = string.Empty;
-    public string? Description { get; init; }
-    public decimal DefaultMultiplier { get; init; }
-    public bool RequiresManagerApproval { get; init; }
-    public int SortOrder { get; init; }
-}
-
 public record TrainingTypeDto
 {
     public Guid Id { get; init; }
@@ -102,7 +91,6 @@ public record BranchRequestAvailabilityDto
 
     // Type-specific options (only one is populated based on RequestType)
     public IReadOnlyCollection<VacationTypeDto>? VacationTypes { get; init; }
-    public IReadOnlyCollection<OvertimeTypeDto>? OvertimeTypes { get; init; }
     public IReadOnlyCollection<TrainingTypeDto>? TrainingTypes { get; init; }
     public IReadOnlyCollection<MiscellaneousTypeDto>? MiscellaneousTypes { get; init; }
     public IReadOnlyCollection<PersonalTypeDto>? PersonalTypes { get; init; }
@@ -170,11 +158,11 @@ public record OvertimeDetailDto
     public TimeSpan PlannedHours { get; init; }
     public TimeSpan? ActualHours { get; init; }
     public decimal Multiplier { get; init; }
+    public string? ProjectCode { get; init; }
+    public string? TaskDescription { get; init; }
     public Guid? ApprovedBy { get; init; }
     public DateTime? ApprovedDate { get; init; }
     public string? ApprovalNotes { get; init; }
-    public string? ProjectCode { get; init; }
-    public string? TaskDescription { get; init; }
 }
 
 public record TrainingDetailDto

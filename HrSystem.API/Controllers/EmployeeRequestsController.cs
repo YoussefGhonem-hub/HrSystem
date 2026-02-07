@@ -2,13 +2,11 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApprovePermissionRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveVacationRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateEmployeeRequest;
-using HrSystem.Application.Features.EmployeeRequests.Commands.CreateOvertimeRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreatePermissionRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateTrainingRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateVacationRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.UpsertBranchRequestSettings;
 using HrSystem.Application.Features.EmployeeRequests.Commands.Training;
-using HrSystem.Application.Features.EmployeeRequests.Commands.Overtime;
 using HrSystem.Application.Features.EmployeeRequests.Commands.Miscellaneous;
 using HrSystem.Application.Features.EmployeeRequests.Commands.Personal;
 using HrSystem.Application.Features.EmployeeRequests.Commands.Feedback;
@@ -19,7 +17,6 @@ using HrSystem.Application.Features.EmployeeRequests.Queries.Permission;
 using HrSystem.Application.Features.EmployeeRequests.Queries.PermissionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Vacation;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Training;
-using HrSystem.Application.Features.EmployeeRequests.Queries.Overtime;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Miscellaneous;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Personal;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Feedback;
@@ -121,7 +118,6 @@ public class EmployeeRequestsController : APIBaseController
             employeeId.Value,
             branchId,
             null, // VacationDetail
-            null, // OvertimeDetail
             null, // TrainingDetail
             null, // MiscellaneousDetail
             null, // PersonalDetail
@@ -167,32 +163,6 @@ public class EmployeeRequestsController : APIBaseController
             request.AttachmentUrl,
             request.EmergencyContactName,
             request.EmergencyContactPhone,
-            request.BranchId ?? CurrentUser.BranchId);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Submits an overtime request with type-specific details.
-    /// </summary>
-    [HttpPost("overtime")]
-    public async Task<IActionResult> SubmitOvertimeRequest([FromBody] SubmitOvertimeRequestDto request)
-    {
-        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
-        if (!employeeId.HasValue)
-            return BadRequest("Employee context is required.");
-
-        var command = new CreateOvertimeRequestCommand(
-            employeeId.Value,
-            request.Title,
-            request.Description,
-            request.OvertimeDate,
-            request.PlannedHours,
-            request.Multiplier,
-            request.ProjectCode,
-            request.TaskDescription,
-            request.AttachmentUrl,
             request.BranchId ?? CurrentUser.BranchId);
 
         var result = await _mediator.Send(command);
@@ -767,145 +737,6 @@ public class EmployeeRequestsController : APIBaseController
 
     #endregion
 
-    #region Overtime Requests - Role-Based Endpoints
-
-    /// <summary>
-    /// Get overtime requests based on current user's role
-    /// </summary>
-    [HttpGet("overtime/list")]
-    public async Task<IActionResult> GetOvertimeRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? overtimeTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetOvertimeRequestsQuery(
-            status,
-            overtimeTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get overtime request details by ID
-    /// </summary>
-    [HttpGet("overtime/{id:guid}")]
-    public async Task<IActionResult> GetOvertimeRequestById(Guid id)
-    {
-        var result = await _mediator.Send(new GetOvertimeRequestByIdQuery(id));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get HR branch overtime summary
-    /// </summary>
-    [HttpGet("overtime/hr/summary")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrOvertimeSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
-    {
-        var result = await _mediator.Send(new GetHrOvertimeSummaryQuery(startDateFrom, startDateTo));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get HR branch overtime requests
-    /// </summary>
-    [HttpGet("overtime/hr/requests")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
-    public async Task<IActionResult> GetHrOvertimeRequests(
-        [FromQuery] EmployeeRequestStatus? status = null,
-        [FromQuery] Guid? overtimeTypeId = null,
-        [FromQuery] DateTime? startDateFrom = null,
-        [FromQuery] DateTime? startDateTo = null,
-        [FromQuery] Guid? employeeId = null,
-        [FromQuery] string? sortBy = null,
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var query = new GetHrOvertimeRequestsQuery(
-            status,
-            overtimeTypeId,
-            startDateFrom,
-            startDateTo,
-            employeeId,
-            sortBy,
-            sortDescending,
-            pageNumber,
-            pageSize);
-
-        var result = await _mediator.Send(query);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager overview: own overtime requests + pending approvals
-    /// </summary>
-    [HttpGet("overtime/manager/overview")]
-    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
-    public async Task<IActionResult> GetManagerOvertimeOverview(
-        [FromQuery] int myPageNumber = 1,
-        [FromQuery] int myPageSize = 10,
-        [FromQuery] int pendingPageNumber = 1,
-        [FromQuery] int pendingPageSize = 10)
-    {
-        var result = await _mediator.Send(new GetManagerOvertimeOverviewQuery(myPageNumber, myPageSize, pendingPageNumber, pendingPageSize));
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Manager approves or rejects an overtime request
-    /// </summary>
-    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("overtime/{requestId:guid}/manager-approval")]
-    public async Task<IActionResult> ManagerApproveOvertime(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveOvertimeRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.Manager);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// HR approves or rejects an overtime request
-    /// </summary>
-    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
-    [HttpPost("overtime/{requestId:guid}/hr-approval")]
-    public async Task<IActionResult> HRApproveOvertime(
-        Guid requestId,
-        [FromBody] ApprovalDto approval)
-    {
-        var command = new ApproveOvertimeRequestCommand(
-            requestId,
-            approval.IsApproved,
-            approval.Comments,
-            ApprovalLevel.HR);
-
-        var result = await _mediator.Send(command);
-        return result.Match(Ok, Problem);
-    }
-
-    #endregion
-
     #region Miscellaneous Requests - Role-Based Endpoints
 
     /// <summary>
@@ -1356,20 +1187,6 @@ public class EmployeeRequestsController : APIBaseController
         public Guid? BranchId { get; init; }
     }
 
-    public record SubmitOvertimeRequestDto
-    {
-        public string Title { get; init; } = string.Empty;
-        public string? Description { get; init; }
-        public DateTime OvertimeDate { get; init; }
-        public TimeSpan PlannedHours { get; init; }
-        public decimal Multiplier { get; init; } = 1.5m;
-        public string? ProjectCode { get; init; }
-        public string? TaskDescription { get; init; }
-        public string? AttachmentUrl { get; init; }
-        public Guid? EmployeeId { get; init; }
-        public Guid? BranchId { get; init; }
-    }
-
     public record SubmitTrainingRequestDto
     {
         public string Title { get; init; } = string.Empty;
@@ -1410,14 +1227,6 @@ public class EmployeeRequestsController : APIBaseController
         public bool IsApproved { get; init; }
         public string? RejectionReason { get; init; }
         public decimal? ApprovedBudget { get; init; }
-        public string? ApprovalNotes { get; init; }
-    }
-
-    public record OvertimeApprovalDto
-    {
-        public bool IsApproved { get; init; }
-        public string? RejectionReason { get; init; }
-        public decimal? ActualHours { get; init; }
         public string? ApprovalNotes { get; init; }
     }
 

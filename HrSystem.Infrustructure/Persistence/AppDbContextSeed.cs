@@ -100,8 +100,6 @@ public static class AppDbContextSeed
             await SeedEmployeeDocumentsAsync(context);
             await SeedSocialInsuranceRatesAsync(context, seedDataPath);
             await SeedTaxBracketsAsync(context, seedDataPath);
-            await SeedPublicHolidaysAsync(context, seedDataPath);
-            await SeedWorkSchedulesAsync(context, seedDataPath);
             await SeedPayrollStatusesAsync(context, seedDataPath);
             await SeedEmployeeSalaryAndPayrollHistoryAsync(context);
             await SeedAttendanceHistoryAsync(context);
@@ -110,7 +108,6 @@ public static class AppDbContextSeed
             await SeedReviewStatusesAsync(context, seedDataPath);
             await SeedGoalStatusesAsync(context, seedDataPath);
             await SeedGoalPrioritiesAsync(context, seedDataPath);
-            await SeedOvertimeStatusesAsync(context, seedDataPath);
             await SeedInvoiceStatusesAsync(context, seedDataPath);
             await EnsureDefaultScopeForSeedData(context);
 
@@ -1206,98 +1203,6 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded {brackets.Count} tax brackets");
     }
 
-    private static async Task SeedPublicHolidaysAsync(ApplicationDbContext context, string seedDataPath)
-    {
-        if (await context.PublicHolidays.AnyAsync()) return;
-
-        var filePath = Path.Combine(seedDataPath, "PublicHolidays.json");
-        if (!File.Exists(filePath)) return;
-
-        var json = await File.ReadAllTextAsync(filePath);
-        var holidays = JsonSerializer.Deserialize<List<PublicHolidaySeedData>>(json, _jsonOptions);
-
-        if (holidays == null) return;
-
-        var organization = await context.Organizations.FirstOrDefaultAsync();
-        if (organization == null) return;
-
-        var defaultBranchId = await GetDefaultBranchIdAsync(context);
-        if (!defaultBranchId.HasValue) return;
-
-        foreach (var holidayData in holidays)
-        {
-            var holiday = new PublicHoliday
-            {
-                Id = Guid.NewGuid(),
-                NameAr = holidayData.NameAr,
-                NameEn = holidayData.NameEn,
-                Date = DateTime.Parse(holidayData.Date),
-                Year = holidayData.Year,
-                IsRecurring = holidayData.IsRecurring,
-                Description = holidayData.Description,
-                TenantId = organization.Id,
-                BranchId = defaultBranchId.Value,
-                CreatedDate = DateTimeOffset.UtcNow
-            };
-
-            await context.PublicHolidays.AddAsync(holiday);
-        }
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"Seeded {holidays.Count} public holidays");
-    }
-
-    private static async Task SeedWorkSchedulesAsync(ApplicationDbContext context, string seedDataPath)
-    {
-        if (await context.WorkSchedules.AnyAsync()) return;
-
-        var filePath = Path.Combine(seedDataPath, "WorkSchedules.json");
-        if (!File.Exists(filePath)) return;
-
-        var json = await File.ReadAllTextAsync(filePath);
-        var schedules = JsonSerializer.Deserialize<List<WorkScheduleSeedData>>(json, _jsonOptions);
-
-        if (schedules == null) return;
-
-        var organization = await context.Organizations.FirstOrDefaultAsync();
-        if (organization == null) return;
-
-        var defaultBranchId = await GetDefaultBranchIdAsync(context);
-        if (!defaultBranchId.HasValue) return;
-
-        foreach (var scheduleData in schedules)
-        {
-            var schedule = new WorkSchedule
-            {
-                Id = Guid.NewGuid(),
-                Name = scheduleData.Name,
-                StartTime = TimeSpan.Parse(scheduleData.StartTime),
-                EndTime = TimeSpan.Parse(scheduleData.EndTime),
-                BreakDuration = string.IsNullOrEmpty(scheduleData.BreakDuration) ? null : TimeSpan.Parse(scheduleData.BreakDuration),
-                WorkingHoursPerDay = scheduleData.WorkingHoursPerDay,
-                WorkingDaysPerWeek = scheduleData.WorkingDaysPerWeek,
-                GracePeriodLate = string.IsNullOrEmpty(scheduleData.GracePeriodLate) ? null : TimeSpan.Parse(scheduleData.GracePeriodLate),
-                GracePeriodEarlyLeave = string.IsNullOrEmpty(scheduleData.GracePeriodEarlyLeave) ? null : TimeSpan.Parse(scheduleData.GracePeriodEarlyLeave),
-                IsSaturday = scheduleData.IsSaturday,
-                IsSunday = scheduleData.IsSunday,
-                IsMonday = scheduleData.IsMonday,
-                IsTuesday = scheduleData.IsTuesday,
-                IsWednesday = scheduleData.IsWednesday,
-                IsThursday = scheduleData.IsThursday,
-                IsFriday = scheduleData.IsFriday,
-                IsDefault = scheduleData.IsDefault,
-                TenantId = organization.Id,
-                BranchId = defaultBranchId.Value,
-                CreatedDate = DateTimeOffset.UtcNow
-            };
-
-            await context.WorkSchedules.AddAsync(schedule);
-        }
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"Seeded {schedules.Count} work schedules");
-    }
-
     private static string? NormalizeRoleName(string? roleName)
     {
         if (string.IsNullOrWhiteSpace(roleName))
@@ -2064,49 +1969,6 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {reviewStatuses.Count} review statuses");
-    }
-
-    private static async Task SeedOvertimeStatusesAsync(ApplicationDbContext context, string seedDataPath)
-    {
-        if (await context.OvertimeStatuses.AnyAsync()) return;
-
-        var filePath = Path.Combine(seedDataPath, "OvertimeStatuses.json");
-        if (!File.Exists(filePath)) return;
-
-        var json = await File.ReadAllTextAsync(filePath);
-        var overtimeStatuses = JsonSerializer.Deserialize<List<StatusSeedData>>(json, _jsonOptions);
-
-        if (overtimeStatuses == null) return;
-
-        var organization = await context.Organizations.FirstOrDefaultAsync();
-        if (organization == null) return;
-
-        var defaultBranchId = await GetDefaultBranchIdAsync(context);
-        if (!defaultBranchId.HasValue) return;
-
-        foreach (var statusData in overtimeStatuses)
-        {
-            var overtimeStatus = new OvertimeStatus
-            {
-                Id = Guid.NewGuid(),
-                Code = statusData.Code,
-                NameAr = statusData.NameAr,
-                NameEn = statusData.NameEn,
-                DescriptionAr = statusData.DescriptionAr,
-                DescriptionEn = statusData.DescriptionEn,
-                ColorCode = statusData.ColorCode,
-                DisplayOrder = statusData.DisplayOrder,
-                IsActive = statusData.IsActive,
-                TenantId = organization.Id,
-                BranchId = defaultBranchId.Value,
-                CreatedDate = DateTimeOffset.UtcNow
-            };
-
-            await context.OvertimeStatuses.AddAsync(overtimeStatus);
-        }
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"Seeded {overtimeStatuses.Count} overtime statuses");
     }
 
     private static async Task SeedInvoiceStatusesAsync(ApplicationDbContext context, string seedDataPath)

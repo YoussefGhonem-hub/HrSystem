@@ -28,6 +28,7 @@ public class GetMyEmployeeRequestsQueryHandler
         var query = _context.EmployeeRequests
             .AsNoTracking()
             .Include(r => r.RequestTypeRef)
+            .Include(r => r.OvertimeDetail).ThenInclude(o => o!.OvertimeType)
             .Where(r => r.EmployeeId == request.EmployeeId);
 
         if (!string.IsNullOrEmpty(request.RequestTypeCode))
@@ -57,7 +58,23 @@ public class GetMyEmployeeRequestsQueryHandler
             ManagerComments = r.ManagerComments,
             RejectionReason = r.RejectionReason,
             ApprovedBy = r.ApprovedBy,
-            ApprovedDate = r.ApprovedDate
+            ApprovedDate = r.ApprovedDate,
+            OvertimeDetail = r.OvertimeDetail != null
+                ? new OvertimeDetailDto
+                {
+                    OvertimeTypeId = r.OvertimeDetail.OvertimeTypeId,
+                    OvertimeTypeName = r.OvertimeDetail.OvertimeType?.NameEn,
+                    OvertimeDate = r.OvertimeDetail.OvertimeDate,
+                    PlannedHours = r.OvertimeDetail.PlannedHours,
+                    ActualHours = r.OvertimeDetail.ActualHours,
+                    Multiplier = r.OvertimeDetail.Multiplier,
+                    ProjectCode = r.OvertimeDetail.ProjectCode,
+                    TaskDescription = r.OvertimeDetail.TaskDescription,
+                    ApprovedBy = r.OvertimeDetail.ApprovedBy,
+                    ApprovedDate = r.OvertimeDetail.ApprovedDate,
+                    ApprovalNotes = r.OvertimeDetail.ApprovalNotes
+                }
+                : null
         }).ToList();
 
         return GenericResponse<List<EmployeeRequestDto>>.SuccessResult(dtos);

@@ -22,8 +22,5 @@ public class MyProfileDto
     public string? EmploymentStatusAr { get; set; }
     public DateTime? HiringDate { get; set; }
     public DateTime? ProbationEndDate { get; set; }
-    public string? WorkScheduleName { get; set; }
-    public TimeSpan? WorkScheduleStartTime { get; set; }
-    public TimeSpan? WorkScheduleEndTime { get; set; }
     public string? MedicalInsuranceStatus { get; set; }
 }

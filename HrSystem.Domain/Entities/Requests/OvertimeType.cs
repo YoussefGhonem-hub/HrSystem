@@ -15,6 +15,4 @@ public class OvertimeType : BaseAuditableEntity
     public bool RequiresManagerApproval { get; set; } = true;
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; } = 1;
-
-    public virtual ICollection<OvertimeRequestDetail> OvertimeRequests { get; set; } = new List<OvertimeRequestDetail>();
 }

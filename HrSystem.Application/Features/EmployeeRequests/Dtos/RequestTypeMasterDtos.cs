@@ -74,34 +74,6 @@ public record VacationTypeDetailDto
 }
 #endregion
 
-#region OvertimeType DTOs
-public record CreateOvertimeTypeDto : CreateRequestTypeMasterDto
-{
-    public decimal DefaultMultiplier { get; init; } = 1.5m;
-    public bool RequiresManagerApproval { get; init; } = true;
-}
-
-public record UpdateOvertimeTypeDto : UpdateRequestTypeMasterDto
-{
-    public decimal DefaultMultiplier { get; init; } = 1.5m;
-    public bool RequiresManagerApproval { get; init; } = true;
-}
-
-public record OvertimeTypeDetailDto
-{
-    public Guid Id { get; init; }
-    public string NameAr { get; init; } = string.Empty;
-    public string NameEn { get; init; } = string.Empty;
-    public string? Description { get; init; }
-    public decimal DefaultMultiplier { get; init; }
-    public bool RequiresManagerApproval { get; init; }
-    public bool IsActive { get; init; }
-    public int SortOrder { get; init; }
-    public DateTimeOffset CreatedDate { get; init; }
-    public DateTimeOffset? ModifiedDate { get; init; }
-}
-#endregion
-
 #region TrainingType DTOs
 public record CreateTrainingTypeDto : CreateRequestTypeMasterDto
 {

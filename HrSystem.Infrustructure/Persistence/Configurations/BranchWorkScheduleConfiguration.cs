@@ -21,7 +21,7 @@ public class BranchWorkScheduleConfiguration : IEntityTypeConfiguration<BranchWo
             .HasMaxLength(100);
 
         builder.HasOne(x => x.Branch)
-            .WithMany(b => b.WorkSchedules)
+            .WithMany()
             .HasForeignKey(x => x.BranchId)
             .OnDelete(DeleteBehavior.Cascade);
 

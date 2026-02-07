@@ -9,7 +9,6 @@ using HrSystem.Application.Features.Lookups.Queries.GetInvoiceStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetDirectManagersLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetMaritalStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetJobTitlesLookup;
-using HrSystem.Application.Features.Lookups.Queries.GetOvertimeStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetPayrollStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetGoalPriorities;
 using HrSystem.Application.Features.Performance.Queries.GetGoalStatuses;
@@ -77,16 +76,6 @@ public class LookupsController : APIBaseController
     public async Task<IActionResult> GetGoalPriorities()
     {
         var result = await _mediator.Send(new GetGoalPrioritiesQuery());
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get all active overtime statuses for dropdown
-    /// </summary>
-    [HttpGet("overtime-statuses")]
-    public async Task<IActionResult> GetOvertimeStatuses()
-    {
-        var result = await _mediator.Send(new GetOvertimeStatusesQuery());
         return result.Match(Ok, Problem);
     }
 

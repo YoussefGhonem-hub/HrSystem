@@ -90,7 +90,7 @@ public class GetEmployeeRequestsQueryHandler
             .AsNoTracking()
             .Include(r => r.RequestTypeRef)
             .Include(r => r.VacationDetail).ThenInclude(v => v!.VacationType)
-            .Include(r => r.OvertimeDetail)
+            .Include(r => r.OvertimeDetail).ThenInclude(o => o!.OvertimeType)
             .Include(r => r.TrainingDetail).ThenInclude(t => t!.TrainingType)
             .Include(r => r.MiscellaneousDetail).ThenInclude(m => m!.MiscellaneousType)
             .Include(r => r.PersonalDetail).ThenInclude(p => p!.PersonalType)
@@ -148,15 +148,17 @@ public class GetEmployeeRequestsQueryHandler
             OvertimeDetail = r.OvertimeDetail != null
                 ? new OvertimeDetailDto
                 {
+                    OvertimeTypeId = r.OvertimeDetail.OvertimeTypeId,
+                    OvertimeTypeName = r.OvertimeDetail.OvertimeType?.NameEn,
                     OvertimeDate = r.OvertimeDetail.OvertimeDate,
                     PlannedHours = r.OvertimeDetail.PlannedHours,
                     ActualHours = r.OvertimeDetail.ActualHours,
                     Multiplier = r.OvertimeDetail.Multiplier,
+                    ProjectCode = r.OvertimeDetail.ProjectCode,
+                    TaskDescription = r.OvertimeDetail.TaskDescription,
                     ApprovedBy = r.OvertimeDetail.ApprovedBy,
                     ApprovedDate = r.OvertimeDetail.ApprovedDate,
-                    ApprovalNotes = r.OvertimeDetail.ApprovalNotes,
-                    ProjectCode = r.OvertimeDetail.ProjectCode,
-                    TaskDescription = r.OvertimeDetail.TaskDescription
+                    ApprovalNotes = r.OvertimeDetail.ApprovalNotes
                 }
                 : null,
             TrainingDetail = r.TrainingDetail != null

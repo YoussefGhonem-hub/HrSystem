@@ -19,10 +19,5 @@ public class OvertimeRequestDetailConfiguration : IEntityTypeConfiguration<Overt
             .WithOne(r => r.OvertimeDetail)
             .HasForeignKey<OvertimeRequestDetail>(o => o.EmployeeRequestId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne(o => o.OvertimeType)
-            .WithMany(t => t.OvertimeRequests)
-            .HasForeignKey(o => o.OvertimeTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -57,13 +57,6 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, Error
             return Error.NotFound("Employee.NotFound", "Employee not found");
         }
 
-        var workSchedule = await _context.EmployeeWorkSchedules
-            .Include(es => es.WorkSchedule)
-            .Where(es => es.EmployeeId == employee.Id && es.IsCurrent)
-            .OrderByDescending(es => es.EffectiveDate)
-            .Select(es => es.WorkSchedule)
-            .FirstOrDefaultAsync(cancellationToken);
-
         var dto = new MyProfileDto
         {
             EmployeeId = employee.Id,
@@ -86,9 +79,6 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, Error
             EmploymentStatusAr = employee.Status?.NameAr,
             HiringDate = employee.HiringDate,
             ProbationEndDate = employee.ProbationEndDate,
-            WorkScheduleName = workSchedule?.Name,
-            WorkScheduleStartTime = workSchedule?.StartTime,
-            WorkScheduleEndTime = workSchedule?.EndTime,
             MedicalInsuranceStatus = null
         };
 

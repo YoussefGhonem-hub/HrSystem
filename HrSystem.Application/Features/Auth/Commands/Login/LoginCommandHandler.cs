@@ -119,15 +119,6 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         }).ToListAsync(cancellationToken)
                     : null;
 
-                var overtimeTypes = requestTypeCodes.Contains("OverTime")
-                    ? await _context.OvertimeTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
-                        .Select(t => new OvertimeTypeDto
-                        {
-                            Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
-                            DefaultMultiplier = t.DefaultMultiplier, RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
-                        }).ToListAsync(cancellationToken)
-                    : null;
-
                 var trainingTypes = requestTypeCodes.Contains("Training")
                     ? await _context.TrainingTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                         .Select(t => new TrainingTypeDto
@@ -178,7 +169,6 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         MaxOpenRequests = setting.MaxOpenRequests,
                         CustomInstructions = setting.CustomInstructions,
                         VacationTypes = setting.RequestTypeRef.Code == "Vacation" ? vacationTypes : null,
-                        OvertimeTypes = setting.RequestTypeRef.Code == "OverTime" ? overtimeTypes : null,
                         TrainingTypes = setting.RequestTypeRef.Code == "Training" ? trainingTypes : null,
                         MiscellaneousTypes = setting.RequestTypeRef.Code == "Miscellaneous" ? miscellaneousTypes : null,
                         PersonalTypes = setting.RequestTypeRef.Code == "Personal" ? personalTypes : null,

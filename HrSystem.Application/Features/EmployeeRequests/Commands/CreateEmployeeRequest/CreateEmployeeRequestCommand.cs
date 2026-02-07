@@ -18,15 +18,6 @@ public record CreateVacationDetailModel(
     string? EmergencyContactPhone
 );
 
-public record CreateOvertimeDetailModel(
-    Guid OvertimeTypeId,
-    DateTime OvertimeDate,
-    TimeSpan PlannedHours,
-    decimal? Multiplier,
-    string? ProjectCode,
-    string? TaskDescription
-);
-
 public record CreateTrainingDetailModel(
     Guid TrainingTypeId,
     string TrainingName,
@@ -79,7 +70,6 @@ public record CreateEmployeeRequestCommand(
     Guid? BranchId,
     // Type-specific details (only one should be provided based on RequestType)
     CreateVacationDetailModel? VacationDetail,
-    CreateOvertimeDetailModel? OvertimeDetail,
     CreateTrainingDetailModel? TrainingDetail,
     CreateMiscellaneousDetailModel? MiscellaneousDetail,
     CreatePersonalDetailModel? PersonalDetail,
@@ -183,7 +173,6 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         return request.RequestTypeCode switch
         {
             "Vacation" => await ValidateVacationDetail(request.VacationDetail, ct),
-            "OverTime" => await ValidateOvertimeDetail(request.OvertimeDetail, ct),
             "Training" => await ValidateTrainingDetail(request.TrainingDetail, ct),
             "Miscellaneous" => await ValidateMiscellaneousDetail(request.MiscellaneousDetail, ct),
             "Personal" => await ValidatePersonalDetail(request.PersonalDetail, ct),
@@ -200,18 +189,6 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         var vacationType = await _context.VacationTypes.AnyAsync(t => t.Id == detail.VacationTypeId && t.IsActive, ct);
         if (!vacationType)
             return Error.Validation(description: "Invalid vacation type selected.");
-
-        return null;
-    }
-
-    private async Task<Error?> ValidateOvertimeDetail(CreateOvertimeDetailModel? detail, CancellationToken ct)
-    {
-        if (detail is null)
-            return Error.Validation(description: "Overtime detail is required for overtime requests.");
-
-        var overtimeType = await _context.OvertimeTypes.AnyAsync(t => t.Id == detail.OvertimeTypeId && t.IsActive, ct);
-        if (!overtimeType)
-            return Error.Validation(description: "Invalid overtime type selected.");
 
         return null;
     }
@@ -277,22 +254,6 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                     ManagerId = request.VacationDetail.ManagerId,
                     EmergencyContactName = request.VacationDetail.EmergencyContactName,
                     EmergencyContactPhone = request.VacationDetail.EmergencyContactPhone,
-                    TenantId = tenantId,
-                    BranchId = branchId
-                }, ct);
-                break;
-
-            case "OverTime" when request.OvertimeDetail is not null:
-                var overtimeType = await _context.OvertimeTypes.FirstAsync(t => t.Id == request.OvertimeDetail.OvertimeTypeId, ct);
-                await _context.OvertimeRequestDetails.AddAsync(new OvertimeRequestDetail
-                {
-                    EmployeeRequestId = requestId,
-                    OvertimeTypeId = request.OvertimeDetail.OvertimeTypeId,
-                    OvertimeDate = request.OvertimeDetail.OvertimeDate,
-                    PlannedHours = request.OvertimeDetail.PlannedHours,
-                    Multiplier = request.OvertimeDetail.Multiplier ?? overtimeType.DefaultMultiplier,
-                    ProjectCode = request.OvertimeDetail.ProjectCode,
-                    TaskDescription = request.OvertimeDetail.TaskDescription,
                     TenantId = tenantId,
                     BranchId = branchId
                 }, ct);
@@ -390,13 +351,6 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                 ManagerId = request.VacationDetail.ManagerId,
                 EmergencyContactName = request.VacationDetail.EmergencyContactName,
                 EmergencyContactPhone = request.VacationDetail.EmergencyContactPhone
-            } : null,
-            OvertimeDetail = request.OvertimeDetail is not null ? new OvertimeDetailDto
-            {
-                OvertimeTypeId = request.OvertimeDetail.OvertimeTypeId,
-                OvertimeDate = request.OvertimeDetail.OvertimeDate,
-                PlannedHours = request.OvertimeDetail.PlannedHours,
-                Multiplier = request.OvertimeDetail.Multiplier ?? 1.5m
             } : null,
             TrainingDetail = request.TrainingDetail is not null ? new TrainingDetailDto
             {

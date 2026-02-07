@@ -47,15 +47,6 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
-        var overtimeTypes = requestTypeCodes.Contains("OverTime")
-            ? await _context.OvertimeTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
-                .Select(t => new OvertimeTypeDto
-                {
-                    Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
-                    DefaultMultiplier = t.DefaultMultiplier, RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
-                }).ToListAsync(cancellationToken)
-            : null;
-
         var trainingTypes = requestTypeCodes.Contains("Training")
             ? await _context.TrainingTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
                 .Select(t => new TrainingTypeDto
@@ -115,7 +106,6 @@ public class GetBranchRequestAvailabilityQueryHandler
             MaxOpenRequests = s.MaxOpenRequests,
             CustomInstructions = s.CustomInstructions,
             VacationTypes = s.RequestTypeRef?.Code == "Vacation" ? vacationTypes : null,
-            OvertimeTypes = s.RequestTypeRef?.Code == "OverTime" ? overtimeTypes : null,
             TrainingTypes = s.RequestTypeRef?.Code == "Training" ? trainingTypes : null,
             MiscellaneousTypes = s.RequestTypeRef?.Code == "Miscellaneous" ? miscellaneousTypes : null,
             PersonalTypes = s.RequestTypeRef?.Code == "Personal" ? personalTypes : null,
