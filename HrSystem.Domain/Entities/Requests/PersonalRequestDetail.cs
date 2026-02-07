@@ -6,7 +6,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Type-specific details for Personal requests.
 /// Links to PersonalType master.
 /// </summary>
-public class PersonalRequestDetail : BaseAuditableEntity
+public class PersonalRequestDetail : BaseAuditableMasterEntity
 {
     public Guid EmployeeRequestId { get; set; }
     

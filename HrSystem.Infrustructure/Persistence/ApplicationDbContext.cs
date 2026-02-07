@@ -263,6 +263,35 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                     break;
             }
         }
+
+        foreach (var entry in ChangeTracker.Entries<BaseAuditableMasterEntity>())
+        {
+            var entity = entry.Entity;
+
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    if (entity.CreatedDate == default) entity.CreatedDate = now;
+                    if (!entity.CreatedBy.HasValue && userId.HasValue) entity.CreatedBy = userId.Value;
+                    entity.IsDeleted = false;
+                    break;
+
+                case EntityState.Modified:
+                    entity.ModifiedDate = now;
+                    if (userId.HasValue) entity.ModifiedBy = userId.Value;
+
+                    entry.Property(nameof(BaseAuditableMasterEntity.CreatedDate)).IsModified = false;
+                    entry.Property(nameof(BaseAuditableMasterEntity.CreatedBy)).IsModified = false;
+                    break;
+
+                case EntityState.Deleted:
+                    entry.State = EntityState.Modified;
+                    entity.IsDeleted = true;
+                    entity.DeletedDate = now;
+                    if (userId.HasValue) entity.DeletedBy = userId.Value;
+                    break;
+            }
+        }
     }
 
 

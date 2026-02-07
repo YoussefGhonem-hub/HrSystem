@@ -6,7 +6,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Type-specific details for Miscellaneous requests.
 /// Links to MiscellaneousType master.
 /// </summary>
-public class MiscellaneousRequestDetail : BaseAuditableEntity
+public class MiscellaneousRequestDetail : BaseAuditableMasterEntity
 {
     public Guid EmployeeRequestId { get; set; }
     

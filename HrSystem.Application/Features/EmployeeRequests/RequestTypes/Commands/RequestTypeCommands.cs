@@ -24,18 +24,12 @@ public class CreateRequestTypeCommandHandler : IRequestHandler<CreateRequestType
 
     public async Task<ErrorOr<GenericResponse<RequestTypeDto>>> Handle(CreateRequestTypeCommand request, CancellationToken cancellationToken)
     {
-        var orgId = CurrentUser.OrganizationId;
-        if (!orgId.HasValue)
-        {
-            return Error.Unauthorized(description: "No organization context");
-        }
-
         var dto = request.Payload;
 
         var code = dto.Code.Trim();
 
         var codeExists = await _context.RequestTypes
-            .AnyAsync(r => r.TenantId == orgId.Value && !r.IsDeleted && r.Code == code, cancellationToken);
+            .AnyAsync(r => !r.IsDeleted && r.Code == code, cancellationToken);
 
         if (codeExists)
         {
@@ -49,9 +43,7 @@ public class CreateRequestTypeCommandHandler : IRequestHandler<CreateRequestType
             NameEn = dto.NameEn,
             Description = dto.Description,
             IsActive = dto.IsActive,
-            SortOrder = dto.SortOrder,
-            TenantId = orgId.Value,
-            BranchId = CurrentUser.BranchId
+            SortOrder = dto.SortOrder
         };
 
         entity.MarkAsCreated(CurrentUser.Id ?? Guid.Empty);
@@ -74,16 +66,10 @@ public class UpdateRequestTypeCommandHandler : IRequestHandler<UpdateRequestType
 
     public async Task<ErrorOr<GenericResponse<RequestTypeDto>>> Handle(UpdateRequestTypeCommand request, CancellationToken cancellationToken)
     {
-        var orgId = CurrentUser.OrganizationId;
-        if (!orgId.HasValue)
-        {
-            return Error.Unauthorized(description: "No organization context");
-        }
-
         var dto = request.Payload;
 
         var entity = await _context.RequestTypes
-            .FirstOrDefaultAsync(r => r.Id == dto.Id && r.TenantId == orgId.Value && !r.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == dto.Id && !r.IsDeleted, cancellationToken);
 
         if (entity == null)
             return Error.NotFound(description: "Request type not found");
@@ -91,7 +77,7 @@ public class UpdateRequestTypeCommandHandler : IRequestHandler<UpdateRequestType
         var code = dto.Code.Trim();
 
         var codeExists = await _context.RequestTypes
-            .AnyAsync(r => r.Id != dto.Id && r.TenantId == orgId.Value && !r.IsDeleted && r.Code == code, cancellationToken);
+            .AnyAsync(r => r.Id != dto.Id && !r.IsDeleted && r.Code == code, cancellationToken);
 
         if (codeExists)
         {
@@ -123,14 +109,8 @@ public class DeleteRequestTypeCommandHandler : IRequestHandler<DeleteRequestType
 
     public async Task<ErrorOr<GenericResponse>> Handle(DeleteRequestTypeCommand request, CancellationToken cancellationToken)
     {
-        var orgId = CurrentUser.OrganizationId;
-        if (!orgId.HasValue)
-        {
-            return Error.Unauthorized(description: "No organization context");
-        }
-
         var entity = await _context.RequestTypes
-            .FirstOrDefaultAsync(r => r.Id == request.Id && r.TenantId == orgId.Value && !r.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == request.Id && !r.IsDeleted, cancellationToken);
 
         if (entity == null)
             return Error.NotFound(description: "Request type not found");

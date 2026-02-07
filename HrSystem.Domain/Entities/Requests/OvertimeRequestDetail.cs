@@ -7,7 +7,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Type-specific detail for overtime employee requests.
 /// Stores scheduling, multiplier, and approval tracking data for overtime submissions.
 /// </summary>
-public class OvertimeRequestDetail : BaseAuditableEntity
+public class OvertimeRequestDetail : BaseAuditableMasterEntity
 {
     public Guid EmployeeRequestId { get; set; }
     public Guid OvertimeTypeId { get; set; }

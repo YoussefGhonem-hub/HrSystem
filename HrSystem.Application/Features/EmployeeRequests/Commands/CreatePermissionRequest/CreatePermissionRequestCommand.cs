@@ -63,7 +63,7 @@ public class CreatePermissionRequestCommandHandler
         // Get RequestType by Code
         var requestType = await _context.RequestTypes
             .AsNoTracking()
-            .FirstOrDefaultAsync(rt => rt.Code == "Permission" && rt.TenantId == employee.TenantId, cancellationToken);
+            .FirstOrDefaultAsync(rt => rt.Code == "Permission", cancellationToken);
         
         if (requestType == null)
             return Error.NotFound(description: "Permission request type not configured.");
@@ -180,9 +180,7 @@ public class CreatePermissionRequestCommandHandler
             TotalHours = request.TotalHours,
             Reason = request.Reason.Trim(),
             ManagerId = employee.DirectManagerId,
-            LeaveDeduction = leaveDeduction,
-            TenantId = employee.TenantId,
-            BranchId = branchId
+            LeaveDeduction = leaveDeduction
         };
 
         employeeRequest.PermissionDetail = permissionDetail;

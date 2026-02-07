@@ -47,8 +47,7 @@ public class GetBranchAvailableRequestsQueryHandler
                 .Select(t => new VacationTypeDto
                 {
                     Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
-                    IsPaid = t.IsPaid, MaxDaysPerYear = t.MaxDaysPerYear, RequiresAttachment = t.RequiresAttachment,
-                    RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
+                            IsPaid = t.IsPaid, RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
                 }).ToListAsync(cancellationToken)
             : null;
 
@@ -57,7 +56,7 @@ public class GetBranchAvailableRequestsQueryHandler
                 .Select(t => new TrainingTypeDto
                 {
                     Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
-                    RequiresBudgetApproval = t.RequiresBudgetApproval, RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
+                            RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
                 }).ToListAsync(cancellationToken)
             : null;
 
@@ -66,7 +65,7 @@ public class GetBranchAvailableRequestsQueryHandler
                 .Select(t => new MiscellaneousTypeDto
                 {
                     Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
-                    RequiresAttachment = t.RequiresAttachment, RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
+                            RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
                 }).ToListAsync(cancellationToken)
             : null;
 
@@ -75,7 +74,7 @@ public class GetBranchAvailableRequestsQueryHandler
                 .Select(t => new PersonalTypeDto
                 {
                     Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
-                    RequiresAttachment = t.RequiresAttachment, RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
+                            RequiresManagerApproval = t.RequiresManagerApproval, SortOrder = t.SortOrder
                 }).ToListAsync(cancellationToken)
             : null;
 

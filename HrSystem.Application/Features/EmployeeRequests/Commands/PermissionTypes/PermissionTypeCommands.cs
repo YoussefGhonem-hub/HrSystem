@@ -3,7 +3,6 @@ using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.CurrentUser;
 using MediatR;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.PermissionTypes;
@@ -49,7 +48,6 @@ public class CreatePermissionTypeCommandHandler : IRequestHandler<CreatePermissi
             RequiresManagerApproval = request.RequiresManagerApproval,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
-            TenantId = CurrentUser.OrganizationId ?? Guid.Empty,
             CreatedDate = DateTimeOffset.UtcNow
         };
 

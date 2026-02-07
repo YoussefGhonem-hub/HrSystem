@@ -3,7 +3,6 @@ using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.CurrentUser;
 using MediatR;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.VacationTypes;
@@ -14,8 +13,6 @@ public record CreateVacationTypeCommand(
     string NameEn,
     string? Description,
     bool IsPaid,
-    int? MaxDaysPerYear,
-    bool RequiresAttachment,
     bool RequiresManagerApproval,
     bool IsActive,
     int SortOrder
@@ -40,12 +37,9 @@ public class CreateVacationTypeCommandHandler : IRequestHandler<CreateVacationTy
             NameEn = request.NameEn,
             Description = request.Description,
             IsPaid = request.IsPaid,
-            MaxDaysPerYear = request.MaxDaysPerYear,
-            RequiresAttachment = request.RequiresAttachment,
             RequiresManagerApproval = request.RequiresManagerApproval,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
-            TenantId = CurrentUser.OrganizationId ?? Guid.Empty,
             CreatedDate = DateTimeOffset.UtcNow
         };
 
@@ -59,8 +53,6 @@ public class CreateVacationTypeCommandHandler : IRequestHandler<CreateVacationTy
             NameEn = entity.NameEn,
             Description = entity.Description,
             IsPaid = entity.IsPaid,
-            MaxDaysPerYear = entity.MaxDaysPerYear,
-            RequiresAttachment = entity.RequiresAttachment,
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
@@ -80,8 +72,6 @@ public record UpdateVacationTypeCommand(
     string NameEn,
     string? Description,
     bool IsPaid,
-    int? MaxDaysPerYear,
-    bool RequiresAttachment,
     bool RequiresManagerApproval,
     bool IsActive,
     int SortOrder
@@ -108,8 +98,6 @@ public class UpdateVacationTypeCommandHandler : IRequestHandler<UpdateVacationTy
         entity.NameEn = request.NameEn;
         entity.Description = request.Description;
         entity.IsPaid = request.IsPaid;
-        entity.MaxDaysPerYear = request.MaxDaysPerYear;
-        entity.RequiresAttachment = request.RequiresAttachment;
         entity.RequiresManagerApproval = request.RequiresManagerApproval;
         entity.IsActive = request.IsActive;
         entity.SortOrder = request.SortOrder;
@@ -124,8 +112,6 @@ public class UpdateVacationTypeCommandHandler : IRequestHandler<UpdateVacationTy
             NameEn = entity.NameEn,
             Description = entity.Description,
             IsPaid = entity.IsPaid,
-            MaxDaysPerYear = entity.MaxDaysPerYear,
-            RequiresAttachment = entity.RequiresAttachment,
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,

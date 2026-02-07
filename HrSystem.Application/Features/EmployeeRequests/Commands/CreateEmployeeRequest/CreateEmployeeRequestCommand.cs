@@ -105,7 +105,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         // Get RequestType by Code
         var requestType = await _context.RequestTypes
             .AsNoTracking()
-            .FirstOrDefaultAsync(rt => rt.Code == request.RequestTypeCode && rt.TenantId == employee.TenantId, cancellationToken);
+            .FirstOrDefaultAsync(rt => rt.Code == request.RequestTypeCode, cancellationToken);
         
         if (requestType == null)
             return Error.NotFound(description: $"Request type '{request.RequestTypeCode}' not configured.");
@@ -162,7 +162,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         await _context.SaveChangesAsync(cancellationToken);
 
         // Create type-specific detail
-        await CreateTypeSpecificDetail(entity.Id, request, employee.TenantId, branchId.Value, cancellationToken);
+        await CreateTypeSpecificDetail(entity.Id, request, cancellationToken);
 
         var dto = MapToDto(entity, request, requestType);
         return GenericResponse<EmployeeRequestDto>.SuccessResult(dto, "Request submitted successfully");
@@ -241,7 +241,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         return null;
     }
 
-    private async Task CreateTypeSpecificDetail(Guid requestId, CreateEmployeeRequestCommand request, Guid tenantId, Guid branchId, CancellationToken ct)
+    private async Task CreateTypeSpecificDetail(Guid requestId, CreateEmployeeRequestCommand request, CancellationToken ct)
     {
         switch (request.RequestTypeCode)
         {
@@ -253,9 +253,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                     TotalDays = request.VacationDetail.TotalDays,
                     ManagerId = request.VacationDetail.ManagerId,
                     EmergencyContactName = request.VacationDetail.EmergencyContactName,
-                    EmergencyContactPhone = request.VacationDetail.EmergencyContactPhone,
-                    TenantId = tenantId,
-                    BranchId = branchId
+                    EmergencyContactPhone = request.VacationDetail.EmergencyContactPhone
                 }, ct);
                 break;
 
@@ -272,9 +270,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                     DurationDays = (request.TrainingDetail.TrainingEndDate - request.TrainingDetail.TrainingStartDate).Days + 1,
                     EstimatedCost = request.TrainingDetail.EstimatedCost,
                     Objectives = request.TrainingDetail.Objectives,
-                    ExpectedOutcome = request.TrainingDetail.ExpectedOutcome,
-                    TenantId = tenantId,
-                    BranchId = branchId
+                    ExpectedOutcome = request.TrainingDetail.ExpectedOutcome
                 }, ct);
                 break;
 
@@ -286,9 +282,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                     AdditionalNotes = request.MiscellaneousDetail.AdditionalNotes,
                     ReferenceNumber = request.MiscellaneousDetail.ReferenceNumber,
                     Priority = request.MiscellaneousDetail.Priority,
-                    ExpectedCompletionDate = request.MiscellaneousDetail.ExpectedCompletionDate,
-                    TenantId = tenantId,
-                    BranchId = branchId
+                    ExpectedCompletionDate = request.MiscellaneousDetail.ExpectedCompletionDate
                 }, ct);
                 break;
 
@@ -301,9 +295,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                     IsUrgent = request.PersonalDetail.IsUrgent,
                     RequiresConfidentiality = request.PersonalDetail.RequiresConfidentiality,
                     PreferredContactMethod = request.PersonalDetail.PreferredContactMethod,
-                    AdditionalContactInfo = request.PersonalDetail.AdditionalContactInfo,
-                    TenantId = tenantId,
-                    BranchId = branchId
+                    AdditionalContactInfo = request.PersonalDetail.AdditionalContactInfo
                 }, ct);
                 break;
 
@@ -318,9 +310,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
                     TargetDepartment = request.FeedbackDetail.TargetDepartment,
                     TargetPerson = request.FeedbackDetail.TargetPerson,
                     SuggestedImprovement = request.FeedbackDetail.SuggestedImprovement,
-                    ResponseRequired = request.FeedbackDetail.ResponseRequired,
-                    TenantId = tenantId,
-                    BranchId = branchId
+                    ResponseRequired = request.FeedbackDetail.ResponseRequired
                 }, ct);
                 break;
         }
