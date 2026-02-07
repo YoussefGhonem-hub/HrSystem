@@ -144,7 +144,6 @@ VARIABLES = [
     {"key": "documentId", "value": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"},
     {"key": "attendanceStatusId", "value": "ffffffff-ffff-ffff-ffff-ffffffffffff"},
     {"key": "workScheduleId", "value": "10101010-1010-1010-1010-101010101010"},
-    {"key": "onboardingTaskId", "value": "11111110-1111-1111-1111-111111111110"},
     {"key": "employeeAssetId", "value": "12121212-1212-1212-1212-121212121212"},
     {"key": "goalId", "value": "13131313-1313-1313-1313-131313131313"},
     {"key": "goalStatusId", "value": "14141414-1414-1414-1414-141414141414"},
@@ -1166,88 +1165,6 @@ add_request(
     method="DELETE",
     path="api/Leave/policies/{{leavePolicyId}}",
     description="Soft-delete leave policy"
-)
-
-# Lifecycle - Onboarding
-add_request(
-    folder="Lifecycle - Onboarding",
-    name="List Onboarding Tasks",
-    method="GET",
-    path="api/OnboardingTasks",
-    description="Paginated onboarding tasks",
-    query=[
-        qp("pageNumber", "1"),
-        qp("pageSize", "10"),
-        qp("employeeId", "{{employeeId}}", "Filter by employee", True),
-        qp("isCompleted", "false", "Filter by completion", True)
-    ]
-)
-
-add_request(
-    folder="Lifecycle - Onboarding",
-    name="Get Onboarding Task",
-    method="GET",
-    path="api/OnboardingTasks/{{onboardingTaskId}}",
-    description="Retrieve onboarding task details"
-)
-
-add_request(
-    folder="Lifecycle - Onboarding",
-    name="Create Onboarding Task",
-    method="POST",
-    path="api/OnboardingTasks",
-    description="Create onboarding workflow task",
-    headers=json_headers(),
-    body=raw_json_body(
-        """
-        {
-          "employeeId": "{{employeeId}}",
-          "taskNameAr": "Tadreeb Awwaly",
-          "taskNameEn": "Initial Training",
-          "descriptionAr": "Sharh almakhtat",
-          "descriptionEn": "Explain onboarding plan",
-          "sequence": 1,
-          "dueDate": "2026-02-05",
-          "assignedTo": "{{managerId}}",
-          "category": "Documentation",
-          "notes": "Prepare IT access"
-        }
-        """
-    )
-)
-
-add_request(
-    folder="Lifecycle - Onboarding",
-    name="Update Onboarding Task",
-    method="PUT",
-    path="api/OnboardingTasks/{{onboardingTaskId}}",
-    description="Update onboarding task",
-    headers=json_headers(),
-    body=raw_json_body(
-        """
-        {
-          "id": "{{onboardingTaskId}}",
-          "employeeId": "{{employeeId}}",
-          "taskNameAr": "Tadreeb Awwaly",
-          "taskNameEn": "Initial Training",
-          "descriptionAr": "Sharh almakhtat",
-          "descriptionEn": "Explain onboarding plan",
-          "sequence": 1,
-          "dueDate": "2026-02-07",
-          "assignedTo": "{{managerId}}",
-          "category": "Documentation",
-          "notes": "Laptop prepared"
-        }
-        """
-    )
-)
-
-add_request(
-    folder="Lifecycle - Onboarding",
-    name="Delete Onboarding Task",
-    method="DELETE",
-    path="api/OnboardingTasks/{{onboardingTaskId}}",
-    description="Soft-delete onboarding task"
 )
 
 # Lifecycle - Employee Assets

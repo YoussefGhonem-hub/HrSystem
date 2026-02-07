@@ -508,54 +508,7 @@ Authorization: Bearer {your-token-here}
 
 ---
 
-### 9. Lifecycle - Onboarding Tasks
-
-#### Get Onboarding Tasks
-**Endpoint:** `GET /api/OnboardingTasks`
-
-**Query Parameters:**
-- `employeeId` (guid)
-- `isCompleted` (bool)
-- `category` (string)
-- `dueDateFrom` (datetime)
-- `dueDateTo` (datetime)
-- `assignedTo` (guid)
-- `sortBy` (string)
-- `isDescending` (bool)
-- `pageNumber` (int)
-- `pageSize` (int)
-
-#### Get Onboarding Task by ID
-**Endpoint:** `GET /api/OnboardingTasks/{id}`
-
-#### Create Onboarding Task
-**Endpoint:** `POST /api/OnboardingTasks`
-
-**Request Body:**
-```json
-{
-  "employeeId": "guid",
-  "taskNameAr": "مهمة التأهيل",
-  "taskNameEn": "Onboarding Task",
-  "descriptionAr": "وصف المهمة بالعربي",
-  "descriptionEn": "Task description in English",
-  "sequence": 1,
-  "dueDate": "2024-02-01",
-  "assignedTo": "guid",
-  "category": "Documentation",
-  "notes": "Complete within first week"
-}
-```
-
-#### Update Onboarding Task
-**Endpoint:** `PUT /api/OnboardingTasks/{id}`
-
-#### Delete Onboarding Task
-**Endpoint:** `DELETE /api/OnboardingTasks/{id}`
-
----
-
-### 10. Lifecycle - Employee Assets
+### 9. Lifecycle - Employee Assets
 
 #### Get Employee Assets
 **Endpoint:** `GET /api/EmployeeAssets`

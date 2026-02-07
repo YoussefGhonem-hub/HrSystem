@@ -71,10 +71,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<HrSystem.Domain.Entities.Performance.Feedback> Feedbacks => Set<HrSystem.Domain.Entities.Performance.Feedback>();
 
     // Lifecycle Management
-    public DbSet<HrSystem.Domain.Entities.Lifecycle.OnboardingTask> OnboardingTasks => Set<HrSystem.Domain.Entities.Lifecycle.OnboardingTask>();
-    public DbSet<HrSystem.Domain.Entities.Lifecycle.OffboardingTask> OffboardingTasks => Set<HrSystem.Domain.Entities.Lifecycle.OffboardingTask>();
     public DbSet<HrSystem.Domain.Entities.Lifecycle.EmployeeAsset> EmployeeAssets => Set<HrSystem.Domain.Entities.Lifecycle.EmployeeAsset>();
-    public DbSet<HrSystem.Domain.Entities.Lifecycle.PolicyAcknowledgment> PolicyAcknowledgments => Set<HrSystem.Domain.Entities.Lifecycle.PolicyAcknowledgment>();
 
     // Organization & Multi-Tenancy
     public DbSet<HrSystem.Domain.Entities.Organization.Organization> Organizations => Set<HrSystem.Domain.Entities.Organization.Organization>();

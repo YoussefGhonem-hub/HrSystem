@@ -114,15 +114,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 | PUT | `/api/KPIs/{id}` | Update KPI |
 | DELETE | `/api/KPIs/{id}` | Delete KPI |
 
-### Lifecycle - Onboarding Tasks
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/OnboardingTasks` | Get paginated list |
-| GET | `/api/OnboardingTasks/{id}` | Get task by ID |
-| POST | `/api/OnboardingTasks` | Create task |
-| PUT | `/api/OnboardingTasks/{id}` | Update task |
-| DELETE | `/api/OnboardingTasks/{id}` | Delete task |
-
 ### Lifecycle - Employee Assets
 | Method | Endpoint | Description |
 |--------|----------|-------------|

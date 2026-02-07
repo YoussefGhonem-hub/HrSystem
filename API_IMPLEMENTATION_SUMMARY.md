@@ -133,23 +133,7 @@ This document summarizes the complete API layer implementation for the HR System
   - Measurement criteria
   - Multi-language support
 
-### 10. **OnboardingTasksController** (Lifecycle) ✅ NEW
-- **Location:** `Controllers/Lifecycle/OnboardingTasksController.cs`
-- **Endpoints:**
-  - `GET /api/OnboardingTasks` - Paginated list with filters
-  - `GET /api/OnboardingTasks/{id}` - Get by ID
-  - `POST /api/OnboardingTasks` - Create task
-  - `PUT /api/OnboardingTasks/{id}` - Update task
-  - `DELETE /api/OnboardingTasks/{id}` - Soft delete
-- **Filters:** Employee, completion status, category, due date range
-- **Features:**
-  - Task sequencing
-  - Due date tracking
-  - Task assignment
-  - Category classification
-  - Completion tracking
-
-### 11. **EmployeeAssetsController** (Lifecycle) ✅ NEW
+### 10. **EmployeeAssetsController** (Lifecycle) ✅ NEW
 - **Location:** `Controllers/Lifecycle/EmployeeAssetsController.cs`
 - **Endpoints:**
   - `GET /api/EmployeeAssets` - Paginated list with filters
@@ -327,11 +311,10 @@ This document summarizes the complete API layer implementation for the HR System
 
 ### Potential Future Additions:
 1. **Additional Controllers:**
-   - PerformanceReviewsController
-   - FeedbacksController
-   - GoalMilestonesController
-   - PolicyAcknowledgmentsController
-   - PayrollController
+  - PerformanceReviewsController
+  - FeedbacksController
+  - GoalMilestonesController
+  - PayrollController
 
 2. **Advanced Features:**
    - File upload support (documents, photos)
@@ -367,8 +350,7 @@ HrSystem.API/
 │   ├── Shared/
 │   │   └── APIBaseController.cs
 │   ├── Lifecycle/
-│   │   ├── EmployeeAssetsController.cs
-│   │   └── OnboardingTasksController.cs
+│   │   └── EmployeeAssetsController.cs
 │   ├── Performance/
 │   │   ├── GoalsController.cs
 │   │   └── KPIsController.cs
