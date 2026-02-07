@@ -90,13 +90,6 @@ public class ApprovePermissionRequestCommandHandler
                 employeeRequest.ProcessedBy = currentUserId;
                 employeeRequest.ProcessedDate = DateTime.UtcNow;
 
-                // Calculate leave deduction if permission type deducts from leave
-                var permissionType = employeeRequest.PermissionDetail.PermissionType;
-                if (permissionType?.DeductsFromLeave == true && permissionType.HoursPerLeaveDay.HasValue)
-                {
-                    var leaveDeduction = employeeRequest.PermissionDetail.TotalHours / permissionType.HoursPerLeaveDay.Value;
-                    employeeRequest.PermissionDetail.LeaveDeduction = leaveDeduction;
-                }
             }
             else
             {

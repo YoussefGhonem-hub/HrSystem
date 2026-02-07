@@ -66,8 +66,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateVacationTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.IsPaid, dto.MaxDaysPerYear, dto.RequiresAttachment,
-            dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
+            dto.IsPaid, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
         return result.Match(
@@ -85,8 +84,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateVacationTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.IsPaid, dto.MaxDaysPerYear, dto.RequiresAttachment,
-            dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
+            dto.IsPaid, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
         return result.Match(Ok, Problem);
@@ -134,7 +132,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateTrainingTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresBudgetApproval, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -153,7 +151,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateTrainingTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresBudgetApproval, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -202,7 +200,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateMiscellaneousTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -221,7 +219,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateMiscellaneousTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -270,7 +268,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreatePersonalTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -289,7 +287,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdatePersonalTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -406,9 +404,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreatePermissionTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.MaxHoursPerRequest, dto.MaxHoursPerMonth,
-            dto.DeductsFromLeave, dto.HoursPerLeaveDay,
-            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -427,9 +423,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdatePermissionTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.MaxHoursPerRequest, dto.MaxHoursPerMonth,
-            dto.DeductsFromLeave, dto.HoursPerLeaveDay,
-            dto.RequiresAttachment, dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);

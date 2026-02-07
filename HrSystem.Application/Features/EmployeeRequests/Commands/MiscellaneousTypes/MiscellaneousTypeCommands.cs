@@ -3,7 +3,6 @@ using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.CurrentUser;
 using MediatR;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.MiscellaneousTypes;
@@ -13,7 +12,6 @@ public record CreateMiscellaneousTypeCommand(
     string NameAr,
     string NameEn,
     string? Description,
-    bool RequiresAttachment,
     bool RequiresManagerApproval,
     bool IsActive,
     int SortOrder
@@ -37,11 +35,9 @@ public class CreateMiscellaneousTypeCommandHandler : IRequestHandler<CreateMisce
             NameAr = request.NameAr,
             NameEn = request.NameEn,
             Description = request.Description,
-            RequiresAttachment = request.RequiresAttachment,
             RequiresManagerApproval = request.RequiresManagerApproval,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
-            TenantId = CurrentUser.OrganizationId ?? Guid.Empty,
             CreatedDate = DateTimeOffset.UtcNow
         };
 
@@ -54,7 +50,6 @@ public class CreateMiscellaneousTypeCommandHandler : IRequestHandler<CreateMisce
             NameAr = entity.NameAr,
             NameEn = entity.NameEn,
             Description = entity.Description,
-            RequiresAttachment = entity.RequiresAttachment,
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
@@ -73,7 +68,6 @@ public record UpdateMiscellaneousTypeCommand(
     string NameAr,
     string NameEn,
     string? Description,
-    bool RequiresAttachment,
     bool RequiresManagerApproval,
     bool IsActive,
     int SortOrder
@@ -99,7 +93,6 @@ public class UpdateMiscellaneousTypeCommandHandler : IRequestHandler<UpdateMisce
         entity.NameAr = request.NameAr;
         entity.NameEn = request.NameEn;
         entity.Description = request.Description;
-        entity.RequiresAttachment = request.RequiresAttachment;
         entity.RequiresManagerApproval = request.RequiresManagerApproval;
         entity.IsActive = request.IsActive;
         entity.SortOrder = request.SortOrder;
@@ -113,7 +106,6 @@ public class UpdateMiscellaneousTypeCommandHandler : IRequestHandler<UpdateMisce
             NameAr = entity.NameAr,
             NameEn = entity.NameEn,
             Description = entity.Description,
-            RequiresAttachment = entity.RequiresAttachment,
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,

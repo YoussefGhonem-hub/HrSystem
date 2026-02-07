@@ -6,7 +6,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Type-specific details for Vacation requests (annual leave, sick leave, etc.).
 /// Links to VacationType master for dropdown selection.
 /// </summary>
-public class VacationRequestDetail : BaseAuditableEntity
+public class VacationRequestDetail : BaseAuditableMasterEntity
 {
     public Guid EmployeeRequestId { get; set; }
     

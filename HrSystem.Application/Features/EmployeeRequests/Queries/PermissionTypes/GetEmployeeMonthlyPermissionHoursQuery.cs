@@ -91,7 +91,7 @@ public class GetEmployeeMonthlyPermissionHoursQueryHandler
             PermissionTypeName = permissionType.NameEn,
             Year = request.Year,
             Month = request.Month,
-            MaxHoursPerMonth = permissionType.MaxHoursPerMonth,
+            MaxHoursPerMonth = null,
             ApprovedHours = approvedHours,
             PendingHours = pendingHours
         };

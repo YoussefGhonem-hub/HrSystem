@@ -13,10 +13,7 @@ public class PermissionTypeConfiguration : IEntityTypeConfiguration<PermissionTy
         builder.Property(p => p.NameEn).IsRequired().HasMaxLength(100);
         builder.Property(p => p.NameAr).IsRequired().HasMaxLength(100);
         builder.Property(p => p.Description).HasMaxLength(500);
-        builder.Property(p => p.MaxHoursPerRequest).HasPrecision(5, 2);
-        builder.Property(p => p.MaxHoursPerMonth).HasPrecision(5, 2);
-        builder.Property(p => p.HoursPerLeaveDay).HasPrecision(5, 2);
 
-        builder.HasIndex(p => new { p.TenantId, p.NameEn }).IsUnique();
+        builder.HasIndex(p => p.NameEn).IsUnique();
     }
 }

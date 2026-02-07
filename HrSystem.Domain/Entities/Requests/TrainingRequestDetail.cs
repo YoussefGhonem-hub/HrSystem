@@ -6,7 +6,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Type-specific details for Training requests.
 /// Links to TrainingType master and captures program info.
 /// </summary>
-public class TrainingRequestDetail : BaseAuditableEntity
+public class TrainingRequestDetail : BaseAuditableMasterEntity
 {
     public Guid EmployeeRequestId { get; set; }
     

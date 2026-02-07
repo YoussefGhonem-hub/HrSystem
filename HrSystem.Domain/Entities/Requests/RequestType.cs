@@ -5,7 +5,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// <summary>
 /// Master list of request categories replacing the EmployeeRequestType enum.
 /// </summary>
-public class RequestType : BaseAuditableEntity
+public class RequestType : BaseAuditableMasterEntity
 {
     public string Code { get; set; } = string.Empty; // e.g., Vacation, OverTime
     public string NameAr { get; set; } = string.Empty;

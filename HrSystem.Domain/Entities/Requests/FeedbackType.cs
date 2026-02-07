@@ -6,7 +6,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Master data for Feedback types (Product Feedback, Process Improvement, Complaint, Suggestion, etc.)
 /// Used for dropdown selection when submitting feedback requests.
 /// </summary>
-public class FeedbackType : BaseAuditableEntity
+public class FeedbackType : BaseAuditableMasterEntity
 {
     public string NameAr { get; set; } = string.Empty;
     public string NameEn { get; set; } = string.Empty;

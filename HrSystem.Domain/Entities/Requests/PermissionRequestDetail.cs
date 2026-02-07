@@ -6,7 +6,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Type-specific details for Permission requests (leave early, come late, short absence).
 /// This is for hours-based permissions, NOT full-day vacations.
 /// </summary>
-public class PermissionRequestDetail : BaseAuditableEntity
+public class PermissionRequestDetail : BaseAuditableMasterEntity
 {
     public Guid EmployeeRequestId { get; set; }
     

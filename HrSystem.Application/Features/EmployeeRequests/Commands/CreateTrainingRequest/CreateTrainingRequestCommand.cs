@@ -55,7 +55,7 @@ public class CreateTrainingRequestCommandHandler
         // Get RequestType by Code
         var requestType = await _context.RequestTypes
             .AsNoTracking()
-            .FirstOrDefaultAsync(rt => rt.Code == "Training" && rt.TenantId == employee.TenantId, cancellationToken);
+            .FirstOrDefaultAsync(rt => rt.Code == "Training", cancellationToken);
         
         if (requestType == null)
             return Error.NotFound(description: "Training request type not configured.");
@@ -114,9 +114,7 @@ public class CreateTrainingRequestCommandHandler
             EstimatedCost = request.EstimatedCost,
             Currency = request.Currency ?? "EGP",
             Objectives = request.Objectives,
-            ExpectedOutcome = request.ExpectedOutcome,
-            TenantId = employee.TenantId,
-            BranchId = branchId
+            ExpectedOutcome = request.ExpectedOutcome
         };
 
         employeeRequest.TrainingDetail = trainingDetail;

@@ -44,16 +44,12 @@ public record RequestTypeDto
 public record CreateVacationTypeDto : CreateRequestTypeMasterDto
 {
     public bool IsPaid { get; init; } = true;
-    public int? MaxDaysPerYear { get; init; }
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
 public record UpdateVacationTypeDto : UpdateRequestTypeMasterDto
 {
     public bool IsPaid { get; init; } = true;
-    public int? MaxDaysPerYear { get; init; }
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
@@ -64,8 +60,6 @@ public record VacationTypeDetailDto
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
     public bool IsPaid { get; init; }
-    public int? MaxDaysPerYear { get; init; }
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
@@ -77,13 +71,11 @@ public record VacationTypeDetailDto
 #region TrainingType DTOs
 public record CreateTrainingTypeDto : CreateRequestTypeMasterDto
 {
-    public bool RequiresBudgetApproval { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
 public record UpdateTrainingTypeDto : UpdateRequestTypeMasterDto
 {
-    public bool RequiresBudgetApproval { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
@@ -93,7 +85,6 @@ public record TrainingTypeDetailDto
     public string NameAr { get; init; } = string.Empty;
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public bool RequiresBudgetApproval { get; init; }
     public bool RequiresManagerApproval { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
@@ -105,13 +96,11 @@ public record TrainingTypeDetailDto
 #region MiscellaneousType DTOs
 public record CreateMiscellaneousTypeDto : CreateRequestTypeMasterDto
 {
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
 public record UpdateMiscellaneousTypeDto : UpdateRequestTypeMasterDto
 {
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
@@ -121,7 +110,6 @@ public record MiscellaneousTypeDetailDto
     public string NameAr { get; init; } = string.Empty;
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
@@ -133,13 +121,11 @@ public record MiscellaneousTypeDetailDto
 #region PersonalType DTOs
 public record CreatePersonalTypeDto : CreateRequestTypeMasterDto
 {
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
 public record UpdatePersonalTypeDto : UpdateRequestTypeMasterDto
 {
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
@@ -149,7 +135,6 @@ public record PersonalTypeDetailDto
     public string NameAr { get; init; } = string.Empty;
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
@@ -189,21 +174,11 @@ public record FeedbackTypeDetailDto
 #region PermissionType DTOs
 public record CreatePermissionTypeDto : CreateRequestTypeMasterDto
 {
-    public decimal? MaxHoursPerRequest { get; init; }
-    public decimal? MaxHoursPerMonth { get; init; }
-    public bool DeductsFromLeave { get; init; }
-    public decimal? HoursPerLeaveDay { get; init; } = 8;
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
 public record UpdatePermissionTypeDto : UpdateRequestTypeMasterDto
 {
-    public decimal? MaxHoursPerRequest { get; init; }
-    public decimal? MaxHoursPerMonth { get; init; }
-    public bool DeductsFromLeave { get; init; }
-    public decimal? HoursPerLeaveDay { get; init; } = 8;
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
 }
 
@@ -213,11 +188,6 @@ public record PermissionTypeDetailDto
     public string NameAr { get; init; } = string.Empty;
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public decimal? MaxHoursPerRequest { get; init; }
-    public decimal? MaxHoursPerMonth { get; init; }
-    public bool DeductsFromLeave { get; init; }
-    public decimal? HoursPerLeaveDay { get; init; }
-    public bool RequiresAttachment { get; init; }
     public bool RequiresManagerApproval { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }

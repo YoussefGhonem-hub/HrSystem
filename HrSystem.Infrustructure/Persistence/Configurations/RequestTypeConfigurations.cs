@@ -28,7 +28,7 @@ public class RequestTypeConfiguration : IEntityTypeConfiguration<RequestType>
         builder.Property(r => r.SortOrder)
             .HasDefaultValue(1);
 
-        builder.HasIndex(r => new { r.TenantId, r.Code }).IsUnique();
+        builder.HasIndex(r => r.Code).IsUnique();
     }
 }
 
@@ -42,7 +42,7 @@ public class VacationTypeConfiguration : IEntityTypeConfiguration<VacationType>
         builder.Property(v => v.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(v => v.Description).HasMaxLength(500);
 
-        builder.HasIndex(v => new { v.TenantId, v.NameEn }).IsUnique();
+        builder.HasIndex(v => v.NameEn).IsUnique();
     }
 }
 
@@ -57,7 +57,7 @@ public class OvertimeTypeConfiguration : IEntityTypeConfiguration<OvertimeType>
         builder.Property(o => o.Description).HasMaxLength(500);
         builder.Property(o => o.DefaultMultiplier).HasPrecision(4, 2);
 
-        builder.HasIndex(o => new { o.TenantId, o.NameEn }).IsUnique();
+        builder.HasIndex(o => o.NameEn).IsUnique();
     }
 }
 
@@ -71,7 +71,7 @@ public class TrainingTypeConfiguration : IEntityTypeConfiguration<TrainingType>
         builder.Property(t => t.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(t => t.Description).HasMaxLength(500);
 
-        builder.HasIndex(t => new { t.TenantId, t.NameEn }).IsUnique();
+        builder.HasIndex(t => t.NameEn).IsUnique();
     }
 }
 
@@ -85,7 +85,7 @@ public class MiscellaneousTypeConfiguration : IEntityTypeConfiguration<Miscellan
         builder.Property(m => m.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(m => m.Description).HasMaxLength(500);
 
-        builder.HasIndex(m => new { m.TenantId, m.NameEn }).IsUnique();
+        builder.HasIndex(m => m.NameEn).IsUnique();
     }
 }
 
@@ -99,7 +99,7 @@ public class PersonalTypeConfiguration : IEntityTypeConfiguration<PersonalType>
         builder.Property(p => p.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(p => p.Description).HasMaxLength(500);
 
-        builder.HasIndex(p => new { p.TenantId, p.NameEn }).IsUnique();
+        builder.HasIndex(p => p.NameEn).IsUnique();
     }
 }
 
@@ -113,6 +113,6 @@ public class FeedbackTypeConfiguration : IEntityTypeConfiguration<FeedbackType>
         builder.Property(f => f.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(f => f.Description).HasMaxLength(500);
 
-        builder.HasIndex(f => new { f.TenantId, f.NameEn }).IsUnique();
+        builder.HasIndex(f => f.NameEn).IsUnique();
     }
 }

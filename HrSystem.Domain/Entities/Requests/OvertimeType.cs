@@ -6,7 +6,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Master data for Overtime types (Regular, Weekend, Holiday, Night Shift, etc.)
 /// Used for dropdown selection when submitting overtime requests.
 /// </summary>
-public class OvertimeType : BaseAuditableEntity
+public class OvertimeType : BaseAuditableMasterEntity
 {
     public string NameAr { get; set; } = string.Empty;
     public string NameEn { get; set; } = string.Empty;

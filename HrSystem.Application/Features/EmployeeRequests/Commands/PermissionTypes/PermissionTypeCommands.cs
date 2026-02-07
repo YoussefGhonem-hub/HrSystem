@@ -3,7 +3,6 @@ using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.CurrentUser;
 using MediatR;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.PermissionTypes;
@@ -13,11 +12,6 @@ public record CreatePermissionTypeCommand(
     string NameAr,
     string NameEn,
     string? Description,
-    decimal? MaxHoursPerRequest,
-    decimal? MaxHoursPerMonth,
-    bool DeductsFromLeave,
-    decimal? HoursPerLeaveDay,
-    bool RequiresAttachment,
     bool RequiresManagerApproval,
     bool IsActive,
     int SortOrder
@@ -41,15 +35,9 @@ public class CreatePermissionTypeCommandHandler : IRequestHandler<CreatePermissi
             NameAr = request.NameAr,
             NameEn = request.NameEn,
             Description = request.Description,
-            MaxHoursPerRequest = request.MaxHoursPerRequest,
-            MaxHoursPerMonth = request.MaxHoursPerMonth,
-            DeductsFromLeave = request.DeductsFromLeave,
-            HoursPerLeaveDay = request.HoursPerLeaveDay,
-            RequiresAttachment = request.RequiresAttachment,
             RequiresManagerApproval = request.RequiresManagerApproval,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
-            TenantId = CurrentUser.OrganizationId ?? Guid.Empty,
             CreatedDate = DateTimeOffset.UtcNow
         };
 
@@ -62,11 +50,6 @@ public class CreatePermissionTypeCommandHandler : IRequestHandler<CreatePermissi
             NameAr = entity.NameAr,
             NameEn = entity.NameEn,
             Description = entity.Description,
-            MaxHoursPerRequest = entity.MaxHoursPerRequest,
-            MaxHoursPerMonth = entity.MaxHoursPerMonth,
-            DeductsFromLeave = entity.DeductsFromLeave,
-            HoursPerLeaveDay = entity.HoursPerLeaveDay,
-            RequiresAttachment = entity.RequiresAttachment,
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
@@ -85,11 +68,6 @@ public record UpdatePermissionTypeCommand(
     string NameAr,
     string NameEn,
     string? Description,
-    decimal? MaxHoursPerRequest,
-    decimal? MaxHoursPerMonth,
-    bool DeductsFromLeave,
-    decimal? HoursPerLeaveDay,
-    bool RequiresAttachment,
     bool RequiresManagerApproval,
     bool IsActive,
     int SortOrder
@@ -115,11 +93,6 @@ public class UpdatePermissionTypeCommandHandler : IRequestHandler<UpdatePermissi
         entity.NameAr = request.NameAr;
         entity.NameEn = request.NameEn;
         entity.Description = request.Description;
-        entity.MaxHoursPerRequest = request.MaxHoursPerRequest;
-        entity.MaxHoursPerMonth = request.MaxHoursPerMonth;
-        entity.DeductsFromLeave = request.DeductsFromLeave;
-        entity.HoursPerLeaveDay = request.HoursPerLeaveDay;
-        entity.RequiresAttachment = request.RequiresAttachment;
         entity.RequiresManagerApproval = request.RequiresManagerApproval;
         entity.IsActive = request.IsActive;
         entity.SortOrder = request.SortOrder;
@@ -133,11 +106,6 @@ public class UpdatePermissionTypeCommandHandler : IRequestHandler<UpdatePermissi
             NameAr = entity.NameAr,
             NameEn = entity.NameEn,
             Description = entity.Description,
-            MaxHoursPerRequest = entity.MaxHoursPerRequest,
-            MaxHoursPerMonth = entity.MaxHoursPerMonth,
-            DeductsFromLeave = entity.DeductsFromLeave,
-            HoursPerLeaveDay = entity.HoursPerLeaveDay,
-            RequiresAttachment = entity.RequiresAttachment,
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,

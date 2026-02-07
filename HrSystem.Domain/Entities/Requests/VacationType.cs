@@ -6,14 +6,12 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Master data for Vacation types (Annual, Sick, Emergency, Unpaid, etc.)
 /// Used for dropdown selection when submitting vacation requests.
 /// </summary>
-public class VacationType : BaseAuditableEntity
+public class VacationType : BaseAuditableMasterEntity
 {
     public string NameAr { get; set; } = string.Empty;
     public string NameEn { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsPaid { get; set; } = true;
-    public int? MaxDaysPerYear { get; set; }
-    public bool RequiresAttachment { get; set; }
     public bool RequiresManagerApproval { get; set; } = true;
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; } = 1;

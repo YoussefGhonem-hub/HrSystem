@@ -50,7 +50,7 @@ public class CreateVacationRequestCommandHandler
         // Get RequestType by Code
         var requestType = await _context.RequestTypes
             .AsNoTracking()
-            .FirstOrDefaultAsync(rt => rt.Code == "Vacation" && rt.TenantId == employee.TenantId, cancellationToken);
+            .FirstOrDefaultAsync(rt => rt.Code == "Vacation", cancellationToken);
         
         if (requestType == null)
             return Error.NotFound(description: "Vacation request type not configured.");
@@ -112,9 +112,7 @@ public class CreateVacationRequestCommandHandler
             TotalDays = request.TotalDays,
             ManagerId = employee.DirectManagerId,
             EmergencyContactName = request.EmergencyContactName,
-            EmergencyContactPhone = request.EmergencyContactPhone,
-            TenantId = employee.TenantId,
-            BranchId = branchId
+            EmergencyContactPhone = request.EmergencyContactPhone
         };
 
         employeeRequest.VacationDetail = vacationDetail;

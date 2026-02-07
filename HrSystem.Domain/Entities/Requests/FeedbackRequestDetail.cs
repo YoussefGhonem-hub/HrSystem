@@ -6,7 +6,7 @@ namespace HrSystem.Domain.Entities.Requests;
 /// Type-specific details for Feedback requests.
 /// Links to FeedbackType master.
 /// </summary>
-public class FeedbackRequestDetail : BaseAuditableEntity
+public class FeedbackRequestDetail : BaseAuditableMasterEntity
 {
     public Guid EmployeeRequestId { get; set; }
     

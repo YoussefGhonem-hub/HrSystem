@@ -3,7 +3,6 @@ using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,15 +21,9 @@ public class GetRequestTypesQueryHandler : IRequestHandler<GetRequestTypesQuery,
 
     public async Task<ErrorOr<GenericResponse<List<RequestTypeDto>>>> Handle(GetRequestTypesQuery request, CancellationToken cancellationToken)
     {
-        var orgId = CurrentUser.OrganizationId;
-        if (!orgId.HasValue)
-        {
-            return Error.Unauthorized(description: "No organization context");
-        }
-
         var query = _context.RequestTypes
             .AsNoTracking()
-            .Where(r => r.TenantId == orgId.Value && !r.IsDeleted);
+            .Where(r => !r.IsDeleted);
 
         if (!request.IncludeInactive)
         {

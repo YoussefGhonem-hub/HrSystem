@@ -12,7 +12,8 @@ public static class SoftDeleteQueryExtension
     {
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
-            if (typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType))
+            if (typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType) ||
+                typeof(BaseAuditableMasterEntity).IsAssignableFrom(entityType.ClrType))
             {
                 entityType.AddSoftDeleteQueryFilter();
             }
@@ -21,7 +22,8 @@ public static class SoftDeleteQueryExtension
     public static void AddSoftDeleteQueryFilter3(this IMutableEntityType entityType)
     {
         // Guard: only apply if the type derives from BaseAuditableEntity
-        if (!typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType))
+        if (!typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType) &&
+            !typeof(BaseAuditableMasterEntity).IsAssignableFrom(entityType.ClrType))
             return;
 
         // Build lambda expression e => e.IsDeleted for the concrete type
@@ -34,23 +36,22 @@ public static class SoftDeleteQueryExtension
     }
     private static void AddSoftDeleteQueryFilter(this IMutableEntityType entityData)
     {
-        var methodToCall = typeof(SoftDeleteQueryExtension).GetMethod(nameof(GetSoftDeleteFilter),
-            BindingFlags.NonPublic | BindingFlags.Static)
-            ?.MakeGenericMethod(entityData.ClrType);
+        var parameter = Expression.Parameter(entityData.ClrType, "entity");
+        var propertyInfo = entityData.ClrType.GetProperty(nameof(BaseAuditableEntity.IsDeleted));
 
-        var filter = methodToCall?.Invoke(null, []);
+        if (propertyInfo == null)
+        {
+            throw new InvalidOperationException($"IsDeleted property is missing on {entityData.ClrType.Name}.");
+        }
 
-        if (filter == null) return;
-        entityData.SetQueryFilter((LambdaExpression)filter);
+        var memberAccess = Expression.Property(parameter, propertyInfo);
+        var body = Expression.Equal(memberAccess, Expression.Constant(false));
+        var lambda = Expression.Lambda(body, parameter);
 
-        entityData.AddIndex(entityData.FindProperty(nameof(BaseAuditableEntity.IsDeleted)) ??
-                            throw new InvalidOperationException());
-    }
+        entityData.SetQueryFilter(lambda);
 
-    private static LambdaExpression GetSoftDeleteFilter<TEntity>()
-        where TEntity : BaseAuditableEntity
-    {
-        Expression<Func<TEntity, bool>> filter = x => !x.IsDeleted;
-        return filter;
+        var isDeletedProperty = entityData.FindProperty(nameof(BaseAuditableEntity.IsDeleted))
+                                ?? throw new InvalidOperationException();
+        entityData.AddIndex(isDeletedProperty);
     }
 }
