@@ -23,6 +23,7 @@ public class EmployeePersonalInfoDetailsDto
     public string FirstNameEn { get; set; } = string.Empty;
     public string LastNameEn { get; set; } = string.Empty;
     public string? ProfilePictureUrl { get; set; }
+    public List<EmployeeRoleDto> Roles { get; set; } = new();
     public string NationalId { get; set; } = string.Empty;
     public string? PassportNumber { get; set; }
     public DateTime DateOfBirth { get; set; }
@@ -145,4 +146,11 @@ public class EmployeeAttendanceHistoryItemDto
     public TimeSpan? WorkedHours { get; set; }
     public TimeSpan? OvertimeHours { get; set; }
     public bool IsLate { get; set; }
+}
+
+public class EmployeeRoleDto
+{
+    public Guid Id { get; set; }
+    public string NameEn { get; set; } = string.Empty;
+    public string? NameAr { get; set; }
 }

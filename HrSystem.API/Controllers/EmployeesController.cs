@@ -13,6 +13,7 @@ using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePayroll;
 using HrSystem.Application.Features.Employees.Commands.UploadEmployeeDocument;
 using HrSystem.Application.Features.Employees.Commands.UpdateMyProfileImage;
 using HrSystem.Application.Features.Employees.Commands.UpdateProfileImage;
+using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeRoles;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeStatusAndProfile;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeDocuments;
@@ -242,6 +243,25 @@ public class EmployeesController : APIBaseController
         if (id != command.EmployeeId)
         {
             // Ensure route id is authoritative
+            command = command with { EmployeeId = id };
+        }
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update roles for a specific employee (HR/admin)
+    /// </summary>
+    [HttpPut("{id:guid}/roles")]
+    public async Task<IActionResult> UpdateEmployeeRoles(Guid id, [FromBody] UpdateEmployeeRolesCommand command)
+    {
+        if (id != command.EmployeeId)
+        {
             command = command with { EmployeeId = id };
         }
 

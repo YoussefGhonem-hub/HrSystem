@@ -9,6 +9,7 @@ using HrSystem.Application.Features.Users.Commands.UpdateUser;
 using HrSystem.Application.Features.Users.Queries.GetAccountSettings;
 using HrSystem.Application.Features.Users.Queries.GetUsersList;
 using HrSystem.Application.Features.Users.Queries.GetUserById;
+using HrSystem.Application.Features.Users.Queries.GetMyRoles;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Shared.Constants;
 using MediatR;
@@ -198,6 +199,20 @@ public class UsersController : APIBaseController
         }
 
         var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get roles for the current logged-in user
+    /// </summary>
+    [HttpGet("me/roles")]
+    [Authorize]
+    public async Task<IActionResult> GetMyRoles()
+    {
+        var result = await _mediator.Send(new GetMyRolesQuery());
         return result.Match(
             response => Ok(response),
             errors => Problem(errors)

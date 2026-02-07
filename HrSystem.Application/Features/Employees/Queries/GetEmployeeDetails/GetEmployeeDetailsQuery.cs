@@ -86,6 +86,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
     private async Task<EmployeePersonalInfoDetailsDto> MapPersonalInfoAsync(HrSystem.Domain.Entities.Employee.Employee employee, CancellationToken cancellationToken)
     {
         var profileUrl = await ResolveProfileImageUrl(employee.ProfilePictureUrl, cancellationToken);
+        var roles = await GetRolesAsync(employee.UserId, cancellationToken);
 
         return new EmployeePersonalInfoDetailsDto
         {
@@ -94,6 +95,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             FirstNameEn = employee.FirstNameEn,
             LastNameEn = employee.LastNameEn,
             ProfilePictureUrl = profileUrl,
+            Roles = roles,
             NationalId = employee.NationalId,
             PassportNumber = employee.PassportNumber,
             DateOfBirth = employee.DateOfBirth,
@@ -107,6 +109,29 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             City = employee.City,
             Country = employee.Country
         };
+    }
+
+    private async Task<List<EmployeeRoleDto>> GetRolesAsync(Guid? userId, CancellationToken cancellationToken)
+    {
+        if (!userId.HasValue)
+        {
+            return new List<EmployeeRoleDto>();
+        }
+
+        var roles = await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.Roles,
+                ur => ur.RoleId,
+                r => r.Id,
+                (ur, r) => new EmployeeRoleDto
+                {
+                    Id = r.Id,
+                    NameEn = r.Name ?? string.Empty,
+                    NameAr = r.DisplayName ?? r.Name
+                })
+            .ToListAsync(cancellationToken);
+
+        return roles;
     }
 
     private async Task<string?> ResolveProfileImageUrl(string? storedValue, CancellationToken cancellationToken)
