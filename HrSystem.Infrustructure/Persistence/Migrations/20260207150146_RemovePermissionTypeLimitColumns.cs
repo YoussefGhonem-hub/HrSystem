@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace HrSystem.Infrustructure.Migrations
+namespace HrSystem.Infrustructure.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class RemovePermissionTypeLimitColumns : Migration
