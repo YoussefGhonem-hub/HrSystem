@@ -151,8 +151,6 @@ public record VacationDetailDto
     public Guid VacationTypeId { get; init; }
     public string? VacationTypeName { get; init; }
     public decimal TotalDays { get; init; }
-    public Guid? LeaveTypeId { get; init; }
-    public Guid? LeavePolicyId { get; init; }
     public Guid? ManagerId { get; init; }
     public string? ManagerName { get; init; }
     public DateTime? ManagerApprovalDate { get; init; }
@@ -248,7 +246,6 @@ public record PermissionDetailDto
     public DateTime? ManagerApprovalDate { get; init; }
     public string? ManagerComments { get; init; }
     public decimal? LeaveDeduction { get; init; }
-    public Guid? LeavePolicyId { get; init; }
 }
 #endregion
 

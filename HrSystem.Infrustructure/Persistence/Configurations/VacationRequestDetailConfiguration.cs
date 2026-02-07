@@ -32,16 +32,5 @@ public class VacationRequestDetailConfiguration : IEntityTypeConfiguration<Vacat
             .HasForeignKey(v => v.ManagerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // LeaveType relationship - maps VacationType to LeaveType for balance tracking
-        builder.HasOne(v => v.LeaveType)
-            .WithMany()
-            .HasForeignKey(v => v.LeaveTypeId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        // LeavePolicy relationship - for balance deduction rules
-        builder.HasOne(v => v.LeavePolicy)
-            .WithMany()
-            .HasForeignKey(v => v.LeavePolicyId)
-            .OnDelete(DeleteBehavior.SetNull);
     }
 }

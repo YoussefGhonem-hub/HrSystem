@@ -70,8 +70,7 @@ public class GetPermissionRequestByIdQueryHandler : IRequestHandler<GetPermissio
                     ManagerId = entity.PermissionDetail.ManagerId,
                     ManagerApprovalDate = entity.PermissionDetail.ManagerApprovalDate,
                     ManagerComments = entity.PermissionDetail.ManagerComments,
-                    LeaveDeduction = entity.PermissionDetail.LeaveDeduction,
-                    LeavePolicyId = entity.PermissionDetail.LeavePolicyId
+                    LeaveDeduction = entity.PermissionDetail.LeaveDeduction
                 }
                 : null
         };

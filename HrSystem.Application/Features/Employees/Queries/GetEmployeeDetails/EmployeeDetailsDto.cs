@@ -1,5 +1,4 @@
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
-using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
 using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Domain.Enums;
 
@@ -11,7 +10,6 @@ public class EmployeeDetailsDto
     public EmployeeJobInfoDetailsDto? JobInfo { get; set; }
     public EmployeePayrollDetailsDto? Payroll { get; set; }
     public EmployeeAttendanceDetailsDto? Attendance { get; set; }
-    public List<LeaveBalanceDto> LeaveBalances { get; set; } = new();
     public List<EmployeeDocumentGroupDetailsDto> Documents { get; set; } = new();
     public List<EmployeeAssetDetailsDto> Assets { get; set; } = new();
 }

@@ -49,14 +49,8 @@ public class PermissionRequestDetail : BaseAuditableEntity
     /// </summary>
     public decimal? LeaveDeduction { get; set; }
     
-    /// <summary>
-    /// Link to LeavePolicy if deduction applies
-    /// </summary>
-    public Guid? LeavePolicyId { get; set; }
-
     // Navigation
     public virtual EmployeeRequest EmployeeRequest { get; set; } = null!;
     public virtual PermissionType PermissionType { get; set; } = null!;
     public virtual Employee.Employee? Manager { get; set; }
-    public virtual Leave.LeavePolicy? LeavePolicy { get; set; }
 }

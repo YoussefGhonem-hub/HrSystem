@@ -7,32 +7,11 @@ namespace HrSystem.Infrustructure.Persistence.SeedData;
 
 public class SeedDataDtos
 {
-    public class LeaveStatusSeedData
-    {
-        public Guid Id { get; set; }
-        public string NameEn { get; set; } = string.Empty;
-        public string NameAr { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public int DisplayOrder { get; set; }
-    }
-
     public class RoleSeedData
     {
         public string Name { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string NormalizedName { get; set; } = string.Empty;
-    }
-
-    public class LeaveTypeSeedData
-    {
-        public Guid Id { get; set; }
-        public string NameEn { get; set; } = string.Empty;
-        public string NameAr { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? Icon { get; set; }
-        public string? ColorCode { get; set; }
-        public int DisplayOrder { get; set; }
-        public bool IsActive { get; set; }
     }
 
     public class SubscriptionPlanSeedData
@@ -161,23 +140,6 @@ public class SeedDataDtos
         public int Level { get; set; }
         public decimal MinSalary { get; set; }
         public decimal MaxSalary { get; set; }
-    }
-
-    public class LeavePolicySeedData
-    {
-        public Guid LeaveTypeId { get; set; }
-        public string NameAr { get; set; } = string.Empty;
-        public string NameEn { get; set; } = string.Empty;
-        public int DefaultDaysPerYear { get; set; }
-        public int MaxCarryForward { get; set; }
-        public bool RequiresApproval { get; set; }
-        public bool RequiresManagerApproval { get; set; }
-        public bool RequiresHRApproval { get; set; }
-        public bool IsPaid { get; set; }
-        public int MaxConsecutiveDays { get; set; }
-        public int MinDaysNotice { get; set; }
-        public bool RequiresDocument { get; set; }
-        public string? Description { get; set; }
     }
 
     public class SocialInsuranceRateSeedData

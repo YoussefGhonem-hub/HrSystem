@@ -63,8 +63,6 @@ public class GetVacationRequestByIdQueryHandler : IRequestHandler<GetVacationReq
                     VacationTypeId = entity.VacationDetail.VacationTypeId,
                     VacationTypeName = entity.VacationDetail.VacationType?.NameEn,
                     TotalDays = entity.VacationDetail.TotalDays,
-                    LeaveTypeId = entity.VacationDetail.LeaveTypeId,
-                    LeavePolicyId = entity.VacationDetail.LeavePolicyId,
                     ManagerId = entity.VacationDetail.ManagerId,
                     ManagerApprovalDate = entity.VacationDetail.ManagerApprovalDate,
                     ManagerComments = entity.VacationDetail.ManagerComments,

@@ -68,7 +68,6 @@ public class Employee : BaseAuditableEntity
     public virtual ICollection<Payroll.Salary> Salaries { get; set; } = new List<Payroll.Salary>();
     public virtual ICollection<Attendance.Attendance> Attendances { get; set; } = new List<Attendance.Attendance>();
     public virtual ICollection<Attendance.EmployeeBiometric> Biometrics { get; set; } = new List<Attendance.EmployeeBiometric>();
-    public virtual ICollection<Leave.LeaveBalance> LeaveBalances { get; set; } = new List<Leave.LeaveBalance>();
     public virtual ICollection<Performance.PerformanceReview> PerformanceReviews { get; set; } = new List<Performance.PerformanceReview>();
     public virtual ICollection<Lifecycle.EmployeeAsset> Assets { get; set; } = new List<Lifecycle.EmployeeAsset>();
     public virtual ICollection<EmployeeRequest> EmployeeRequests { get; set; } = new List<EmployeeRequest>();

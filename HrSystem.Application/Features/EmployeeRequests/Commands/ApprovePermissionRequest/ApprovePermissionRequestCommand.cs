@@ -96,22 +96,6 @@ public class ApprovePermissionRequestCommandHandler
                 {
                     var leaveDeduction = employeeRequest.PermissionDetail.TotalHours / permissionType.HoursPerLeaveDay.Value;
                     employeeRequest.PermissionDetail.LeaveDeduction = leaveDeduction;
-
-                    // Update LeaveBalance if we have LeavePolicy link
-                    if (employeeRequest.PermissionDetail.LeavePolicyId.HasValue)
-                    {
-                        var currentYear = DateTime.UtcNow.Year;
-                        var leaveBalance = await _context.LeaveBalances
-                            .FirstOrDefaultAsync(lb => lb.EmployeeId == employeeRequest.EmployeeId
-                                                       && lb.LeavePolicyId == employeeRequest.PermissionDetail.LeavePolicyId.Value
-                                                       && lb.Year == currentYear, cancellationToken);
-
-                        if (leaveBalance != null)
-                        {
-                            leaveBalance.UsedDays += leaveDeduction;
-                            leaveBalance.RemainingDays -= leaveDeduction;
-                        }
-                    }
                 }
             }
             else
@@ -155,8 +139,7 @@ public class ApprovePermissionRequestCommandHandler
                 ManagerId = employeeRequest.PermissionDetail.ManagerId,
                 ManagerApprovalDate = employeeRequest.PermissionDetail.ManagerApprovalDate,
                 ManagerComments = employeeRequest.PermissionDetail.ManagerComments,
-                LeaveDeduction = employeeRequest.PermissionDetail.LeaveDeduction,
-                LeavePolicyId = employeeRequest.PermissionDetail.LeavePolicyId
+                LeaveDeduction = employeeRequest.PermissionDetail.LeaveDeduction
             }
         };
 

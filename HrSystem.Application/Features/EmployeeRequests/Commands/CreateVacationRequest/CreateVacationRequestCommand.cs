@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
-using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
@@ -90,34 +89,6 @@ public class CreateVacationRequestCommandHandler
         if (vacationType == null)
             return Error.Validation(description: "Invalid vacation type.");
 
-        // Find matching LeaveType by name (maps VacationType to LeaveType for balance tracking)
-        var leaveType = await _context.LeaveTypes
-            .FirstOrDefaultAsync(lt => lt.NameEn == vacationType.NameEn || lt.NameAr == vacationType.NameAr, cancellationToken);
-
-        // Find LeavePolicy for this leave type
-        LeavePolicy? leavePolicy = null;
-
-        if (leaveType != null)
-        {
-            leavePolicy = await _context.LeavePolicies
-                .FirstOrDefaultAsync(lp => lp.LeaveTypeId == leaveType.Id, cancellationToken);
-
-            if (leavePolicy != null)
-            {
-                // Check leave balance
-                var currentYear = DateTime.UtcNow.Year;
-                var leaveBalance = await _context.LeaveBalances
-                    .FirstOrDefaultAsync(lb => lb.EmployeeId == request.EmployeeId
-                                               && lb.LeavePolicyId == leavePolicy.Id
-                                               && lb.Year == currentYear, cancellationToken);
-
-                if (leaveBalance != null && leaveBalance.RemainingDays < request.TotalDays)
-                {
-                    return Error.Validation(description: $"Insufficient leave balance. Available: {leaveBalance.RemainingDays} days, Requested: {request.TotalDays} days.");
-                }
-            }
-        }
-
         // Create EmployeeRequest
         var employeeRequest = new EmployeeRequest
         {
@@ -134,13 +105,11 @@ public class CreateVacationRequestCommandHandler
             RequestedDate = DateTime.UtcNow
         };
 
-        // Create VacationDetail with LeaveType/LeavePolicy links for balance tracking
+        // Create VacationDetail payload
         var vacationDetail = new VacationRequestDetail
         {
             VacationTypeId = request.VacationTypeId,
             TotalDays = request.TotalDays,
-            LeaveTypeId = leaveType?.Id,
-            LeavePolicyId = leavePolicy?.Id,
             ManagerId = employee.DirectManagerId,
             EmergencyContactName = request.EmergencyContactName,
             EmergencyContactPhone = request.EmergencyContactPhone,

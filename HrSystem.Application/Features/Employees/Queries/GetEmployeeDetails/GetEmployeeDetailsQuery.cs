@@ -1,5 +1,4 @@
 using ErrorOr;
-using HrSystem.Application.Features.Leave.Queries.GetMyLeaveBalances;
 using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
@@ -10,7 +9,7 @@ using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.Employees.Queries.GetEmployeeDetails;
 
-public record GetEmployeeDetailsQuery(Guid EmployeeId, int AttendanceRecentCount = 10, int? LeaveBalanceYear = null)
+public record GetEmployeeDetailsQuery(Guid EmployeeId, int AttendanceRecentCount = 10)
     : IRequest<ErrorOr<GenericResponse<EmployeeDetailsDto>>>;
 
 public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetailsQuery, ErrorOr<GenericResponse<EmployeeDetailsDto>>>
@@ -36,8 +35,6 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         var payrollHistory = await GetPayrollHistoryAsync(request.EmployeeId, cancellationToken);
         var attendance = await GetAttendanceConfigurationAsync(request.EmployeeId, cancellationToken);
         var attendanceHistory = await GetAttendanceHistoryAsync(request.EmployeeId, request.AttendanceRecentCount, cancellationToken);
-        var leaveYear = request.LeaveBalanceYear ?? DateTime.UtcNow.Year;
-        var leaveBalances = await GetLeaveBalancesAsync(request.EmployeeId, leaveYear, cancellationToken);
         var documents = await GetEmployeeDocumentsAsync(request.EmployeeId, cancellationToken);
         var assets = await GetEmployeeAssetsAsync(request.EmployeeId, cancellationToken);
 
@@ -61,7 +58,6 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             JobInfo = MapJobInfo(employee),
             Payroll = payroll,
             Attendance = attendance,
-            LeaveBalances = leaveBalances,
             Documents = documents,
             Assets = assets
         };
@@ -312,87 +308,6 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 IsLate = a.IsLate
             })
             .ToListAsync(cancellationToken);
-    }
-
-    private async Task<List<LeaveBalanceDto>> GetLeaveBalancesAsync(Guid employeeId, int year, CancellationToken cancellationToken)
-    {
-        var balances = await _context.LeaveBalances
-            .Include(lb => lb.LeavePolicy)
-                .ThenInclude(lp => lp.LeaveType)
-            .Where(lb => lb.EmployeeId == employeeId && lb.Year == year)
-            .OrderBy(lb => lb.LeavePolicy.LeaveType.DisplayOrder)
-            .ThenBy(lb => lb.LeavePolicy.NameEn)
-            .Select(lb => new LeaveBalanceDto
-            {
-                LeavePolicyId = lb.LeavePolicyId,
-                LeavePolicyNameEn = lb.LeavePolicy.NameEn,
-                LeavePolicyNameAr = lb.LeavePolicy.NameAr,
-                LeaveTypeId = lb.LeavePolicy.LeaveTypeId,
-                LeaveTypeNameEn = lb.LeavePolicy.LeaveType.NameEn,
-                LeaveTypeNameAr = lb.LeavePolicy.LeaveType.NameAr,
-                Year = lb.Year,
-                TotalDays = lb.TotalDays,
-                UsedDays = lb.UsedDays,
-                RemainingDays = lb.RemainingDays,
-                CarriedForwardDays = lb.CarriedForwardDays
-            })
-            .ToListAsync(cancellationToken);
-
-        if (balances.Count == 0)
-        {
-            return balances;
-        }
-
-        var policyIds = balances
-            .Select(b => b.LeavePolicyId)
-            .Distinct()
-            .ToList();
-
-        if (policyIds.Count == 0)
-        {
-            return balances;
-        }
-
-        var leaveHistory = await _context.LeaveRequests
-            .Include(lr => lr.LeaveStatus)
-            .Where(lr => lr.EmployeeId == employeeId
-                         && policyIds.Contains(lr.LeavePolicyId)
-                         && (lr.StartDate.Year == year || lr.EndDate.Year == year))
-            .OrderByDescending(lr => lr.StartDate)
-            .Select(lr => new LeaveRequestHistoryDto
-            {
-                LeaveRequestId = lr.Id,
-                LeavePolicyId = lr.LeavePolicyId,
-                StartDate = lr.StartDate,
-                EndDate = lr.EndDate,
-                TotalDays = lr.TotalDays,
-                StatusNameEn = lr.LeaveStatus.NameEn,
-                StatusNameAr = lr.LeaveStatus.NameAr,
-                Reason = lr.Reason,
-                ApprovedDate = lr.HRApprovalDate ?? lr.ManagerApprovalDate,
-                ManagerComments = lr.ManagerComments,
-                HRComments = lr.HRComments
-            })
-            .ToListAsync(cancellationToken);
-
-        if (leaveHistory.Count == 0)
-        {
-            return balances;
-        }
-
-        var historyLookup = leaveHistory
-            .GroupBy(h => h.LeavePolicyId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        foreach (var balance in balances)
-        {
-            if (historyLookup.TryGetValue(balance.LeavePolicyId, out var history))
-            {
-                balance.History = history;
-            }
-        }
-
-        return balances;
     }
 
     private async Task<List<EmployeeDocumentGroupDetailsDto>> GetEmployeeDocumentsAsync(Guid employeeId, CancellationToken cancellationToken)

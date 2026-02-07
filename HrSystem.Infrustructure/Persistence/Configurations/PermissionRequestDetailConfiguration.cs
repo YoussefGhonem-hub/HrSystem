@@ -31,9 +31,5 @@ public class PermissionRequestDetailConfiguration : IEntityTypeConfiguration<Per
             .HasForeignKey(p => p.ManagerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(p => p.LeavePolicy)
-            .WithMany()
-            .HasForeignKey(p => p.LeavePolicyId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

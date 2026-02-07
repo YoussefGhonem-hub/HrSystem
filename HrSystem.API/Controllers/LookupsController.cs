@@ -7,8 +7,6 @@ using HrSystem.Application.Features.Lookups.Queries.GetEmployeeStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetGenders;
 using HrSystem.Application.Features.Lookups.Queries.GetInvoiceStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetDirectManagersLookup;
-using HrSystem.Application.Features.Lookups.Queries.GetLeaveStatuses;
-using HrSystem.Application.Features.Lookups.Queries.GetLeaveTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetMaritalStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetJobTitlesLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetOvertimeStatuses;
@@ -39,30 +37,6 @@ public class LookupsController : APIBaseController
     {
         _mediator = mediator;
     }
-
-    #region Leave Module
-
-    /// <summary>
-    /// Get all active leave statuses for dropdown
-    /// </summary>
-    [HttpGet("leave-statuses")]
-    public async Task<IActionResult> GetLeaveStatuses()
-    {
-        var result = await _mediator.Send(new GetLeaveStatusesQuery());
-        return result.Match(Ok, Problem);
-    }
-
-    /// <summary>
-    /// Get all active leave types for dropdown
-    /// </summary>
-    [HttpGet("leave-types")]
-    public async Task<IActionResult> GetLeaveTypes()
-    {
-        var result = await _mediator.Send(new GetLeaveTypesQuery());
-        return result.Match(Ok, Problem);
-    }
-
-    #endregion
 
     #region Performance Module
 

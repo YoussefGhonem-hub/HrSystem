@@ -49,13 +49,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<HrSystem.Domain.Entities.Attendance.OvertimeRequest> OvertimeRequests => Set<HrSystem.Domain.Entities.Attendance.OvertimeRequest>();
     public DbSet<HrSystem.Domain.Entities.Attendance.OvertimeStatus> OvertimeStatuses => Set<HrSystem.Domain.Entities.Attendance.OvertimeStatus>();
 
-    // Leave Management
-    public DbSet<HrSystem.Domain.Entities.Leave.LeavePolicy> LeavePolicies => Set<HrSystem.Domain.Entities.Leave.LeavePolicy>();
-    public DbSet<HrSystem.Domain.Entities.Leave.LeaveBalance> LeaveBalances => Set<HrSystem.Domain.Entities.Leave.LeaveBalance>();
-    public DbSet<HrSystem.Domain.Entities.Leave.LeaveRequest> LeaveRequests => Set<HrSystem.Domain.Entities.Leave.LeaveRequest>();
-    public DbSet<HrSystem.Domain.Entities.Leave.LeaveStatus> LeaveStatuses => Set<HrSystem.Domain.Entities.Leave.LeaveStatus>();
-    public DbSet<HrSystem.Domain.Entities.Leave.LeaveType> LeaveTypes => Set<HrSystem.Domain.Entities.Leave.LeaveType>();
-
     // Lookup Tables
     public DbSet<HrSystem.Domain.Entities.Attendance.AttendanceStatus> AttendanceStatuses => Set<HrSystem.Domain.Entities.Attendance.AttendanceStatus>();
     public DbSet<HrSystem.Domain.Entities.Employee.ContractType> ContractTypes => Set<HrSystem.Domain.Entities.Employee.ContractType>();

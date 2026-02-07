@@ -84,22 +84,6 @@ public class ApproveVacationRequestCommandHandler
                 employeeRequest.Status = EmployeeRequestStatus.Approved;
                 employeeRequest.ProcessedBy = currentUserId;
                 employeeRequest.ProcessedDate = DateTime.UtcNow;
-
-                // Update LeaveBalance if we have LeavePolicy link
-                if (employeeRequest.VacationDetail.LeavePolicyId.HasValue)
-                {
-                    var currentYear = DateTime.UtcNow.Year;
-                    var leaveBalance = await _context.LeaveBalances
-                        .FirstOrDefaultAsync(lb => lb.EmployeeId == employeeRequest.EmployeeId
-                                                   && lb.LeavePolicyId == employeeRequest.VacationDetail.LeavePolicyId.Value
-                                                   && lb.Year == currentYear, cancellationToken);
-
-                    if (leaveBalance != null)
-                    {
-                        leaveBalance.UsedDays += employeeRequest.VacationDetail.TotalDays;
-                        leaveBalance.RemainingDays -= employeeRequest.VacationDetail.TotalDays;
-                    }
-                }
             }
             else
             {
