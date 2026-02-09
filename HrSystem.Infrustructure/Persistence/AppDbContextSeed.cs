@@ -98,6 +98,7 @@ public static class AppDbContextSeed
 
             await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
             await SeedEmployeeDocumentsAsync(context);
+            await SeedEmployeeRequestsAsync(context);
             await SeedSocialInsuranceRatesAsync(context, seedDataPath);
             await SeedTaxBracketsAsync(context, seedDataPath);
             await SeedPayrollStatusesAsync(context, seedDataPath);
@@ -1119,6 +1120,345 @@ public static class AppDbContextSeed
         return sanitized.ToUpperInvariant();
     }
 
+    private static async Task SeedEmployeeRequestsAsync(ApplicationDbContext context)
+    {
+        if (await context.EmployeeRequests.IgnoreQueryFilters().AnyAsync())
+        {
+            return;
+        }
+
+        var employees = await context.Employees
+            .AsNoTracking()
+            .OrderBy(e => e.CreatedDate)
+            .Select(e => new EmployeeRequestSeedScope(e.Id, e.TenantId, e.BranchId, e.UserId, e.DirectManagerId))
+            .ToListAsync();
+
+        if (employees.Count == 0)
+        {
+            Console.WriteLine("Skipping employee request seeding because no employees exist.");
+            return;
+        }
+
+        var sampleEmployees = employees
+            .Take(2)
+            .ToList();
+
+        var defaultBranchId = await GetDefaultBranchIdAsync(context);
+        if (!defaultBranchId.HasValue)
+        {
+            Console.WriteLine("Skipping employee request seeding because no branch scope is available.");
+            return;
+        }
+
+        var requestTypes = await context.RequestTypes
+            .AsNoTracking()
+            .ToDictionaryAsync(rt => rt.Code, rt => rt.Id, StringComparer.OrdinalIgnoreCase);
+
+        var requiredCodes = new[] { "Vacation", "OverTime", "Training", "Miscellaneous", "Personal", "Feedback", "Permission" };
+        if (requiredCodes.Any(code => !requestTypes.ContainsKey(code)))
+        {
+            Console.WriteLine("Skipping employee request seeding because one or more request types are missing.");
+            return;
+        }
+
+        var vacationTypeId = await context.VacationTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+        var overtimeTypeId = await context.OvertimeTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+        var trainingTypeId = await context.TrainingTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+        var miscellaneousTypeId = await context.MiscellaneousTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+        var personalTypeId = await context.PersonalTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+        var feedbackTypeId = await context.FeedbackTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+        var permissionTypeId = await context.PermissionTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+
+        if (new[] { vacationTypeId, overtimeTypeId, trainingTypeId, miscellaneousTypeId, personalTypeId, feedbackTypeId, permissionTypeId }.Any(id => id == Guid.Empty))
+        {
+            Console.WriteLine("Skipping employee request seeding because request detail master data is incomplete.");
+            return;
+        }
+
+        var primaryEmployee = sampleEmployees[0];
+        var secondaryEmployee = sampleEmployees.Count > 1 ? sampleEmployees[1] : sampleEmployees[0];
+        var now = DateTimeOffset.UtcNow;
+
+        Guid ResolveBranch(EmployeeRequestSeedScope scope) => scope.BranchId ?? defaultBranchId.Value;
+
+        Guid ResolveManagerEmployeeId(EmployeeRequestSeedScope scope)
+        {
+            if (scope.DirectManagerId.HasValue)
+            {
+                return scope.DirectManagerId.Value;
+            }
+
+            var fallback = sampleEmployees.FirstOrDefault(e => e.Id != scope.Id) ?? scope;
+            return fallback.Id;
+        }
+
+        Guid? ResolveManagerUserId(EmployeeRequestSeedScope scope)
+        {
+            var managerId = ResolveManagerEmployeeId(scope);
+            var managerScope = employees.FirstOrDefault(e => e.Id == managerId);
+            return managerScope?.UserId ?? scope.UserId;
+        }
+
+        DateTime ToDate(int daysOffset) => now.AddDays(daysOffset).UtcDateTime;
+        DateTimeOffset ToOffset(int daysOffset) => now.AddDays(daysOffset);
+
+        var employeeRequests = new List<EmployeeRequest>();
+        var vacationDetails = new List<VacationRequestDetail>();
+        var overtimeDetails = new List<OvertimeRequestDetail>();
+        var trainingDetails = new List<TrainingRequestDetail>();
+        var miscDetails = new List<MiscellaneousRequestDetail>();
+        var personalDetails = new List<PersonalRequestDetail>();
+        var feedbackDetails = new List<FeedbackRequestDetail>();
+        var permissionDetails = new List<PermissionRequestDetail>();
+
+        // Seed one request per status/type combination so UI filters return data immediately.
+        var primaryBranchId = ResolveBranch(primaryEmployee);
+        var primaryManagerUserId = ResolveManagerUserId(primaryEmployee);
+        var primaryManagerEmployeeId = ResolveManagerEmployeeId(primaryEmployee);
+
+        var vacationRequest = new EmployeeRequest
+        {
+            TenantId = primaryEmployee.TenantId,
+            BranchId = primaryBranchId,
+            EmployeeId = primaryEmployee.Id,
+            RequestTypeId = requestTypes["Vacation"],
+            Status = EmployeeRequestStatus.Approved,
+            Title = "Annual leave for Eid",
+            Description = "Five-day family trip scheduled around the Eid holiday.",
+            RequestedDate = ToDate(-45),
+            StartDate = ToDate(-30),
+            EndDate = ToDate(-25),
+            AttachmentUrl = "https://cdn.demo-hrsystem.local/seed/requests/vacation-eid.pdf",
+            ManagerComments = "Enjoy your time off!",
+            ApprovedBy = primaryManagerUserId,
+            ApprovedDate = ToDate(-32),
+            ProcessedBy = primaryManagerUserId,
+            ProcessedDate = ToDate(-31),
+            CreatedDate = ToOffset(-45)
+        };
+        employeeRequests.Add(vacationRequest);
+        vacationDetails.Add(new VacationRequestDetail
+        {
+            EmployeeRequestId = vacationRequest.Id,
+            VacationTypeId = vacationTypeId,
+            TotalDays = 5,
+            ManagerId = primaryManagerEmployeeId,
+            ManagerApprovalDate = ToDate(-33),
+            EmergencyContactName = "Layla Hassan",
+            EmergencyContactPhone = "+20110001111",
+            CreatedDate = ToOffset(-45)
+        });
+
+        var overtimeRequest = new EmployeeRequest
+        {
+            TenantId = primaryEmployee.TenantId,
+            BranchId = primaryBranchId,
+            EmployeeId = primaryEmployee.Id,
+            RequestTypeId = requestTypes["OverTime"],
+            Status = EmployeeRequestStatus.Pending,
+            Title = "Quarter-end overtime support",
+            Description = "Assist finance team with ERP closing adjustments.",
+            RequestedDate = ToDate(-7),
+            StartDate = ToDate(-6),
+            EndDate = ToDate(-6),
+            AttachmentUrl = "https://cdn.demo-hrsystem.local/seed/requests/overtime-q1.xlsx",
+            CreatedDate = ToOffset(-7)
+        };
+        employeeRequests.Add(overtimeRequest);
+        overtimeDetails.Add(new OvertimeRequestDetail
+        {
+            EmployeeRequestId = overtimeRequest.Id,
+            OvertimeTypeId = overtimeTypeId,
+            OvertimeDate = ToDate(-5),
+            PlannedHours = TimeSpan.FromHours(4),
+            ActualHours = null,
+            Multiplier = 1.5m,
+            ProjectCode = "FIN-Q1",
+            TaskDescription = "Quarter-close reconciliations",
+            CreatedDate = ToOffset(-7)
+        });
+
+        var trainingRequest = new EmployeeRequest
+        {
+            TenantId = primaryEmployee.TenantId,
+            BranchId = primaryBranchId,
+            EmployeeId = primaryEmployee.Id,
+            RequestTypeId = requestTypes["Training"],
+            Status = EmployeeRequestStatus.ManagerApproved,
+            Title = "Advanced leadership workshop",
+            Description = "External leadership lab to support succession planning.",
+            RequestedDate = ToDate(-18),
+            StartDate = ToDate(15),
+            EndDate = ToDate(18),
+            AttachmentUrl = "https://cdn.demo-hrsystem.local/seed/requests/training-outline.pdf",
+            ManagerComments = "Aligned with development plan.",
+            ApprovedBy = primaryManagerUserId,
+            ApprovedDate = ToDate(-15),
+            CreatedDate = ToOffset(-18)
+        };
+        employeeRequests.Add(trainingRequest);
+        trainingDetails.Add(new TrainingRequestDetail
+        {
+            EmployeeRequestId = trainingRequest.Id,
+            TrainingTypeId = trainingTypeId,
+            TrainingName = "Advanced Leadership Lab",
+            TrainingProvider = "AUC Executive Education",
+            TrainingLocation = "New Cairo Campus",
+            TrainingStartDate = ToDate(15),
+            TrainingEndDate = ToDate(18),
+            DurationDays = 4,
+            EstimatedCost = 1800m,
+            ApprovedBudget = 1800m,
+            Currency = "USD",
+            Objectives = "Strengthen coaching skills and executive presence.",
+            ExpectedOutcome = "Employee to mentor upcoming team leads.",
+            CertificationObtained = false,
+            CreatedDate = ToOffset(-18)
+        });
+
+        var permissionRequest = new EmployeeRequest
+        {
+            TenantId = primaryEmployee.TenantId,
+            BranchId = primaryBranchId,
+            EmployeeId = primaryEmployee.Id,
+            RequestTypeId = requestTypes["Permission"],
+            Status = EmployeeRequestStatus.Completed,
+            Title = "School orientation permission",
+            Description = "Need to leave early for daughter's school orientation.",
+            RequestedDate = ToDate(-4),
+            StartDate = ToDate(-2),
+            EndDate = ToDate(-2),
+            ManagerComments = "Counts toward short leave quota.",
+            ApprovedBy = primaryManagerUserId,
+            ApprovedDate = ToDate(-3),
+            ProcessedBy = primaryManagerUserId,
+            ProcessedDate = ToDate(-1),
+            CreatedDate = ToOffset(-4)
+        };
+        employeeRequests.Add(permissionRequest);
+        permissionDetails.Add(new PermissionRequestDetail
+        {
+            EmployeeRequestId = permissionRequest.Id,
+            PermissionTypeId = permissionTypeId,
+            PermissionDate = ToDate(-2),
+            FromTime = TimeSpan.FromHours(13),
+            ToTime = TimeSpan.FromHours(16.5),
+            TotalHours = 3.5m,
+            Reason = "School orientation",
+            ManagerId = primaryManagerEmployeeId,
+            ManagerApprovalDate = ToDate(-3),
+            ManagerComments = "Please log actual return time.",
+            LeaveDeduction = 0.25m,
+            CreatedDate = ToOffset(-4)
+        });
+
+        var secondaryBranchId = ResolveBranch(secondaryEmployee);
+        var secondaryManagerUserId = ResolveManagerUserId(secondaryEmployee);
+
+        var miscRequest = new EmployeeRequest
+        {
+            TenantId = secondaryEmployee.TenantId,
+            BranchId = secondaryBranchId,
+            EmployeeId = secondaryEmployee.Id,
+            RequestTypeId = requestTypes["Miscellaneous"],
+            Status = EmployeeRequestStatus.Draft,
+            Title = "Travel visa paperwork",
+            Description = "Need admin support to finalize client visit visa paperwork.",
+            RequestedDate = ToDate(-1),
+            CreatedDate = ToOffset(-1)
+        };
+        employeeRequests.Add(miscRequest);
+        miscDetails.Add(new MiscellaneousRequestDetail
+        {
+            EmployeeRequestId = miscRequest.Id,
+            MiscellaneousTypeId = miscellaneousTypeId,
+            AdditionalNotes = "Embassy appointment booked for next Monday.",
+            ReferenceNumber = $"TRV-{miscRequest.Id.ToString("N")[..6].ToUpperInvariant()}",
+            Priority = "High",
+            ExpectedCompletionDate = ToDate(12),
+            CreatedDate = ToOffset(-1)
+        });
+
+        var personalRequest = new EmployeeRequest
+        {
+            TenantId = secondaryEmployee.TenantId,
+            BranchId = secondaryBranchId,
+            EmployeeId = secondaryEmployee.Id,
+            RequestTypeId = requestTypes["Personal"],
+            Status = EmployeeRequestStatus.Rejected,
+            Title = "Family emergency travel",
+            Description = "Requesting short unpaid leave to handle an urgent family surgery.",
+            RequestedDate = ToDate(-20),
+            StartDate = ToDate(-17),
+            EndDate = ToDate(-14),
+            AttachmentUrl = "https://cdn.demo-hrsystem.local/seed/requests/personal-emergency.pdf",
+            ManagerComments = "Please attach hospital confirmation.",
+            RejectionReason = "Missing supporting documentation.",
+            ApprovedBy = secondaryManagerUserId,
+            ApprovedDate = null,
+            CreatedDate = ToOffset(-20)
+        };
+        employeeRequests.Add(personalRequest);
+        personalDetails.Add(new PersonalRequestDetail
+        {
+            EmployeeRequestId = personalRequest.Id,
+            PersonalTypeId = personalTypeId,
+            Reason = "Urgent travel for family medical procedure",
+            IsUrgent = true,
+            RequiresConfidentiality = true,
+            PreferredContactMethod = "Mobile",
+            AdditionalContactInfo = "+97150000000",
+            CreatedDate = ToOffset(-20)
+        });
+
+        var feedbackRequest = new EmployeeRequest
+        {
+            TenantId = secondaryEmployee.TenantId,
+            BranchId = secondaryBranchId,
+            EmployeeId = secondaryEmployee.Id,
+            RequestTypeId = requestTypes["Feedback"],
+            Status = EmployeeRequestStatus.Cancelled,
+            Title = "Improve onboarding checklist",
+            Description = "Suggestion to digitize onboarding tasks with automatic reminders.",
+            RequestedDate = ToDate(-12),
+            ManagerComments = "Duplicate of existing improvement initiative.",
+            CreatedDate = ToOffset(-12)
+        };
+        employeeRequests.Add(feedbackRequest);
+        feedbackDetails.Add(new FeedbackRequestDetail
+        {
+            EmployeeRequestId = feedbackRequest.Id,
+            FeedbackTypeId = feedbackTypeId,
+            FeedbackContent = "Add centralized onboarding checklist in Teams with auto-reminders.",
+            IsAnonymous = false,
+            Rating = 4,
+            TargetDepartment = "Operations",
+            TargetPerson = null,
+            SuggestedImprovement = "Use Power Automate to assign tasks as soon as HR marks a new hire.",
+            ResponseRequired = false,
+            ResponseContent = null,
+            CreatedDate = ToOffset(-12)
+        });
+
+        if (employeeRequests.Count == 0)
+        {
+            return;
+        }
+
+        await context.EmployeeRequests.AddRangeAsync(employeeRequests);
+
+        if (vacationDetails.Count > 0) await context.VacationRequestDetails.AddRangeAsync(vacationDetails);
+        if (overtimeDetails.Count > 0) await context.OvertimeRequestDetails.AddRangeAsync(overtimeDetails);
+        if (trainingDetails.Count > 0) await context.TrainingRequestDetails.AddRangeAsync(trainingDetails);
+        if (miscDetails.Count > 0) await context.MiscellaneousRequestDetails.AddRangeAsync(miscDetails);
+        if (personalDetails.Count > 0) await context.PersonalRequestDetails.AddRangeAsync(personalDetails);
+        if (feedbackDetails.Count > 0) await context.FeedbackRequestDetails.AddRangeAsync(feedbackDetails);
+        if (permissionDetails.Count > 0) await context.PermissionRequestDetails.AddRangeAsync(permissionDetails);
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {employeeRequests.Count} employee self-service requests across multiple types.");
+    }
+
     private static async Task SeedSocialInsuranceRatesAsync(ApplicationDbContext context, string seedDataPath)
     {
         if (await context.SocialInsuranceRates.AnyAsync()) return;
@@ -1360,6 +1700,13 @@ public static class AppDbContextSeed
         string? FirstName,
         string? LastName,
         DateTime? HiringDate);
+
+    private sealed record EmployeeRequestSeedScope(
+        Guid Id,
+        Guid TenantId,
+        Guid? BranchId,
+        Guid? UserId,
+        Guid? DirectManagerId);
 
     private sealed record DocumentTemplate(
         EmployeeDocumentType DocumentType,

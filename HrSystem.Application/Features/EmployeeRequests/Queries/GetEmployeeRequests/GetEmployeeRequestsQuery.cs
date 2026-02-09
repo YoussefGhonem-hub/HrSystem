@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Enums;
@@ -15,6 +17,7 @@ namespace HrSystem.Application.Features.EmployeeRequests.Queries.GetEmployeeRequ
 public record GetEmployeeRequestsQuery(
     Guid EmployeeId,
     string? RequestTypeCode = null,
+    IReadOnlyCollection<string>? RequestTypeCodes = null,
     EmployeeRequestStatus? Status = null,
     int PageNumber = 1,
     int PageSize = 20
@@ -65,11 +68,35 @@ public class GetEmployeeRequestsQueryHandler
         if (employee == null)
             return Error.NotFound(description: "Employee not found.");
 
+        var singleTypeCodeFilter = string.IsNullOrWhiteSpace(request.RequestTypeCode)
+            ? null
+            : request.RequestTypeCode.Trim();
+
+        var multipleTypeCodesFilter = request.RequestTypeCodes?
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Select(code => code.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (multipleTypeCodesFilter is { Length: 0 })
+        {
+            multipleTypeCodesFilter = null;
+        }
+
         // Build base query
         var baseQuery = _context.EmployeeRequests
             .AsNoTracking()
             .Include(r => r.RequestTypeRef)
             .Where(r => r.EmployeeId == request.EmployeeId);
+
+        if (multipleTypeCodesFilter is { Length: > 0 })
+        {
+            baseQuery = baseQuery.Where(r => r.RequestTypeRef != null && multipleTypeCodesFilter.Contains(r.RequestTypeRef.Code));
+        }
+        else if (!string.IsNullOrEmpty(singleTypeCodeFilter))
+        {
+            baseQuery = baseQuery.Where(r => r.RequestTypeRef != null && r.RequestTypeRef.Code == singleTypeCodeFilter);
+        }
 
         // Get stats (before any filtering)
         var allRequests = await baseQuery.ToListAsync(cancellationToken);
@@ -98,8 +125,10 @@ public class GetEmployeeRequestsQueryHandler
             .Include(r => r.PermissionDetail).ThenInclude(p => p!.PermissionType)
             .Where(r => r.EmployeeId == request.EmployeeId);
 
-        if (!string.IsNullOrEmpty(request.RequestTypeCode))
-            query = query.Where(r => r.RequestTypeRef != null && r.RequestTypeRef.Code == request.RequestTypeCode);
+        if (multipleTypeCodesFilter is { Length: > 0 })
+            query = query.Where(r => r.RequestTypeRef != null && multipleTypeCodesFilter.Contains(r.RequestTypeRef.Code));
+        else if (!string.IsNullOrEmpty(singleTypeCodeFilter))
+            query = query.Where(r => r.RequestTypeRef != null && r.RequestTypeRef.Code == singleTypeCodeFilter);
 
         if (request.Status.HasValue)
             query = query.Where(r => r.Status == request.Status.Value);
@@ -107,7 +136,8 @@ public class GetEmployeeRequestsQueryHandler
         var totalCount = await query.CountAsync(cancellationToken);
 
         var entities = await query
-            .OrderByDescending(r => r.RequestedDate)
+            .OrderByDescending(r => r.CreatedDate)
+            .ThenByDescending(r => r.RequestedDate)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);

@@ -26,7 +26,9 @@ using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace HrSystem.API.Controllers;
 
@@ -75,20 +77,37 @@ public class EmployeeRequestsController : APIBaseController
 
     /// <summary>
     /// Returns all requests for a specific employee with status statistics.
-    /// Used by managers/HR to view an employee's requests.
+    /// Supports filtering by one or multiple request types, pagination, and sorts by created date descending.
     /// </summary>
     [Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager")]
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetEmployeeRequests(
         Guid employeeId,
-        [FromQuery] string? requestTypeCode,
-        [FromQuery] EmployeeRequestStatus? status,
+        [FromQuery] string? requestTypeCode = null,
+        [FromQuery] List<string>? requestTypeCodes = null,
+        [FromQuery] EmployeeRequestStatus? status = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20)
     {
+        var normalizedTypeCodes = requestTypeCodes?
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Select(code => code.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalizedTypeCodes is { Count: 0 })
+        {
+            normalizedTypeCodes = null;
+        }
+
+        var normalizedSingleCode = string.IsNullOrWhiteSpace(requestTypeCode)
+            ? null
+            : requestTypeCode.Trim();
+
         var result = await _mediator.Send(new GetEmployeeRequestsQuery(
             employeeId,
-            requestTypeCode,
+            normalizedSingleCode,
+            normalizedTypeCodes,
             status,
             pageNumber,
             pageSize));
