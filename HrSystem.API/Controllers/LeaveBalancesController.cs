@@ -2,6 +2,7 @@ using System;
 using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.LeaveBalances.Commands.UpsertEmployeeLeaveBalances;
 using HrSystem.Application.Features.LeaveBalances.Queries.GetEmployeeLeaveHistory;
+using HrSystem.Application.Features.LeaveBalances.Queries.GetEmployeeLeaveBalanceSummary;
 using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -57,6 +58,33 @@ public class LeaveBalancesController : APIBaseController
             fromYear,
             toYear,
             includeTransactions);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Retrieves the leave balance summary for an employee (remaining balance, carry over, consumed, etc.).
+    /// </summary>
+    [HttpGet("{employeeId:guid}/summary")]
+    public async Task<IActionResult> GetLeaveBalanceSummary(
+        Guid employeeId,
+        [FromQuery] int? year = null)
+    {
+        var query = new GetEmployeeLeaveBalanceSummaryQuery(employeeId, year);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Retrieves the leave balance summary for the current logged-in employee.
+    /// </summary>
+    [HttpGet("my-summary")]
+    [Authorize] // Any authenticated user can access their own balance
+    public async Task<IActionResult> GetMyLeaveBalanceSummary([FromQuery] int? year = null)
+    {
+        var query = new GetEmployeeLeaveBalanceSummaryQuery(null, year);
 
         var result = await _mediator.Send(query);
         return result.Match(Ok, Problem);
