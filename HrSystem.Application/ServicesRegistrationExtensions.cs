@@ -14,9 +14,9 @@ public static class ServicesRegistrationExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly()));
-        //services.AddValidatorsFromAssembly(typeof(Result<>).Assembly);
         TypeAdapterConfig.GlobalSettings.Default.PreserveReference(true);
         MappingConfig.Register(TypeAdapterConfig.GlobalSettings);
         services.AddSingleton(TypeAdapterConfig.GlobalSettings);
