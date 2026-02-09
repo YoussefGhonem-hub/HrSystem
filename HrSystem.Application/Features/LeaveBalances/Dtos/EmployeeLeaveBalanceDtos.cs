@@ -39,3 +39,28 @@ public record EmployeeLeaveTransactionDto
     public DateTimeOffset CreatedDate { get; init; }
     public Guid? CreatedBy { get; init; }
 }
+
+public record EmployeeLeaveBalanceSummaryDto
+{
+    public Guid EmployeeId { get; init; }
+    public string EmployeeCode { get; init; } = string.Empty;
+    public string EmployeeName { get; init; } = string.Empty;
+    public int Year { get; init; }
+    public decimal RemainingBalance { get; init; }
+    public decimal CarryOverBalance { get; init; }
+    public decimal AnnualLeavesBalance { get; init; }
+    public decimal ConsumedDays { get; init; }
+    public IReadOnlyCollection<LeaveTypeBalanceDto> LeaveTypeBalances { get; init; } = Array.Empty<LeaveTypeBalanceDto>();
+}
+
+public record LeaveTypeBalanceDto
+{
+    public Guid VacationTypeId { get; init; }
+    public string VacationTypeName { get; init; } = string.Empty;
+    public string? VacationTypeNameAr { get; init; }
+    public decimal AllocatedDays { get; init; }
+    public decimal CarryOverDays { get; init; }
+    public decimal ManualAdjustmentDays { get; init; }
+    public decimal UsedDays { get; init; }
+    public decimal AvailableDays { get; init; }
+}
