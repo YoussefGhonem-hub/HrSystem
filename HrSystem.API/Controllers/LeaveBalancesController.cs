@@ -77,6 +77,19 @@ public class LeaveBalancesController : APIBaseController
         return result.Match(Ok, Problem);
     }
 
+    /// <summary>
+    /// Retrieves the leave balance summary for the current logged-in employee.
+    /// </summary>
+    [HttpGet("my-summary")]
+    [Authorize] // Any authenticated user can access their own balance
+    public async Task<IActionResult> GetMyLeaveBalanceSummary([FromQuery] int? year = null)
+    {
+        var query = new GetEmployeeLeaveBalanceSummaryQuery(null, year);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
     public class UpsertLeaveBalancesRequest
     {
         public int Year { get; set; }

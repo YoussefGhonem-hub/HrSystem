@@ -2,13 +2,14 @@ using ErrorOr;
 using HrSystem.Application.Features.LeaveBalances.Dtos;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace HrSystem.Application.Features.LeaveBalances.Queries.GetEmployeeLeaveBalanceSummary;
 
 public record GetEmployeeLeaveBalanceSummaryQuery(
-    Guid EmployeeId,
+    Guid? EmployeeId = null,
     int? Year = null
 ) : IRequest<ErrorOr<GenericResponse<EmployeeLeaveBalanceSummaryDto>>>;
 
@@ -26,9 +27,34 @@ public class GetEmployeeLeaveBalanceSummaryQueryHandler
         GetEmployeeLeaveBalanceSummaryQuery request,
         CancellationToken cancellationToken)
     {
+        // If EmployeeId is not provided, use current user's employee ID
+        Guid? employeeId = request.EmployeeId;
+
+        if (!employeeId.HasValue || employeeId.Value == Guid.Empty)
+        {
+            employeeId = CurrentUser.EmployeeId;
+
+            if (!employeeId.HasValue || employeeId.Value == Guid.Empty)
+            {
+                var userId = CurrentUser.Id;
+                if (userId.HasValue)
+                {
+                    employeeId = await _context.Employees
+                        .Where(e => e.UserId == userId)
+                        .Select(e => e.Id)
+                        .FirstOrDefaultAsync(cancellationToken);
+                }
+            }
+
+            if (!employeeId.HasValue || employeeId.Value == Guid.Empty)
+            {
+                return Error.Unauthorized(description: "Current user is not linked to an employee.");
+            }
+        }
+
         var employee = await _context.Employees
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Id == request.EmployeeId, cancellationToken);
+            .FirstOrDefaultAsync(e => e.Id == employeeId.Value, cancellationToken);
 
         if (employee is null)
         {
@@ -41,7 +67,7 @@ public class GetEmployeeLeaveBalanceSummaryQueryHandler
         var balances = await _context.EmployeeLeaveBalances
             .AsNoTracking()
             .Include(b => b.VacationType)
-            .Where(b => b.EmployeeId == request.EmployeeId && b.Year == year)
+            .Where(b => b.EmployeeId == employeeId.Value && b.Year == year)
             .OrderBy(b => b.VacationType.SortOrder)
             .ThenBy(b => b.VacationType.NameEn)
             .ToListAsync(cancellationToken);
