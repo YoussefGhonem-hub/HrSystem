@@ -1,5 +1,6 @@
 using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApprovePermissionRequest;
+using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveVacationRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreateEmployeeRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.CreatePermissionRequest;
@@ -10,8 +11,15 @@ using HrSystem.Application.Features.EmployeeRequests.Commands.Training;
 using HrSystem.Application.Features.EmployeeRequests.Commands.Miscellaneous;
 using HrSystem.Application.Features.EmployeeRequests.Commands.Personal;
 using HrSystem.Application.Features.EmployeeRequests.Commands.Feedback;
+using HrSystem.Application.Features.EmployeeRequests.Commands.CreateMiscellaneousRequest;
+using HrSystem.Application.Features.EmployeeRequests.Commands.CreatePersonalRequest;
+using HrSystem.Application.Features.EmployeeRequests.Commands.CreateFeedbackRequest;
+using HrSystem.Application.Features.EmployeeRequests.Commands.CreateOvertimeRequest;
+using HrSystem.Application.Features.EmployeeRequests.Commands.Overtime;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetBranchAvailableRequests;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetEmployeeRequests;
+using HrSystem.Application.Features.EmployeeRequests.Queries.GetMyDashboardRequests;
+using HrSystem.Application.Features.EmployeeRequests.Queries.GetRequestDetail;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetMyEmployeeRequests;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Permission;
 using HrSystem.Application.Features.EmployeeRequests.Queries.PermissionTypes;
@@ -20,6 +28,7 @@ using HrSystem.Application.Features.EmployeeRequests.Queries.Training;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Miscellaneous;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Personal;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Feedback;
+using HrSystem.Application.Features.EmployeeRequests.Queries.Overtime;
 using HrSystem.Domain.Enums;
 using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
@@ -42,6 +51,89 @@ public class EmployeeRequestsController : APIBaseController
     {
         _mediator = mediator;
     }
+
+    /// <summary>
+    /// Unified dashboard endpoint – returns data based on the logged-in user's role:
+    /// - Employee:          Only their own requests.
+    /// - DepartmentManager: Own requests  +  Pending requests from direct reports needing manager approval.
+    /// - HRManager/HRSpecialist/OrgAdmin: Own requests + ManagerApproved requests needing HR approval.
+    ///
+    /// Approval flow:  Pending → ManagerApproved (manager approves) → Approved (HR approves).
+    /// A request reaches "Approved" only when BOTH manager AND HR have approved.
+    /// </summary>
+    [HttpGet("dashboard")]
+    public async Task<IActionResult> GetDashboard(
+        [FromQuery] string? requestTypeCode = null,
+        [FromQuery] EmployeeRequestStatus? status = null,
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] int myRequestsPageNumber = 1,
+        [FromQuery] int myRequestsPageSize = 20,
+        [FromQuery] int pendingApprovalPageNumber = 1,
+        [FromQuery] int pendingApprovalPageSize = 20)
+    {
+        var query = new GetMyDashboardRequestsQuery(
+            requestTypeCode,
+            status,
+            startDateFrom,
+            startDateTo,
+            sortBy,
+            sortDescending,
+            myRequestsPageNumber,
+            myRequestsPageSize,
+            pendingApprovalPageNumber,
+            pendingApprovalPageSize);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    #region Unified Endpoints (any request type)
+
+    /// <summary>
+    /// Returns the full details of any employee request by its ID.
+    /// Includes type-specific detail (Vacation, Training, Permission, Overtime, Miscellaneous, Personal, Feedback).
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetRequestDetail(Guid id)
+    {
+        var result = await _mediator.Send(new GetRequestDetailQuery(id));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Manager approves or rejects any employee request.
+    /// The request type is auto-detected. Request must be in Pending status.
+    /// </summary>
+    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
+    [HttpPost("{requestId:guid}/manager-approval")]
+    public async Task<IActionResult> ManagerApproveRequest(
+        Guid requestId,
+        [FromBody] ApprovalDto approval)
+    {
+        var command = new ApproveRequestCommand(requestId, approval.IsApproved, approval.Comments);
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// HR approves or rejects any employee request (after manager approval).
+    /// The request type is auto-detected. Request must be in ManagerApproved status.
+    /// </summary>
+    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
+    [HttpPost("{requestId:guid}/hr-approval")]
+    public async Task<IActionResult> HRApproveRequest(
+        Guid requestId,
+        [FromBody] ApprovalDto approval)
+    {
+        var command = new ApproveRequestCommand(requestId, approval.IsApproved, approval.Comments);
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    #endregion
 
     /// <summary>
     /// Returns the request types that are enabled for the user's branch (or the provided branchId).
@@ -759,6 +851,34 @@ public class EmployeeRequestsController : APIBaseController
     #region Miscellaneous Requests - Role-Based Endpoints
 
     /// <summary>
+    /// Submits a miscellaneous request with type-specific details.
+    /// </summary>
+    [HttpPost("miscellaneous")]
+    public async Task<IActionResult> SubmitMiscellaneousRequest([FromBody] SubmitMiscellaneousRequestDto request)
+    {
+        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        var command = new CreateMiscellaneousRequestCommand(
+            employeeId.Value,
+            request.Title,
+            request.Description,
+            request.StartDate,
+            request.EndDate,
+            request.MiscellaneousTypeId,
+            request.AdditionalNotes,
+            request.ReferenceNumber,
+            request.Priority,
+            request.ExpectedCompletionDate,
+            request.AttachmentUrl,
+            request.BranchId ?? CurrentUser.BranchId);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
     /// Get miscellaneous requests based on current user's role
     /// </summary>
     [HttpGet("miscellaneous/list")]
@@ -896,6 +1016,35 @@ public class EmployeeRequestsController : APIBaseController
     #endregion
 
     #region Personal Requests - Role-Based Endpoints
+
+    /// <summary>
+    /// Submits a personal request with type-specific details.
+    /// </summary>
+    [HttpPost("personal")]
+    public async Task<IActionResult> SubmitPersonalRequest([FromBody] SubmitPersonalRequestDto request)
+    {
+        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        var command = new CreatePersonalRequestCommand(
+            employeeId.Value,
+            request.Title,
+            request.Description,
+            request.StartDate,
+            request.EndDate,
+            request.PersonalTypeId,
+            request.Reason,
+            request.IsUrgent,
+            request.RequiresConfidentiality,
+            request.PreferredContactMethod,
+            request.AdditionalContactInfo,
+            request.AttachmentUrl,
+            request.BranchId ?? CurrentUser.BranchId);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
 
     /// <summary>
     /// Get personal requests based on current user's role
@@ -1037,6 +1186,35 @@ public class EmployeeRequestsController : APIBaseController
     #region Feedback Requests - Role-Based Endpoints
 
     /// <summary>
+    /// Submits a feedback request with type-specific details.
+    /// </summary>
+    [HttpPost("feedback")]
+    public async Task<IActionResult> SubmitFeedbackRequest([FromBody] SubmitFeedbackRequestDto request)
+    {
+        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        var command = new CreateFeedbackRequestCommand(
+            employeeId.Value,
+            request.Title,
+            request.Description,
+            request.FeedbackTypeId,
+            request.FeedbackContent,
+            request.IsAnonymous,
+            request.Rating,
+            request.TargetDepartment,
+            request.TargetPerson,
+            request.SuggestedImprovement,
+            request.ResponseRequired,
+            request.AttachmentUrl,
+            request.BranchId ?? CurrentUser.BranchId);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
     /// Get feedback requests based on current user's role
     /// </summary>
     [HttpGet("feedback/list")]
@@ -1173,6 +1351,172 @@ public class EmployeeRequestsController : APIBaseController
 
     #endregion
 
+    #region Overtime Requests - Role-Based Endpoints
+
+    /// <summary>
+    /// Submits an overtime request with type-specific details.
+    /// </summary>
+    [HttpPost("overtime")]
+    public async Task<IActionResult> SubmitOvertimeRequest([FromBody] SubmitOvertimeRequestDto request)
+    {
+        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        var command = new CreateOvertimeRequestCommand(
+            employeeId.Value,
+            request.Title,
+            request.Description,
+            request.OvertimeTypeId,
+            request.OvertimeDate,
+            request.PlannedHours,
+            request.ProjectCode,
+            request.TaskDescription,
+            request.AttachmentUrl,
+            request.BranchId ?? CurrentUser.BranchId);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get overtime requests based on current user's role
+    /// </summary>
+    [HttpGet("overtime/list")]
+    public async Task<IActionResult> GetOvertimeRequests(
+        [FromQuery] EmployeeRequestStatus? status = null,
+        [FromQuery] Guid? overtimeTypeId = null,
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null,
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var query = new GetOvertimeRequestsQuery(
+            status,
+            overtimeTypeId,
+            startDateFrom,
+            startDateTo,
+            employeeId,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get overtime request details by ID
+    /// </summary>
+    [HttpGet("overtime/{id:guid}")]
+    public async Task<IActionResult> GetOvertimeRequestById(Guid id)
+    {
+        var result = await _mediator.Send(new GetOvertimeRequestByIdQuery(id));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get HR branch overtime summary (counts by status + total hours)
+    /// </summary>
+    [HttpGet("overtime/hr/summary")]
+    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
+    public async Task<IActionResult> GetHrOvertimeSummary([FromQuery] DateTime? startDateFrom = null, [FromQuery] DateTime? startDateTo = null)
+    {
+        var result = await _mediator.Send(new GetHrOvertimeSummaryQuery(startDateFrom, startDateTo));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get HR branch overtime requests (all statuses)
+    /// </summary>
+    [HttpGet("overtime/hr/requests")]
+    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
+    public async Task<IActionResult> GetHrOvertimeRequests(
+        [FromQuery] EmployeeRequestStatus? status = null,
+        [FromQuery] Guid? overtimeTypeId = null,
+        [FromQuery] DateTime? startDateFrom = null,
+        [FromQuery] DateTime? startDateTo = null,
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var query = new GetHrOvertimeRequestsQuery(
+            status,
+            overtimeTypeId,
+            startDateFrom,
+            startDateTo,
+            employeeId,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Manager overview: own overtime requests + pending approvals from direct reports
+    /// </summary>
+    [HttpGet("overtime/manager/overview")]
+    [Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.DepartmentManager}")]
+    public async Task<IActionResult> GetManagerOvertimeOverview(
+        [FromQuery] int myPageNumber = 1,
+        [FromQuery] int myPageSize = 10,
+        [FromQuery] int pendingPageNumber = 1,
+        [FromQuery] int pendingPageSize = 10)
+    {
+        var result = await _mediator.Send(new GetManagerOvertimeOverviewQuery(myPageNumber, myPageSize, pendingPageNumber, pendingPageSize));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Manager approves or rejects an overtime request
+    /// </summary>
+    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
+    [HttpPost("overtime/{requestId:guid}/manager-approval")]
+    public async Task<IActionResult> ManagerApproveOvertime(
+        Guid requestId,
+        [FromBody] ApprovalDto approval)
+    {
+        var command = new ApproveOvertimeRequestCommand(
+            requestId,
+            approval.IsApproved,
+            approval.Comments,
+            ApprovalLevel.Manager);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// HR approves or rejects an overtime request (after manager approval).
+    /// Updates overtime detail with approval metadata.
+    /// </summary>
+    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
+    [HttpPost("overtime/{requestId:guid}/hr-approval")]
+    public async Task<IActionResult> HRApproveOvertime(
+        Guid requestId,
+        [FromBody] ApprovalDto approval)
+    {
+        var command = new ApproveOvertimeRequestCommand(
+            requestId,
+            approval.IsApproved,
+            approval.Comments,
+            ApprovalLevel.HR);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    #endregion
+
     public record ApprovalDto
     {
         public bool IsApproved { get; init; }
@@ -1254,5 +1598,69 @@ public class EmployeeRequestsController : APIBaseController
         public bool IsApproved { get; init; }
         public string? RejectionReason { get; init; }
         public string? ResponseContent { get; init; }
+    }
+
+    public record SubmitMiscellaneousRequestDto
+    {
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public DateTime? StartDate { get; init; }
+        public DateTime? EndDate { get; init; }
+        public Guid MiscellaneousTypeId { get; init; }
+        public string? AdditionalNotes { get; init; }
+        public string? ReferenceNumber { get; init; }
+        public string? Priority { get; init; }
+        public DateTime? ExpectedCompletionDate { get; init; }
+        public string? AttachmentUrl { get; init; }
+        public Guid? EmployeeId { get; init; }
+        public Guid? BranchId { get; init; }
+    }
+
+    public record SubmitPersonalRequestDto
+    {
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public DateTime? StartDate { get; init; }
+        public DateTime? EndDate { get; init; }
+        public Guid PersonalTypeId { get; init; }
+        public string? Reason { get; init; }
+        public bool IsUrgent { get; init; }
+        public bool RequiresConfidentiality { get; init; }
+        public string? PreferredContactMethod { get; init; }
+        public string? AdditionalContactInfo { get; init; }
+        public string? AttachmentUrl { get; init; }
+        public Guid? EmployeeId { get; init; }
+        public Guid? BranchId { get; init; }
+    }
+
+    public record SubmitFeedbackRequestDto
+    {
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public Guid FeedbackTypeId { get; init; }
+        public string FeedbackContent { get; init; } = string.Empty;
+        public bool IsAnonymous { get; init; }
+        public int? Rating { get; init; }
+        public string? TargetDepartment { get; init; }
+        public string? TargetPerson { get; init; }
+        public string? SuggestedImprovement { get; init; }
+        public bool ResponseRequired { get; init; }
+        public string? AttachmentUrl { get; init; }
+        public Guid? EmployeeId { get; init; }
+        public Guid? BranchId { get; init; }
+    }
+
+    public record SubmitOvertimeRequestDto
+    {
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public Guid OvertimeTypeId { get; init; }
+        public DateTime OvertimeDate { get; init; }
+        public TimeSpan PlannedHours { get; init; }
+        public string? ProjectCode { get; init; }
+        public string? TaskDescription { get; init; }
+        public string? AttachmentUrl { get; init; }
+        public Guid? EmployeeId { get; init; }
+        public Guid? BranchId { get; init; }
     }
 }
