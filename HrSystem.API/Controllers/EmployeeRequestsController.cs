@@ -19,6 +19,7 @@ using HrSystem.Application.Features.EmployeeRequests.Commands.Overtime;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetBranchAvailableRequests;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetEmployeeRequests;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetMyDashboardRequests;
+using HrSystem.Application.Features.EmployeeRequests.Queries.GetRequestsDashboard;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetRequestDetail;
 using HrSystem.Application.Features.EmployeeRequests.Queries.GetMyEmployeeRequests;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Permission;
@@ -85,6 +86,37 @@ public class EmployeeRequestsController : APIBaseController
             myRequestsPageSize,
             pendingApprovalPageNumber,
             pendingApprovalPageSize);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Requests overview cards and list for HR/manager dashboards (filters + statistics).
+    /// </summary>
+    [Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager")]
+    [HttpGet("overview")]
+    public async Task<IActionResult> GetRequestsOverview(
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] string? requestTypeCode = null,
+        [FromQuery] EmployeeRequestStatus? status = null,
+        [FromQuery] DateTime? requestedFrom = null,
+        [FromQuery] DateTime? requestedTo = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = true)
+    {
+        var query = new GetRequestsOverviewQuery(
+            searchTerm,
+            requestTypeCode,
+            status,
+            requestedFrom,
+            requestedTo,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize);
 
         var result = await _mediator.Send(query);
         return result.Match(Ok, Problem);
