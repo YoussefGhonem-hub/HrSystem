@@ -38,6 +38,7 @@ public class AttendanceController : APIBaseController
         [FromQuery] Guid? statusId = null,
         [FromQuery] bool? isLate = null,
         [FromQuery] bool? isOvertime = null,
+        [FromQuery] string? searchTerm = null,
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDescending = false)
     {
@@ -48,6 +49,7 @@ public class AttendanceController : APIBaseController
             statusId,
             isLate,
             isOvertime,
+            searchTerm,
             sortBy,
             sortDescending,
             pageNumber,
@@ -74,6 +76,7 @@ public class AttendanceController : APIBaseController
         [FromQuery] Guid? statusId = null,
         [FromQuery] bool? isLate = null,
         [FromQuery] bool? isOvertime = null,
+        [FromQuery] string? searchTerm = null,
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDescending = false)
     {
@@ -84,6 +87,7 @@ public class AttendanceController : APIBaseController
             statusId,
             isLate,
             isOvertime,
+            searchTerm,
             sortBy,
             sortDescending,
             pageNumber,

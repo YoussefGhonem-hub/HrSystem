@@ -1946,8 +1946,8 @@ public static class AppDbContextSeed
         var leaveStatusId = statusLookup.TryGetValue("On Leave", out var leave) ? leave : presentStatusId;
 
         var random = new Random(20260130);
-        var endDate = DateTime.UtcNow.Date.AddDays(-1);
-        var startDate = endDate.AddDays(-30);
+        var endDate = DateTime.UtcNow.Date;           // include today
+        var startDate = endDate.AddDays(-60);          // ~2 months of history
         var shiftStart = new TimeSpan(9, 0, 0);
         var shiftEnd = new TimeSpan(17, 0, 0);
 
@@ -1973,6 +1973,9 @@ public static class AppDbContextSeed
                 if (isWeekend)
                 {
                     statusId = weekendStatusId;
+                    checkIn = shiftStart;
+                    checkOut = shiftStart;
+                    worked = TimeSpan.Zero;
                 }
                 else
                 {
@@ -1980,10 +1983,16 @@ public static class AppDbContextSeed
                     if (roll < 0.08)
                     {
                         statusId = absentStatusId;
+                        checkIn = shiftStart;
+                        checkOut = shiftStart;
+                        worked = TimeSpan.Zero;
                     }
                     else if (roll < 0.12)
                     {
                         statusId = leaveStatusId;
+                        checkIn = shiftStart;
+                        checkOut = shiftEnd;
+                        worked = TimeSpan.Zero;
                     }
                     else
                     {
@@ -2027,8 +2036,8 @@ public static class AppDbContextSeed
                     CheckOutTime = checkOut,
                     StatusId = statusId,
                     DeviceId = "SEED-DEVICE",
-                    CheckInDeviceId = checkIn.HasValue ? "SEED-DEVICE" : null,
-                    CheckOutDeviceId = checkOut.HasValue ? "SEED-DEVICE" : null,
+                    CheckInDeviceId = "SEED-DEVICE",
+                    CheckOutDeviceId = "SEED-DEVICE",
                     WorkedHours = worked,
                     OvertimeHours = overtime,
                     LateMinutes = lateMinutes,

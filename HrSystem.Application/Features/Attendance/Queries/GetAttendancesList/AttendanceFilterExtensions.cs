@@ -9,9 +9,21 @@ public static class AttendanceFilterExtensions
         DateTime? toDate,
         Guid? statusId,
         bool? isLate,
-        bool? isOvertime)
+        bool? isOvertime,
+        string? searchTerm = null)
     {
         query = query.Where(a => !a.IsConfigurationRecord);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim().ToLower();
+            query = query.Where(a =>
+                a.Employee.FirstNameEn.ToLower().Contains(term) ||
+                a.Employee.LastNameEn.ToLower().Contains(term) ||
+                a.Employee.FirstNameAr.ToLower().Contains(term) ||
+                a.Employee.LastNameAr.ToLower().Contains(term) ||
+                a.Employee.EmployeeCode.ToLower().Contains(term));
+        }
 
         if (employeeId.HasValue)
         {

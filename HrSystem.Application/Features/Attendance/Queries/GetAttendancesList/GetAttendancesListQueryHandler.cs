@@ -14,6 +14,7 @@ public record GetAttendancesListQuery(
     Guid? StatusId = null,
     bool? IsLate = null,
     bool? IsOvertime = null,
+    string? SearchTerm = null,
     string? SortBy = null,
     bool IsDescending = false,
     int PageNumber = 1,
@@ -42,7 +43,8 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
             request.ToDate,
             request.StatusId,
             request.IsLate,
-            request.IsOvertime);
+            request.IsOvertime,
+            request.SearchTerm);
 
         // Get total count before pagination
         var totalCount = await query.CountAsync(cancellationToken);

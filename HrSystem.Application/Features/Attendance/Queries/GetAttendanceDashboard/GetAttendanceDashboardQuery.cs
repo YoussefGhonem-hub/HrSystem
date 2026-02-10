@@ -22,31 +22,65 @@ public class GetAttendanceDashboardQueryHandler : IRequestHandler<GetAttendanceD
     public async Task<ErrorOr<GenericResponse<AttendanceDashboardDto>>> Handle(GetAttendanceDashboardQuery request, CancellationToken cancellationToken)
     {
         var date = request.Date?.Date ?? DateTime.UtcNow.Date;
+        var yesterday = date.AddDays(-1);
+        var sameDayLastWeek = date.AddDays(-7);
 
         var branchId = CurrentUser.BranchId;
-        // Base query scoped to date and optional branch
-        var baseQuery = _context.Attendances
-            .Include(a => a.Employee)
-            .Where(a => a.Date.Date == date)
-            .AsQueryable();
 
-        if (branchId.HasValue)
+        // Helper to scope a query by date + branch
+        IQueryable<HrSystem.Domain.Entities.Attendance.Attendance> BuildQuery(DateTime targetDate)
         {
-            baseQuery = baseQuery.Where(a => a.Employee.BranchId == branchId);
+            var q = _context.Attendances
+                .Include(a => a.Employee)
+                .Where(a => a.Date.Date == targetDate)
+                .AsQueryable();
+
+            if (branchId.HasValue)
+                q = q.Where(a => a.Employee.BranchId == branchId);
+
+            return q;
         }
 
-        var totalPresent = await baseQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Present, cancellationToken);
-        var lateToday = await baseQuery.CountAsync(a => a.IsLate, cancellationToken);
-        var absentToday = await baseQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Absent, cancellationToken);
-        var onLeaveToday = await baseQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.OnLeave, cancellationToken);
+        // --- Today ---
+        var todayQuery = BuildQuery(date);
+        var totalPresent = await todayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Present, cancellationToken);
+        var lateToday = await todayQuery.CountAsync(a => a.IsLate, cancellationToken);
+        var absentToday = await todayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Absent, cancellationToken);
+        var onLeaveToday = await todayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.OnLeave, cancellationToken);
+
+        // --- Yesterday (for present & on-leave percentage change) ---
+        var yesterdayQuery = BuildQuery(yesterday);
+        var presentYesterday = await yesterdayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Present, cancellationToken);
+        var onLeaveYesterday = await yesterdayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.OnLeave, cancellationToken);
+
+        // --- Same day last week (for late & absent absolute change) ---
+        var lastWeekQuery = BuildQuery(sameDayLastWeek);
+        var lateLastWeek = await lastWeekQuery.CountAsync(a => a.IsLate, cancellationToken);
+        var absentLastWeek = await lastWeekQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Absent, cancellationToken);
+
+        // Calculate comparison values
+        double presentChangePercent = presentYesterday > 0
+            ? Math.Round((double)(totalPresent - presentYesterday) / presentYesterday * 100, 1)
+            : 0;
+
+        int lateChange = lateToday - lateLastWeek;
+        int absentChange = absentToday - absentLastWeek;
+
+        double onLeaveChangePercent = onLeaveYesterday > 0
+            ? Math.Round((double)(onLeaveToday - onLeaveYesterday) / onLeaveYesterday * 100, 1)
+            : 0;
 
         var dto = new AttendanceDashboardDto
         {
+            Date = date,
             TotalPresent = totalPresent,
+            TotalPresentChangePercent = presentChangePercent,
             LateArrivalToday = lateToday,
+            LateArrivalChangeFromLastWeek = lateChange,
             AbsentToday = absentToday,
+            AbsentChangeFromLastWeek = absentChange,
             OnLeaveToday = onLeaveToday,
-            Date = date
+            OnLeaveChangePercent = onLeaveChangePercent
         };
 
         return new GenericResponse<AttendanceDashboardDto>
