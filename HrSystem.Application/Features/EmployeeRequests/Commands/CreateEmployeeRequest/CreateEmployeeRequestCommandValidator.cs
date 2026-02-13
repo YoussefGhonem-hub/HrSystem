@@ -16,9 +16,6 @@ public class CreateEmployeeRequestCommandValidator : AbstractValidator<CreateEmp
         RuleFor(x => x.Description)
             .MaximumLength(2000);
 
-        RuleFor(x => x.AttachmentUrl)
-            .MaximumLength(1024);
-
         When(x => x.StartDate.HasValue && x.EndDate.HasValue, () =>
         {
             RuleFor(x => x)

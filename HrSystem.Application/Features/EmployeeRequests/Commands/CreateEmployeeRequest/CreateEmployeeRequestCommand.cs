@@ -5,7 +5,9 @@ using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.CreateEmployeeRequest;
 
@@ -65,7 +67,7 @@ public record CreateEmployeeRequestCommand(
     string? Description,
     DateTime? StartDate,
     DateTime? EndDate,
-    string? AttachmentUrl,
+    IFormFile? Attachment,
     Guid EmployeeId,
     Guid? BranchId,
     // Type-specific details (only one should be provided based on RequestType)
@@ -85,10 +87,12 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
     };
 
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public CreateEmployeeRequestCommandHandler(ApplicationDbContext context)
+    public CreateEmployeeRequestCommandHandler(ApplicationDbContext context, IStorageService storageService)
     {
         _context = context;
+        _storageService = storageService;
     }
 
     public async Task<ErrorOr<GenericResponse<EmployeeRequestDto>>> Handle(
@@ -124,7 +128,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         if (!branchSetting.AllowEmployeesToSubmit)
             return Error.Forbidden(description: "Employees cannot submit this request type for the selected branch.");
 
-        if (branchSetting.RequireAttachment && string.IsNullOrWhiteSpace(request.AttachmentUrl))
+        if (requestType.RequireAttachment && (request.Attachment == null || request.Attachment.Length == 0))
             return Error.Validation(description: "An attachment is required for this request type.");
 
         if (branchSetting.MaxOpenRequests.HasValue)
@@ -143,6 +147,16 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         if (validationError is not null)
             return validationError.Value;
 
+        // Upload attachment to S3 if provided
+        string? attachmentUrl = null;
+        if (request.Attachment != null && request.Attachment.Length > 0)
+        {
+            var stored = await _storageService.Upload(request.Attachment, cancellationToken);
+            if (string.IsNullOrWhiteSpace(stored.Key))
+                return Error.Failure(description: "File upload failed.");
+            attachmentUrl = await _storageService.DownloadFileUrl(stored.Key, cancellationToken);
+        }
+
         var entity = new EmployeeRequest
         {
             RequestTypeId = requestType.Id,
@@ -152,7 +166,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
             Description = request.Description?.Trim(),
             StartDate = request.StartDate,
             EndDate = request.EndDate,
-            AttachmentUrl = request.AttachmentUrl,
+            AttachmentUrl = attachmentUrl,
             BranchId = branchId,
             TenantId = employee.TenantId,
             RequestedDate = DateTime.UtcNow

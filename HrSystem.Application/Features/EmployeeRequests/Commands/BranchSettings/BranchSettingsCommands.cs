@@ -14,7 +14,6 @@ public record CreateBranchRequestSettingCommand(
     Guid RequestTypeId,
     bool IsVisibleToEmployees,
     bool AllowEmployeesToSubmit,
-    bool RequireAttachment,
     int? MaxOpenRequests,
     string? CustomInstructions
 ) : IRequest<ErrorOr<GenericResponse<BranchRequestSettingDetailDto>>>;
@@ -58,7 +57,6 @@ public class CreateBranchRequestSettingCommandHandler : IRequestHandler<CreateBr
             RequestTypeId = request.RequestTypeId,
             IsVisibleToEmployees = request.IsVisibleToEmployees,
             AllowEmployeesToSubmit = request.AllowEmployeesToSubmit,
-            RequireAttachment = request.RequireAttachment,
             MaxOpenRequests = request.MaxOpenRequests,
             CustomInstructions = request.CustomInstructions,
             TenantId = branch.TenantId,
@@ -77,7 +75,6 @@ public class CreateBranchRequestSettingCommandHandler : IRequestHandler<CreateBr
             RequestTypeName = requestType.Code,
             IsVisibleToEmployees = entity.IsVisibleToEmployees,
             AllowEmployeesToSubmit = entity.AllowEmployeesToSubmit,
-            RequireAttachment = entity.RequireAttachment,
             MaxOpenRequests = entity.MaxOpenRequests,
             CustomInstructions = entity.CustomInstructions,
             CreatedDate = entity.CreatedDate,
@@ -167,7 +164,6 @@ public class CreateBranchRequestSettingsCommandHandler : IRequestHandler<CreateB
                 RequestTypeId = dto.RequestTypeId,
                 IsVisibleToEmployees = dto.IsVisibleToEmployees,
                 AllowEmployeesToSubmit = dto.AllowEmployeesToSubmit,
-                RequireAttachment = dto.RequireAttachment,
                 MaxOpenRequests = dto.MaxOpenRequests,
                 CustomInstructions = dto.CustomInstructions,
                 TenantId = branch.TenantId,
@@ -196,7 +192,6 @@ public class CreateBranchRequestSettingsCommandHandler : IRequestHandler<CreateB
                     RequestTypeName = requestType?.Code ?? "",
                     IsVisibleToEmployees = entity.IsVisibleToEmployees,
                     AllowEmployeesToSubmit = entity.AllowEmployeesToSubmit,
-                    RequireAttachment = entity.RequireAttachment,
                     MaxOpenRequests = entity.MaxOpenRequests,
                     CustomInstructions = entity.CustomInstructions,
                     CreatedDate = entity.CreatedDate,
@@ -222,7 +217,6 @@ public record UpdateBranchRequestSettingCommand(
     Guid Id,
     bool IsVisibleToEmployees,
     bool AllowEmployeesToSubmit,
-    bool RequireAttachment,
     int? MaxOpenRequests,
     string? CustomInstructions
 ) : IRequest<ErrorOr<GenericResponse<BranchRequestSettingDetailDto>>>;
@@ -250,7 +244,6 @@ public class UpdateBranchRequestSettingCommandHandler : IRequestHandler<UpdateBr
 
         entity.IsVisibleToEmployees = request.IsVisibleToEmployees;
         entity.AllowEmployeesToSubmit = request.AllowEmployeesToSubmit;
-        entity.RequireAttachment = request.RequireAttachment;
         entity.MaxOpenRequests = request.MaxOpenRequests;
         entity.CustomInstructions = request.CustomInstructions;
         entity.ModifiedDate = DateTimeOffset.UtcNow;
@@ -266,7 +259,6 @@ public class UpdateBranchRequestSettingCommandHandler : IRequestHandler<UpdateBr
             RequestTypeName = entity.RequestTypeRef?.Code ?? "",
             IsVisibleToEmployees = entity.IsVisibleToEmployees,
             AllowEmployeesToSubmit = entity.AllowEmployeesToSubmit,
-            RequireAttachment = entity.RequireAttachment,
             MaxOpenRequests = entity.MaxOpenRequests,
             CustomInstructions = entity.CustomInstructions,
             CreatedDate = entity.CreatedDate,
@@ -353,7 +345,6 @@ public class InitializeBranchSettingsCommandHandler : IRequestHandler<Initialize
                 RequestTypeId = requestType.Id,
                 IsVisibleToEmployees = request.EnableAllRequestTypes,
                 AllowEmployeesToSubmit = request.EnableAllRequestTypes,
-                RequireAttachment = false,
                 MaxOpenRequests = null,
                 CustomInstructions = null,
                 TenantId = branch.TenantId,
@@ -386,7 +377,6 @@ public class InitializeBranchSettingsCommandHandler : IRequestHandler<Initialize
             RequestTypeName = e.RequestTypeRef?.Code ?? "",
             IsVisibleToEmployees = e.IsVisibleToEmployees,
             AllowEmployeesToSubmit = e.AllowEmployeesToSubmit,
-            RequireAttachment = e.RequireAttachment,
             MaxOpenRequests = e.MaxOpenRequests,
             CustomInstructions = e.CustomInstructions,
             CreatedDate = e.CreatedDate,

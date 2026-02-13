@@ -5,7 +5,9 @@ using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.CreateOvertimeRequest;
 
@@ -18,7 +20,7 @@ public record CreateOvertimeRequestCommand(
     TimeSpan PlannedHours,
     string? ProjectCode,
     string? TaskDescription,
-    string? AttachmentUrl,
+    IFormFile? Attachment,
     Guid? BranchId
 ) : IRequest<ErrorOr<GenericResponse<EmployeeRequestDto>>>;
 
@@ -32,8 +34,13 @@ public class CreateOvertimeRequestCommandHandler
     };
 
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public CreateOvertimeRequestCommandHandler(ApplicationDbContext context) => _context = context;
+    public CreateOvertimeRequestCommandHandler(ApplicationDbContext context, IStorageService storageService)
+    {
+        _context = context;
+        _storageService = storageService;
+    }
 
     public async Task<ErrorOr<GenericResponse<EmployeeRequestDto>>> Handle(
         CreateOvertimeRequestCommand request,
@@ -66,7 +73,7 @@ public class CreateOvertimeRequestCommandHandler
         if (branchSetting == null || !branchSetting.AllowEmployeesToSubmit)
             return Error.Forbidden(description: "Overtime requests are not allowed for this branch.");
 
-        if (branchSetting.RequireAttachment && string.IsNullOrWhiteSpace(request.AttachmentUrl))
+        if (requestType.RequireAttachment && (request.Attachment == null || request.Attachment.Length == 0))
             return Error.Validation(description: "An attachment is required.");
 
         if (branchSetting.MaxOpenRequests.HasValue)
@@ -87,6 +94,16 @@ public class CreateOvertimeRequestCommandHandler
         if (overtimeType == null)
             return Error.Validation(description: "Invalid overtime type.");
 
+        // Upload attachment to S3 if provided
+        string? attachmentUrl = null;
+        if (request.Attachment != null && request.Attachment.Length > 0)
+        {
+            var stored = await _storageService.Upload(request.Attachment, cancellationToken);
+            if (string.IsNullOrWhiteSpace(stored.Key))
+                return Error.Failure(description: "File upload failed.");
+            attachmentUrl = await _storageService.DownloadFileUrl(stored.Key, cancellationToken);
+        }
+
         var employeeRequest = new EmployeeRequest
         {
             RequestTypeId = requestType.Id,
@@ -95,7 +112,7 @@ public class CreateOvertimeRequestCommandHandler
             Title = request.Title.Trim(),
             Description = request.Description?.Trim(),
             StartDate = request.OvertimeDate,
-            AttachmentUrl = request.AttachmentUrl,
+            AttachmentUrl = attachmentUrl,
             BranchId = branchId,
             TenantId = employee.TenantId,
             RequestedDate = DateTime.UtcNow

@@ -12,7 +12,6 @@ public class BranchRequestSetting : BaseAuditableEntity
     public Guid RequestTypeId { get; set; }
     public bool IsVisibleToEmployees { get; set; } = true;
     public bool AllowEmployeesToSubmit { get; set; } = true;
-    public bool RequireAttachment { get; set; }
     public int? MaxOpenRequests { get; set; }
     public string? CustomInstructions { get; set; }
 

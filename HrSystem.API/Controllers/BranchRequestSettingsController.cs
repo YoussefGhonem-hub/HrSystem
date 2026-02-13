@@ -78,7 +78,6 @@ public class BranchRequestSettingsController : APIBaseController
             dto.Id,
             dto.IsVisibleToEmployees,
             dto.AllowEmployeesToSubmit,
-            dto.RequireAttachment,
             dto.MaxOpenRequests,
             dto.CustomInstructions);
 

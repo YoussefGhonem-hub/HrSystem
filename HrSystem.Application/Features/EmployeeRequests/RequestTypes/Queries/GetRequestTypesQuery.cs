@@ -42,6 +42,7 @@ public class GetRequestTypesQueryHandler : IRequestHandler<GetRequestTypesQuery,
                 Description = r.Description,
                 IsActive = r.IsActive,
                 SortOrder = r.SortOrder,
+                RequireAttachment = r.RequireAttachment,
                 CreatedDate = r.CreatedDate,
                 ModifiedDate = r.ModifiedDate
             })
