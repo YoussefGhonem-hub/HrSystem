@@ -9,6 +9,8 @@ using HrSystem.Application.Features.Payroll.Queries.GetMySalaryBreakdown;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollSummary;
 using HrSystem.Application.Features.Payroll.Queries.GetPayslipsList;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPaymentDetails;
+using HrSystem.Application.Features.Payroll.Queries.GetPayrollOverview;
+using HrSystem.Application.Features.Payroll.Queries.GetPayslipsWithStatistics;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -143,6 +145,100 @@ public class PayrollController : APIBaseController
     public async Task<IActionResult> GetPayrollSummary([FromQuery] int? year = null, [FromQuery] int? month = null)
     {
         var result = await _mediator.Send(new GetPayrollSummaryQuery(year, month));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get payroll overview with statistics and department-wise breakdown
+    /// For HR/Admin: View payroll overview by department with filters
+    /// </summary>
+    /// <param name="month">Month (1-12)</param>
+    /// <param name="year">Year (e.g., 2026)</param>
+    /// <param name="pageNumber">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 10)</param>
+    /// <param name="departmentId">Filter by department</param>
+    /// <param name="branchId">Filter by branch</param>
+    /// <param name="status">Filter by status (Pending, Processed)</param>
+    /// <param name="searchTerm">Search term</param>
+    /// <param name="sortBy">Sort by field (DepartmentName, EmployeeCount, GrossSalary, NetSalary, Status)</param>
+    /// <param name="sortDescending">Sort descending</param>
+    [HttpGet("overview")]
+    public async Task<IActionResult> GetPayrollOverview(
+        [FromQuery] int month,
+        [FromQuery] int year,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] Guid? departmentId = null,
+        [FromQuery] Guid? branchId = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] string? sortBy = "DepartmentName",
+        [FromQuery] bool sortDescending = false)
+    {
+        var query = new GetPayrollOverviewQuery(
+            month,
+            year,
+            pageNumber,
+            pageSize,
+            departmentId,
+            branchId,
+            status,
+            searchTerm,
+            sortBy,
+            sortDescending);
+
+        var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get payslips with statistics and employee-wise details
+    /// For HR/Admin: View all employee payslips with filters and statistics
+    /// </summary>
+    /// <param name="month">Month (1-12)</param>
+    /// <param name="year">Year (e.g., 2026)</param>
+    /// <param name="pageNumber">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 10)</param>
+    /// <param name="employeeId">Filter by employee</param>
+    /// <param name="departmentId">Filter by department</param>
+    /// <param name="isPaid">Filter by payment status</param>
+    /// <param name="searchTerm">Search term (employee code, name, payslip number)</param>
+    /// <param name="sortBy">Sort by field (EmployeeCode, EmployeeName, Department, GrossSalary, NetSalary, Status)</param>
+    /// <param name="sortDescending">Sort descending</param>
+    [HttpGet("payslips")]
+    public async Task<IActionResult> GetPayslips(
+        [FromQuery] int month,
+        [FromQuery] int year,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] Guid? departmentId = null,
+        [FromQuery] bool? isPaid = null,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] string? sortBy = "EmployeeCode",
+        [FromQuery] bool sortDescending = false)
+    {
+        var query = new GetPayslipsWithStatisticsQuery(
+            month,
+            year,
+            pageNumber,
+            pageSize,
+            employeeId,
+            departmentId,
+            isPaid,
+            searchTerm,
+            sortBy,
+            sortDescending);
+
+        var result = await _mediator.Send(query);
 
         return result.Match(
             response => Ok(response),
