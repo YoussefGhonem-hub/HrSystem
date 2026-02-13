@@ -5,7 +5,9 @@ using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.CreateVacationRequest;
 
@@ -17,7 +19,7 @@ public record CreateVacationRequestCommand(
     DateTime EndDate,
     Guid VacationTypeId,
     decimal TotalDays,
-    string? AttachmentUrl,
+    IFormFile? Attachment,
     string? EmergencyContactName,
     string? EmergencyContactPhone,
     Guid? BranchId
@@ -33,8 +35,13 @@ public class CreateVacationRequestCommandHandler
     };
 
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public CreateVacationRequestCommandHandler(ApplicationDbContext context) => _context = context;
+    public CreateVacationRequestCommandHandler(ApplicationDbContext context, IStorageService storageService)
+    {
+        _context = context;
+        _storageService = storageService;
+    }
 
     public async Task<ErrorOr<GenericResponse<EmployeeRequestDto>>> Handle(
         CreateVacationRequestCommand request,
@@ -68,7 +75,7 @@ public class CreateVacationRequestCommandHandler
         if (branchSetting == null || !branchSetting.AllowEmployeesToSubmit)
             return Error.Forbidden(description: "Vacation requests are not allowed for this branch.");
 
-        if (branchSetting.RequireAttachment && string.IsNullOrWhiteSpace(request.AttachmentUrl))
+        if (requestType.RequireAttachment && (request.Attachment == null || request.Attachment.Length == 0))
             return Error.Validation(description: "An attachment is required.");
 
         if (branchSetting.MaxOpenRequests.HasValue)
@@ -89,6 +96,16 @@ public class CreateVacationRequestCommandHandler
         if (vacationType == null)
             return Error.Validation(description: "Invalid vacation type.");
 
+        // Upload attachment to S3 if provided
+        string? attachmentUrl = null;
+        if (request.Attachment != null && request.Attachment.Length > 0)
+        {
+            var stored = await _storageService.Upload(request.Attachment, cancellationToken);
+            if (string.IsNullOrWhiteSpace(stored.Key))
+                return Error.Failure(description: "File upload failed.");
+            attachmentUrl = await _storageService.DownloadFileUrl(stored.Key, cancellationToken);
+        }
+
         // Create EmployeeRequest
         var employeeRequest = new EmployeeRequest
         {
@@ -99,7 +116,7 @@ public class CreateVacationRequestCommandHandler
             Description = request.Description?.Trim(),
             StartDate = request.StartDate,
             EndDate = request.EndDate,
-            AttachmentUrl = request.AttachmentUrl,
+            AttachmentUrl = attachmentUrl,
             BranchId = branchId,
             TenantId = employee.TenantId,
             RequestedDate = DateTime.UtcNow

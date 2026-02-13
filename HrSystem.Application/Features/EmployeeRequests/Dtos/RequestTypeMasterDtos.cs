@@ -11,6 +11,7 @@ public record CreateRequestTypeMasterDto
     public string? Description { get; init; }
     public bool IsActive { get; init; } = true;
     public int SortOrder { get; init; } = 1;
+    public bool RequireAttachment { get; init; }
 }
 
 public record UpdateRequestTypeMasterDto
@@ -22,6 +23,7 @@ public record UpdateRequestTypeMasterDto
     public string? Description { get; init; }
     public bool IsActive { get; init; } = true;
     public int SortOrder { get; init; } = 1;
+    public bool RequireAttachment { get; init; }
 }
 #endregion
 
@@ -35,6 +37,7 @@ public record RequestTypeDto
     public string? Description { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
+    public bool RequireAttachment { get; init; }
     public DateTimeOffset CreatedDate { get; init; }
     public DateTimeOffset? ModifiedDate { get; init; }
 }
@@ -60,6 +63,34 @@ public record VacationTypeDetailDto
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
     public bool IsPaid { get; init; }
+    public bool RequiresManagerApproval { get; init; }
+    public bool IsActive { get; init; }
+    public int SortOrder { get; init; }
+    public DateTimeOffset CreatedDate { get; init; }
+    public DateTimeOffset? ModifiedDate { get; init; }
+}
+#endregion
+
+#region OvertimeType DTOs
+public record CreateOvertimeTypeDto : CreateRequestTypeMasterDto
+{
+    public decimal DefaultMultiplier { get; init; } = 1.5m;
+    public bool RequiresManagerApproval { get; init; } = true;
+}
+
+public record UpdateOvertimeTypeDto : UpdateRequestTypeMasterDto
+{
+    public decimal DefaultMultiplier { get; init; } = 1.5m;
+    public bool RequiresManagerApproval { get; init; } = true;
+}
+
+public record OvertimeTypeDetailDto
+{
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public decimal DefaultMultiplier { get; init; }
     public bool RequiresManagerApproval { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
@@ -206,7 +237,6 @@ public record BranchRequestSettingDetailDto
     public string RequestTypeName { get; init; } = string.Empty;
     public bool IsVisibleToEmployees { get; init; }
     public bool AllowEmployeesToSubmit { get; init; }
-    public bool RequireAttachment { get; init; }
     public int? MaxOpenRequests { get; init; }
     public string? CustomInstructions { get; init; }
     public DateTimeOffset CreatedDate { get; init; }
@@ -219,7 +249,6 @@ public record CreateBranchRequestSettingDto
     public Guid RequestTypeId { get; init; }
     public bool IsVisibleToEmployees { get; init; } = true;
     public bool AllowEmployeesToSubmit { get; init; } = true;
-    public bool RequireAttachment { get; init; }
     public int? MaxOpenRequests { get; init; }
     public string? CustomInstructions { get; init; }
 }
@@ -229,7 +258,6 @@ public record UpdateBranchRequestSettingDto
     public Guid Id { get; init; }
     public bool IsVisibleToEmployees { get; init; }
     public bool AllowEmployeesToSubmit { get; init; }
-    public bool RequireAttachment { get; init; }
     public int? MaxOpenRequests { get; init; }
     public string? CustomInstructions { get; init; }
 }

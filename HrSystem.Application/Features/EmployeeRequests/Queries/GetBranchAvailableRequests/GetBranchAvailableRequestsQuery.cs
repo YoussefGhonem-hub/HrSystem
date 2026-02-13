@@ -96,7 +96,7 @@ public class GetBranchAvailableRequestsQueryHandler
                 DisplayNameAr = setting.RequestTypeRef?.NameAr ?? "",
                 IsVisibleToEmployees = setting.IsVisibleToEmployees,
                 AllowEmployeesToSubmit = setting.AllowEmployeesToSubmit,
-                RequireAttachment = setting.RequireAttachment,
+                RequireAttachment = setting.RequestTypeRef?.RequireAttachment ?? false,
                 MaxOpenRequests = setting.MaxOpenRequests,
                 CustomInstructions = setting.CustomInstructions,
                 VacationTypes = setting.RequestTypeRef?.Code == "Vacation" ? vacationTypes : null,

@@ -13,4 +13,5 @@ public class RequestType : BaseAuditableMasterEntity
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; } = 1;
+    public bool RequireAttachment { get; set; }
 }

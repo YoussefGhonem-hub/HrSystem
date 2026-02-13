@@ -2434,13 +2434,13 @@ public static class AppDbContextSeed
         {
             var requestTypes = new List<RequestType>
             {
-                new() { Code = "Vacation", NameEn = "Vacation", NameAr = "إجازة", Description = "Days-based leave requests", IsActive = true, SortOrder = 1, CreatedDate = now },
-                new() { Code = "OverTime", NameEn = "Overtime", NameAr = "وقت إضافي", Description = "Overtime work requests", IsActive = true, SortOrder = 2, CreatedDate = now },
-                new() { Code = "Training", NameEn = "Training", NameAr = "تدريب", Description = "Training requests", IsActive = true, SortOrder = 3, CreatedDate = now },
-                new() { Code = "Miscellaneous", NameEn = "Miscellaneous", NameAr = "متنوع", Description = "General purpose requests", IsActive = true, SortOrder = 4, CreatedDate = now },
-                new() { Code = "Personal", NameEn = "Personal", NameAr = "شخصي", Description = "Personal requests", IsActive = true, SortOrder = 5, CreatedDate = now },
-                new() { Code = "Feedback", NameEn = "Feedback", NameAr = "ملاحظات", Description = "Feedback submissions", IsActive = true, SortOrder = 6, CreatedDate = now },
-                new() { Code = "Permission", NameEn = "Permission", NameAr = "إذن", Description = "Short absence / permission requests", IsActive = true, SortOrder = 7, CreatedDate = now }
+                new() { Code = "Vacation", NameEn = "Vacation", NameAr = "إجازة", Description = "Days-based leave requests", IsActive = true, SortOrder = 1, CreatedDate = now, RequireAttachment = false },
+                new() { Code = "OverTime", NameEn = "Overtime", NameAr = "وقت إضافي", Description = "Overtime work requests", IsActive = true, SortOrder = 2, CreatedDate = now, RequireAttachment = false },
+                new() { Code = "Training", NameEn = "Training", NameAr = "تدريب", Description = "Training requests", IsActive = true, SortOrder = 3, CreatedDate = now, RequireAttachment = true },
+                new() { Code = "Miscellaneous", NameEn = "Miscellaneous", NameAr = "متنوع", Description = "General purpose requests", IsActive = true, SortOrder = 4, CreatedDate = now, RequireAttachment = false },
+                new() { Code = "Personal", NameEn = "Personal", NameAr = "شخصي", Description = "Personal requests", IsActive = true, SortOrder = 5, CreatedDate = now, RequireAttachment = false },
+                new() { Code = "Feedback", NameEn = "Feedback", NameAr = "ملاحظات", Description = "Feedback submissions", IsActive = true, SortOrder = 6, CreatedDate = now, RequireAttachment = false },
+                new() { Code = "Permission", NameEn = "Permission", NameAr = "إذن", Description = "Short absence / permission requests", IsActive = true, SortOrder = 7, CreatedDate = now, RequireAttachment = false }
             };
 
             await context.RequestTypes.AddRangeAsync(requestTypes);
@@ -2598,12 +2598,6 @@ public static class AppDbContextSeed
                 if (existingKeys.Contains(key))
                     continue;
 
-                var requireAttachment = enumValue switch
-                {
-                    EmployeeRequestType.Training => true,
-                    _ => false
-                };
-
                 var maxOpenRequests = enumValue switch
                 {
                     EmployeeRequestType.Vacation => 2,
@@ -2617,7 +2611,6 @@ public static class AppDbContextSeed
                     RequestTypeId = requestTypeId,
                     IsVisibleToEmployees = true,
                     AllowEmployeesToSubmit = true,
-                    RequireAttachment = requireAttachment,
                     MaxOpenRequests = maxOpenRequests,
                     TenantId = branch.TenantId,
                     BranchId = branch.Id,

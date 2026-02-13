@@ -5,7 +5,9 @@ using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.CreatePermissionRequest;
 
@@ -24,7 +26,7 @@ public record CreatePermissionRequestCommand(
     decimal TotalHours,
     Guid PermissionTypeId,
     string Reason,
-    string? AttachmentUrl,
+    IFormFile? Attachment,
     Guid? BranchId
 ) : IRequest<ErrorOr<GenericResponse<EmployeeRequestDto>>>;
 
@@ -38,8 +40,13 @@ public class CreatePermissionRequestCommandHandler
     };
 
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public CreatePermissionRequestCommandHandler(ApplicationDbContext context) => _context = context;
+    public CreatePermissionRequestCommandHandler(ApplicationDbContext context, IStorageService storageService)
+    {
+        _context = context;
+        _storageService = storageService;
+    }
 
     public async Task<ErrorOr<GenericResponse<EmployeeRequestDto>>> Handle(
         CreatePermissionRequestCommand request,
@@ -75,7 +82,7 @@ public class CreatePermissionRequestCommandHandler
         if (branchSetting == null || !branchSetting.AllowEmployeesToSubmit)
             return Error.Forbidden(description: "Permission requests are not allowed for this branch.");
 
-        if (branchSetting.RequireAttachment && string.IsNullOrWhiteSpace(request.AttachmentUrl))
+        if (requestType.RequireAttachment && (request.Attachment == null || request.Attachment.Length == 0))
             return Error.Validation(description: "An attachment is required.");
 
         // Check max open requests
@@ -98,6 +105,16 @@ public class CreatePermissionRequestCommandHandler
         if (permissionType == null)
             return Error.Validation(description: "Invalid permission type.");
 
+        // Upload attachment to S3 if provided
+        string? attachmentUrl = null;
+        if (request.Attachment != null && request.Attachment.Length > 0)
+        {
+            var stored = await _storageService.Upload(request.Attachment, cancellationToken);
+            if (string.IsNullOrWhiteSpace(stored.Key))
+                return Error.Failure(description: "File upload failed.");
+            attachmentUrl = await _storageService.DownloadFileUrl(stored.Key, cancellationToken);
+        }
+
         // Create EmployeeRequest
         var employeeRequest = new EmployeeRequest
         {
@@ -108,7 +125,7 @@ public class CreatePermissionRequestCommandHandler
             Description = request.Description?.Trim(),
             StartDate = request.PermissionDate.Date.Add(request.FromTime ?? TimeSpan.Zero),
             EndDate = request.PermissionDate.Date.Add(request.ToTime ?? TimeSpan.FromHours((double)request.TotalHours)),
-            AttachmentUrl = request.AttachmentUrl,
+            AttachmentUrl = attachmentUrl,
             BranchId = branchId,
             TenantId = employee.TenantId,
             RequestedDate = DateTime.UtcNow

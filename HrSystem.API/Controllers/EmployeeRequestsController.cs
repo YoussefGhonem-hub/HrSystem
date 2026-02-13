@@ -35,6 +35,7 @@ using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -242,7 +243,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Submits a new self-service request on behalf of the logged-in employee (or the provided employee Id for admins).
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> SubmitRequest([FromBody] SubmitEmployeeRequestDto request)
+    public async Task<IActionResult> SubmitRequest([FromForm] SubmitEmployeeRequestDto request)
     {
         var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
@@ -257,7 +258,7 @@ public class EmployeeRequestsController : APIBaseController
             request.Description,
             request.StartDate,
             request.EndDate,
-            request.AttachmentUrl,
+            request.Attachment,
             employeeId.Value,
             branchId,
             null, // VacationDetail
@@ -289,7 +290,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Submits a vacation/leave request with type-specific details.
     /// </summary>
     [HttpPost("vacation")]
-    public async Task<IActionResult> SubmitVacationRequest([FromBody] SubmitVacationRequestDto request)
+    public async Task<IActionResult> SubmitVacationRequest([FromForm] SubmitVacationRequestDto request)
     {
         var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
@@ -303,7 +304,7 @@ public class EmployeeRequestsController : APIBaseController
             request.EndDate,
             request.VacationTypeId,
             request.TotalDays,
-            request.AttachmentUrl,
+            request.Attachment,
             request.EmergencyContactName,
             request.EmergencyContactPhone,
             request.BranchId ?? CurrentUser.BranchId);
@@ -316,7 +317,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Submits a training request with type-specific details.
     /// </summary>
     [HttpPost("training")]
-    public async Task<IActionResult> SubmitTrainingRequest([FromBody] SubmitTrainingRequestDto request)
+    public async Task<IActionResult> SubmitTrainingRequest([FromForm] SubmitTrainingRequestDto request)
     {
         var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
@@ -337,7 +338,7 @@ public class EmployeeRequestsController : APIBaseController
             request.Currency,
             request.Objectives,
             request.ExpectedOutcome,
-            request.AttachmentUrl,
+            request.Attachment,
             request.BranchId ?? CurrentUser.BranchId);
 
         var result = await _mediator.Send(command);
@@ -349,7 +350,7 @@ public class EmployeeRequestsController : APIBaseController
     /// This is hours-based and validates against monthly hour limits.
     /// </summary>
     [HttpPost("permission")]
-    public async Task<IActionResult> SubmitPermissionRequest([FromBody] SubmitPermissionRequestDto request)
+    public async Task<IActionResult> SubmitPermissionRequest([FromForm] SubmitPermissionRequestDto request)
     {
         var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
@@ -365,7 +366,7 @@ public class EmployeeRequestsController : APIBaseController
             request.TotalHours,
             request.PermissionTypeId,
             request.Reason,
-            request.AttachmentUrl,
+            request.Attachment,
             request.BranchId ?? CurrentUser.BranchId);
 
         var result = await _mediator.Send(command);
@@ -886,7 +887,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Submits a miscellaneous request with type-specific details.
     /// </summary>
     [HttpPost("miscellaneous")]
-    public async Task<IActionResult> SubmitMiscellaneousRequest([FromBody] SubmitMiscellaneousRequestDto request)
+    public async Task<IActionResult> SubmitMiscellaneousRequest([FromForm] SubmitMiscellaneousRequestDto request)
     {
         var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
@@ -903,7 +904,7 @@ public class EmployeeRequestsController : APIBaseController
             request.ReferenceNumber,
             request.Priority,
             request.ExpectedCompletionDate,
-            request.AttachmentUrl,
+            request.Attachment,
             request.BranchId ?? CurrentUser.BranchId);
 
         var result = await _mediator.Send(command);
@@ -1053,7 +1054,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Submits a personal request with type-specific details.
     /// </summary>
     [HttpPost("personal")]
-    public async Task<IActionResult> SubmitPersonalRequest([FromBody] SubmitPersonalRequestDto request)
+    public async Task<IActionResult> SubmitPersonalRequest([FromForm] SubmitPersonalRequestDto request)
     {
         var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
@@ -1071,7 +1072,7 @@ public class EmployeeRequestsController : APIBaseController
             request.RequiresConfidentiality,
             request.PreferredContactMethod,
             request.AdditionalContactInfo,
-            request.AttachmentUrl,
+            request.Attachment,
             request.BranchId ?? CurrentUser.BranchId);
 
         var result = await _mediator.Send(command);
@@ -1221,7 +1222,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Submits a feedback request with type-specific details.
     /// </summary>
     [HttpPost("feedback")]
-    public async Task<IActionResult> SubmitFeedbackRequest([FromBody] SubmitFeedbackRequestDto request)
+    public async Task<IActionResult> SubmitFeedbackRequest([FromForm] SubmitFeedbackRequestDto request)
     {
         var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
@@ -1239,7 +1240,7 @@ public class EmployeeRequestsController : APIBaseController
             request.TargetPerson,
             request.SuggestedImprovement,
             request.ResponseRequired,
-            request.AttachmentUrl,
+            request.Attachment,
             request.BranchId ?? CurrentUser.BranchId);
 
         var result = await _mediator.Send(command);
@@ -1389,7 +1390,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Submits an overtime request with type-specific details.
     /// </summary>
     [HttpPost("overtime")]
-    public async Task<IActionResult> SubmitOvertimeRequest([FromBody] SubmitOvertimeRequestDto request)
+    public async Task<IActionResult> SubmitOvertimeRequest([FromForm] SubmitOvertimeRequestDto request)
     {
         var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
@@ -1404,7 +1405,7 @@ public class EmployeeRequestsController : APIBaseController
             request.PlannedHours,
             request.ProjectCode,
             request.TaskDescription,
-            request.AttachmentUrl,
+            request.Attachment,
             request.BranchId ?? CurrentUser.BranchId);
 
         var result = await _mediator.Send(command);
@@ -1562,7 +1563,7 @@ public class EmployeeRequestsController : APIBaseController
         public string? Description { get; init; }
         public DateTime? StartDate { get; init; }
         public DateTime? EndDate { get; init; }
-        public string? AttachmentUrl { get; init; }
+        public IFormFile? Attachment { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
     }
@@ -1575,7 +1576,7 @@ public class EmployeeRequestsController : APIBaseController
         public DateTime EndDate { get; init; }
         public Guid VacationTypeId { get; init; }
         public decimal TotalDays { get; init; }
-        public string? AttachmentUrl { get; init; }
+        public IFormFile? Attachment { get; init; }
         public string? EmergencyContactName { get; init; }
         public string? EmergencyContactPhone { get; init; }
         public Guid? EmployeeId { get; init; }
@@ -1597,7 +1598,7 @@ public class EmployeeRequestsController : APIBaseController
         public string? Currency { get; init; }
         public string? Objectives { get; init; }
         public string? ExpectedOutcome { get; init; }
-        public string? AttachmentUrl { get; init; }
+        public IFormFile? Attachment { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
     }
@@ -1612,7 +1613,7 @@ public class EmployeeRequestsController : APIBaseController
         public decimal TotalHours { get; init; }
         public Guid PermissionTypeId { get; init; }
         public string Reason { get; init; } = string.Empty;
-        public string? AttachmentUrl { get; init; }
+        public IFormFile? Attachment { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
     }
@@ -1643,7 +1644,7 @@ public class EmployeeRequestsController : APIBaseController
         public string? ReferenceNumber { get; init; }
         public string? Priority { get; init; }
         public DateTime? ExpectedCompletionDate { get; init; }
-        public string? AttachmentUrl { get; init; }
+        public IFormFile? Attachment { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
     }
@@ -1660,7 +1661,7 @@ public class EmployeeRequestsController : APIBaseController
         public bool RequiresConfidentiality { get; init; }
         public string? PreferredContactMethod { get; init; }
         public string? AdditionalContactInfo { get; init; }
-        public string? AttachmentUrl { get; init; }
+        public IFormFile? Attachment { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
     }
@@ -1677,7 +1678,7 @@ public class EmployeeRequestsController : APIBaseController
         public string? TargetPerson { get; init; }
         public string? SuggestedImprovement { get; init; }
         public bool ResponseRequired { get; init; }
-        public string? AttachmentUrl { get; init; }
+        public IFormFile? Attachment { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
     }
@@ -1691,7 +1692,7 @@ public class EmployeeRequestsController : APIBaseController
         public TimeSpan PlannedHours { get; init; }
         public string? ProjectCode { get; init; }
         public string? TaskDescription { get; init; }
-        public string? AttachmentUrl { get; init; }
+        public IFormFile? Attachment { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }
     }

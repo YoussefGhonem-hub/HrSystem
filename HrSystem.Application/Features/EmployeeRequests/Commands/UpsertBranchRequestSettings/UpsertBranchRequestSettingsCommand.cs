@@ -11,7 +11,6 @@ public record BranchRequestSettingPayload(
     Guid RequestTypeId,
     bool IsVisibleToEmployees,
     bool AllowEmployeesToSubmit,
-    bool RequireAttachment,
     int? MaxOpenRequests,
     string? CustomInstructions);
 
@@ -51,7 +50,6 @@ public class UpsertBranchRequestSettingsCommandHandler : IRequestHandler<UpsertB
             {
                 entity.IsVisibleToEmployees = payload.IsVisibleToEmployees;
                 entity.AllowEmployeesToSubmit = payload.AllowEmployeesToSubmit;
-                entity.RequireAttachment = payload.RequireAttachment;
                 entity.MaxOpenRequests = payload.MaxOpenRequests;
                 entity.CustomInstructions = payload.CustomInstructions;
             }
@@ -62,7 +60,6 @@ public class UpsertBranchRequestSettingsCommandHandler : IRequestHandler<UpsertB
                     RequestTypeId = payload.RequestTypeId,
                     IsVisibleToEmployees = payload.IsVisibleToEmployees,
                     AllowEmployeesToSubmit = payload.AllowEmployeesToSubmit,
-                    RequireAttachment = payload.RequireAttachment,
                     MaxOpenRequests = payload.MaxOpenRequests,
                     CustomInstructions = payload.CustomInstructions,
                     BranchId = branch.Id,

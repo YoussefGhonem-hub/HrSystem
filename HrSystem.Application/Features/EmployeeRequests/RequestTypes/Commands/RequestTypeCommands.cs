@@ -43,7 +43,8 @@ public class CreateRequestTypeCommandHandler : IRequestHandler<CreateRequestType
             NameEn = dto.NameEn,
             Description = dto.Description,
             IsActive = dto.IsActive,
-            SortOrder = dto.SortOrder
+            SortOrder = dto.SortOrder,
+            RequireAttachment = dto.RequireAttachment
         };
 
         entity.MarkAsCreated(CurrentUser.Id ?? Guid.Empty);
@@ -90,6 +91,7 @@ public class UpdateRequestTypeCommandHandler : IRequestHandler<UpdateRequestType
         entity.Description = dto.Description;
         entity.IsActive = dto.IsActive;
         entity.SortOrder = dto.SortOrder;
+        entity.RequireAttachment = dto.RequireAttachment;
         entity.MarkAsModified(CurrentUser.Id ?? Guid.Empty);
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -135,6 +137,7 @@ internal static class RequestTypeMapper
         Description = entity.Description,
         IsActive = entity.IsActive,
         SortOrder = entity.SortOrder,
+        RequireAttachment = entity.RequireAttachment,
         CreatedDate = entity.CreatedDate,
         ModifiedDate = entity.ModifiedDate
     };

@@ -1,6 +1,7 @@
 using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.EmployeeRequests.Commands.FeedbackTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.MiscellaneousTypes;
+using HrSystem.Application.Features.EmployeeRequests.Commands.OvertimeTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.PermissionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.PersonalTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.TrainingTypes;
@@ -8,6 +9,7 @@ using HrSystem.Application.Features.EmployeeRequests.Commands.VacationTypes;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Application.Features.EmployeeRequests.Queries.FeedbackTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.MiscellaneousTypes;
+using HrSystem.Application.Features.EmployeeRequests.Queries.OvertimeTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.PermissionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.PersonalTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.TrainingTypes;
@@ -97,6 +99,72 @@ public class RequestTypesController : APIBaseController
     public async Task<IActionResult> DeleteVacationType(Guid id)
     {
         var result = await _mediator.Send(new DeleteVacationTypeCommand(id));
+        return result.Match(Ok, Problem);
+    }
+    #endregion
+
+    #region OvertimeType CRUD
+    /// <summary>
+    /// Get all overtime types
+    /// </summary>
+    [HttpGet("overtime")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetOvertimeTypes([FromQuery] bool? isActive, [FromQuery] string? searchTerm)
+    {
+        var result = await _mediator.Send(new GetOvertimeTypesQuery(isActive, searchTerm));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get overtime type by ID
+    /// </summary>
+    [HttpGet("overtime/{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetOvertimeTypeById(Guid id)
+    {
+        var result = await _mediator.Send(new GetOvertimeTypeByIdQuery(id));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Create a new overtime type
+    /// </summary>
+    [HttpPost("overtime")]
+    public async Task<IActionResult> CreateOvertimeType([FromBody] CreateOvertimeTypeDto dto)
+    {
+        var command = new CreateOvertimeTypeCommand(
+            dto.NameAr, dto.NameEn, dto.Description,
+            dto.DefaultMultiplier, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
+
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => CreatedAtAction(nameof(GetOvertimeTypeById), new { id = response.Data!.Id }, response),
+            Problem);
+    }
+
+    /// <summary>
+    /// Update an existing overtime type
+    /// </summary>
+    [HttpPut("overtime/{id:guid}")]
+    public async Task<IActionResult> UpdateOvertimeType(Guid id, [FromBody] UpdateOvertimeTypeDto dto)
+    {
+        if (id != dto.Id) return BadRequest("ID mismatch");
+
+        var command = new UpdateOvertimeTypeCommand(
+            dto.Id, dto.NameAr, dto.NameEn, dto.Description,
+            dto.DefaultMultiplier, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Delete (soft) an overtime type
+    /// </summary>
+    [HttpDelete("overtime/{id:guid}")]
+    public async Task<IActionResult> DeleteOvertimeType(Guid id)
+    {
+        var result = await _mediator.Send(new DeleteOvertimeTypeCommand(id));
         return result.Match(Ok, Problem);
     }
     #endregion

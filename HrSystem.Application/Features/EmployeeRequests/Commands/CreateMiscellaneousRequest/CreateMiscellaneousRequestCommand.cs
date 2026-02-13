@@ -5,7 +5,9 @@ using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Commands.CreateMiscellaneousRequest;
 
@@ -20,7 +22,7 @@ public record CreateMiscellaneousRequestCommand(
     string? ReferenceNumber,
     string? Priority,
     DateTime? ExpectedCompletionDate,
-    string? AttachmentUrl,
+    IFormFile? Attachment,
     Guid? BranchId
 ) : IRequest<ErrorOr<GenericResponse<EmployeeRequestDto>>>;
 
@@ -34,8 +36,13 @@ public class CreateMiscellaneousRequestCommandHandler
     };
 
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public CreateMiscellaneousRequestCommandHandler(ApplicationDbContext context) => _context = context;
+    public CreateMiscellaneousRequestCommandHandler(ApplicationDbContext context, IStorageService storageService)
+    {
+        _context = context;
+        _storageService = storageService;
+    }
 
     public async Task<ErrorOr<GenericResponse<EmployeeRequestDto>>> Handle(
         CreateMiscellaneousRequestCommand request,
@@ -68,7 +75,7 @@ public class CreateMiscellaneousRequestCommandHandler
         if (branchSetting == null || !branchSetting.AllowEmployeesToSubmit)
             return Error.Forbidden(description: "Miscellaneous requests are not allowed for this branch.");
 
-        if (branchSetting.RequireAttachment && string.IsNullOrWhiteSpace(request.AttachmentUrl))
+        if (requestType.RequireAttachment && (request.Attachment == null || request.Attachment.Length == 0))
             return Error.Validation(description: "An attachment is required.");
 
         if (branchSetting.MaxOpenRequests.HasValue)
@@ -89,6 +96,16 @@ public class CreateMiscellaneousRequestCommandHandler
         if (miscType == null)
             return Error.Validation(description: "Invalid miscellaneous type.");
 
+        // Upload attachment to S3 if provided
+        string? attachmentUrl = null;
+        if (request.Attachment != null && request.Attachment.Length > 0)
+        {
+            var stored = await _storageService.Upload(request.Attachment, cancellationToken);
+            if (string.IsNullOrWhiteSpace(stored.Key))
+                return Error.Failure(description: "File upload failed.");
+            attachmentUrl = await _storageService.DownloadFileUrl(stored.Key, cancellationToken);
+        }
+
         var employeeRequest = new EmployeeRequest
         {
             RequestTypeId = requestType.Id,
@@ -98,7 +115,7 @@ public class CreateMiscellaneousRequestCommandHandler
             Description = request.Description?.Trim(),
             StartDate = request.StartDate,
             EndDate = request.EndDate,
-            AttachmentUrl = request.AttachmentUrl,
+            AttachmentUrl = attachmentUrl,
             BranchId = branchId,
             TenantId = employee.TenantId,
             RequestedDate = DateTime.UtcNow
