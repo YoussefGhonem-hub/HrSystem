@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HrSystem.API.Controllers;
 
-[Authorize(Roles = $"{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
+[Authorize]
 [Route("api/[controller]")]
 public class LeaveBalancesController : APIBaseController
 {
