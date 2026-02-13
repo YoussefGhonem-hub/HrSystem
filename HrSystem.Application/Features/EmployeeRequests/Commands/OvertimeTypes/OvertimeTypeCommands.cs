@@ -14,6 +14,7 @@ public record CreateOvertimeTypeCommand(
     string? Description,
     decimal DefaultMultiplier,
     bool RequiresManagerApproval,
+    bool RequireAttachment,
     bool IsActive,
     int SortOrder
 ) : IRequest<ErrorOr<GenericResponse<OvertimeTypeDetailDto>>>;
@@ -38,6 +39,7 @@ public class CreateOvertimeTypeCommandHandler : IRequestHandler<CreateOvertimeTy
             Description = request.Description,
             DefaultMultiplier = request.DefaultMultiplier,
             RequiresManagerApproval = request.RequiresManagerApproval,
+            RequireAttachment = request.RequireAttachment,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
             CreatedDate = DateTimeOffset.UtcNow
@@ -54,6 +56,7 @@ public class CreateOvertimeTypeCommandHandler : IRequestHandler<CreateOvertimeTy
             Description = entity.Description,
             DefaultMultiplier = entity.DefaultMultiplier,
             RequiresManagerApproval = entity.RequiresManagerApproval,
+            RequireAttachment = entity.RequireAttachment,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
             CreatedDate = entity.CreatedDate,
@@ -73,6 +76,7 @@ public record UpdateOvertimeTypeCommand(
     string? Description,
     decimal DefaultMultiplier,
     bool RequiresManagerApproval,
+    bool RequireAttachment,
     bool IsActive,
     int SortOrder
 ) : IRequest<ErrorOr<GenericResponse<OvertimeTypeDetailDto>>>;
@@ -99,6 +103,7 @@ public class UpdateOvertimeTypeCommandHandler : IRequestHandler<UpdateOvertimeTy
         entity.Description = request.Description;
         entity.DefaultMultiplier = request.DefaultMultiplier;
         entity.RequiresManagerApproval = request.RequiresManagerApproval;
+        entity.RequireAttachment = request.RequireAttachment;
         entity.IsActive = request.IsActive;
         entity.SortOrder = request.SortOrder;
         entity.ModifiedDate = DateTimeOffset.UtcNow;
@@ -113,6 +118,7 @@ public class UpdateOvertimeTypeCommandHandler : IRequestHandler<UpdateOvertimeTy
             Description = entity.Description,
             DefaultMultiplier = entity.DefaultMultiplier,
             RequiresManagerApproval = entity.RequiresManagerApproval,
+            RequireAttachment = entity.RequireAttachment,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
             CreatedDate = entity.CreatedDate,

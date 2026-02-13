@@ -2571,6 +2571,7 @@ public static class AppDbContextSeed
                     Description = "Medical leave that requires proof of illness.",
                     IsPaid = true,
                     RequiresManagerApproval = true,
+                    RequireAttachment = true,
                     SortOrder = 2,
                     MaxDaysPerYear = 14,
                     CreatedDate = now

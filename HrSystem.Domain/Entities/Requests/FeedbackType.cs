@@ -13,6 +13,7 @@ public class FeedbackType : BaseAuditableMasterEntity
     public string? Description { get; set; }
     public bool IsAnonymousAllowed { get; set; }
     public bool RequiresManagerApproval { get; set; }
+    public bool RequireAttachment { get; set; }
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; } = 1;
 

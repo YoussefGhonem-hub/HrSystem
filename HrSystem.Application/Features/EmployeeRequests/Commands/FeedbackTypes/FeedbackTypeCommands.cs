@@ -14,6 +14,7 @@ public record CreateFeedbackTypeCommand(
     string? Description,
     bool IsAnonymousAllowed,
     bool RequiresManagerApproval,
+    bool RequireAttachment,
     bool IsActive,
     int SortOrder
 ) : IRequest<ErrorOr<GenericResponse<FeedbackTypeDetailDto>>>;
@@ -38,6 +39,7 @@ public class CreateFeedbackTypeCommandHandler : IRequestHandler<CreateFeedbackTy
             Description = request.Description,
             IsAnonymousAllowed = request.IsAnonymousAllowed,
             RequiresManagerApproval = request.RequiresManagerApproval,
+            RequireAttachment = request.RequireAttachment,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
             CreatedDate = DateTimeOffset.UtcNow
@@ -54,6 +56,7 @@ public class CreateFeedbackTypeCommandHandler : IRequestHandler<CreateFeedbackTy
             Description = entity.Description,
             IsAnonymousAllowed = entity.IsAnonymousAllowed,
             RequiresManagerApproval = entity.RequiresManagerApproval,
+            RequireAttachment = entity.RequireAttachment,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
             CreatedDate = entity.CreatedDate,
@@ -73,6 +76,7 @@ public record UpdateFeedbackTypeCommand(
     string? Description,
     bool IsAnonymousAllowed,
     bool RequiresManagerApproval,
+    bool RequireAttachment,
     bool IsActive,
     int SortOrder
 ) : IRequest<ErrorOr<GenericResponse<FeedbackTypeDetailDto>>>;
@@ -99,6 +103,7 @@ public class UpdateFeedbackTypeCommandHandler : IRequestHandler<UpdateFeedbackTy
         entity.Description = request.Description;
         entity.IsAnonymousAllowed = request.IsAnonymousAllowed;
         entity.RequiresManagerApproval = request.RequiresManagerApproval;
+        entity.RequireAttachment = request.RequireAttachment;
         entity.IsActive = request.IsActive;
         entity.SortOrder = request.SortOrder;
         entity.ModifiedDate = DateTimeOffset.UtcNow;
@@ -113,6 +118,7 @@ public class UpdateFeedbackTypeCommandHandler : IRequestHandler<UpdateFeedbackTy
             Description = entity.Description,
             IsAnonymousAllowed = entity.IsAnonymousAllowed,
             RequiresManagerApproval = entity.RequiresManagerApproval,
+            RequireAttachment = entity.RequireAttachment,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
             CreatedDate = entity.CreatedDate,

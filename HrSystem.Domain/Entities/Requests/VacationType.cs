@@ -14,6 +14,7 @@ public class VacationType : BaseAuditableMasterEntity
     public bool IsPaid { get; set; } = true;
     public int? MaxDaysPerYear { get; set; }
     public bool RequiresManagerApproval { get; set; } = true;
+    public bool RequireAttachment { get; set; }
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; } = 1;
 
