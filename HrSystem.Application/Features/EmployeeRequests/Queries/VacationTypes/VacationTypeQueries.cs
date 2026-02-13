@@ -49,6 +49,7 @@ public class GetVacationTypesQueryHandler : IRequestHandler<GetVacationTypesQuer
             RequiresManagerApproval = e.RequiresManagerApproval,
             IsActive = e.IsActive,
             SortOrder = e.SortOrder,
+            MaxDaysPerYear = e.MaxDaysPerYear,
             CreatedDate = e.CreatedDate,
             ModifiedDate = e.ModifiedDate
         }).ToList();
@@ -88,6 +89,7 @@ public class GetVacationTypeByIdQueryHandler : IRequestHandler<GetVacationTypeBy
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
+            MaxDaysPerYear = entity.MaxDaysPerYear,
             CreatedDate = entity.CreatedDate,
             ModifiedDate = entity.ModifiedDate
         };

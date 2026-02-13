@@ -45,12 +45,14 @@ public record CreateVacationTypeDto : CreateRequestTypeMasterDto
 {
     public bool IsPaid { get; init; } = true;
     public bool RequiresManagerApproval { get; init; } = true;
+    public int? MaxDaysPerYear { get; init; }
 }
 
 public record UpdateVacationTypeDto : UpdateRequestTypeMasterDto
 {
     public bool IsPaid { get; init; } = true;
     public bool RequiresManagerApproval { get; init; } = true;
+    public int? MaxDaysPerYear { get; init; }
 }
 
 public record VacationTypeDetailDto
@@ -63,6 +65,7 @@ public record VacationTypeDetailDto
     public bool RequiresManagerApproval { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
+    public int? MaxDaysPerYear { get; init; }
     public DateTimeOffset CreatedDate { get; init; }
     public DateTimeOffset? ModifiedDate { get; init; }
 }

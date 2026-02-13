@@ -66,7 +66,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateVacationTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.IsPaid, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
+            dto.IsPaid, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder, dto.MaxDaysPerYear);
 
         var result = await _mediator.Send(command);
         return result.Match(
@@ -84,7 +84,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateVacationTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.IsPaid, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
+            dto.IsPaid, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder, dto.MaxDaysPerYear);
 
         var result = await _mediator.Send(command);
         return result.Match(Ok, Problem);

@@ -15,7 +15,8 @@ public record CreateVacationTypeCommand(
     bool IsPaid,
     bool RequiresManagerApproval,
     bool IsActive,
-    int SortOrder
+    int SortOrder,
+    int? MaxDaysPerYear
 ) : IRequest<ErrorOr<GenericResponse<VacationTypeDetailDto>>>;
 
 public class CreateVacationTypeCommandHandler : IRequestHandler<CreateVacationTypeCommand, ErrorOr<GenericResponse<VacationTypeDetailDto>>>
@@ -40,6 +41,7 @@ public class CreateVacationTypeCommandHandler : IRequestHandler<CreateVacationTy
             RequiresManagerApproval = request.RequiresManagerApproval,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
+            MaxDaysPerYear = request.MaxDaysPerYear,
             CreatedDate = DateTimeOffset.UtcNow
         };
 
@@ -56,6 +58,7 @@ public class CreateVacationTypeCommandHandler : IRequestHandler<CreateVacationTy
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
+            MaxDaysPerYear = entity.MaxDaysPerYear,
             CreatedDate = entity.CreatedDate,
             ModifiedDate = entity.ModifiedDate
         };
@@ -74,7 +77,8 @@ public record UpdateVacationTypeCommand(
     bool IsPaid,
     bool RequiresManagerApproval,
     bool IsActive,
-    int SortOrder
+    int SortOrder,
+    int? MaxDaysPerYear
 ) : IRequest<ErrorOr<GenericResponse<VacationTypeDetailDto>>>;
 
 public class UpdateVacationTypeCommandHandler : IRequestHandler<UpdateVacationTypeCommand, ErrorOr<GenericResponse<VacationTypeDetailDto>>>
@@ -101,6 +105,7 @@ public class UpdateVacationTypeCommandHandler : IRequestHandler<UpdateVacationTy
         entity.RequiresManagerApproval = request.RequiresManagerApproval;
         entity.IsActive = request.IsActive;
         entity.SortOrder = request.SortOrder;
+        entity.MaxDaysPerYear = request.MaxDaysPerYear;
         entity.ModifiedDate = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -115,6 +120,7 @@ public class UpdateVacationTypeCommandHandler : IRequestHandler<UpdateVacationTy
             RequiresManagerApproval = entity.RequiresManagerApproval,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
+            MaxDaysPerYear = entity.MaxDaysPerYear,
             CreatedDate = entity.CreatedDate,
             ModifiedDate = entity.ModifiedDate
         };

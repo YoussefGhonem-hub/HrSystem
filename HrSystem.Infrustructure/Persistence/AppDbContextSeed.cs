@@ -2,6 +2,7 @@ using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Domain.Entities.Attendance;
 using HrSystem.Domain.Entities.Employee;
+using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Lifecycle;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Payroll;
@@ -97,6 +98,7 @@ public static class AppDbContextSeed
             }
 
             await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
+            await SeedEmployeeLeaveBalancesAsync(context);
             await SeedEmployeeDocumentsAsync(context);
             await SeedEmployeeRequestsAsync(context);
             await SeedSocialInsuranceRatesAsync(context, seedDataPath);
@@ -420,6 +422,105 @@ public static class AppDbContextSeed
         {
             await context.SaveChangesAsync();
         }
+
+        Console.WriteLine("Finished creating default role-based users");
+    }
+
+    private static async Task SeedEmployeeLeaveBalancesAsync(ApplicationDbContext context)
+    {
+        var hasEmployees = await context.Employees.AnyAsync();
+        var hasVacationTypes = await context.VacationTypes.AnyAsync();
+
+        if (!hasEmployees || !hasVacationTypes)
+        {
+            Console.WriteLine("Skipping leave balance seeding because employees or vacation types are missing.");
+            return;
+        }
+
+        var currentYear = DateTime.UtcNow.Year;
+
+        var employees = await context.Employees
+            .AsNoTracking()
+            .Select(e => new { e.Id, e.BranchId, e.TenantId })
+            .ToListAsync();
+
+        if (employees.Count == 0)
+        {
+            Console.WriteLine("No employees found for leave balance seeding.");
+            return;
+        }
+
+        var vacationTypes = await context.VacationTypes
+            .AsNoTracking()
+            .Where(v => v.IsActive)
+            .Select(v => new { v.Id, v.NameEn })
+            .ToListAsync();
+
+        if (vacationTypes.Count == 0)
+        {
+            Console.WriteLine("No active vacation types found for leave balance seeding.");
+            return;
+        }
+
+        var existingPairs = await context.EmployeeLeaveBalances
+            .AsNoTracking()
+            .Where(b => b.Year == currentYear)
+            .Select(b => new { b.EmployeeId, b.VacationTypeId })
+            .ToListAsync();
+
+        var existingSet = existingPairs
+            .Select(p => (p.EmployeeId, p.VacationTypeId))
+            .ToHashSet();
+
+        var defaultAllocations = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Annual Leave"] = 21m,
+            ["Sick Leave"] = 14m,
+            ["Emergency Leave"] = 7m,
+            ["Unpaid Leave"] = 0m
+        };
+
+        var balancesToAdd = new List<EmployeeLeaveBalance>();
+
+        foreach (var employee in employees)
+        {
+            foreach (var vacation in vacationTypes)
+            {
+                var key = (employee.Id, vacation.Id);
+                if (existingSet.Contains(key))
+                {
+                    continue;
+                }
+
+                var allocatedDays = defaultAllocations.TryGetValue(vacation.NameEn, out var defaultDays) ? defaultDays : 0m;
+
+                var balance = new EmployeeLeaveBalance
+                {
+                    EmployeeId = employee.Id,
+                    VacationTypeId = vacation.Id,
+                    Year = currentYear,
+                    AllocatedDays = allocatedDays,
+                    CarryOverDays = 0m,
+                    ManualAdjustmentDays = 0m,
+                    UsedDays = 0m,
+                    TenantId = employee.TenantId,
+                    BranchId = employee.BranchId,
+                    Notes = "Initial allocation"
+                };
+
+                balancesToAdd.Add(balance);
+            }
+        }
+
+        if (balancesToAdd.Count == 0)
+        {
+            Console.WriteLine($"Employee leave balances already exist for {currentYear}; skipping seeding.");
+            return;
+        }
+
+        await context.EmployeeLeaveBalances.AddRangeAsync(balancesToAdd);
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {balancesToAdd.Count} employee leave balances for {currentYear}.");
     }
 
     private static string GetRoleUserFullName(string roleName)
@@ -2452,10 +2553,50 @@ public static class AppDbContextSeed
         {
             var vacationTypes = new List<VacationType>
             {
-                new() { NameEn = "Annual Leave", NameAr = "إجازة سنوية", Description = "Paid annual leave covering standard vacation requests.", IsPaid = true, RequiresManagerApproval = true, SortOrder = 1, CreatedDate = now },
-                new() { NameEn = "Sick Leave", NameAr = "إجازة مرضية", Description = "Medical leave that requires proof of illness.", IsPaid = true, RequiresManagerApproval = true, SortOrder = 2, CreatedDate = now },
-                new() { NameEn = "Unpaid Leave", NameAr = "إجازة بدون راتب", Description = "Leave without pay for exceptional cases.", IsPaid = false, RequiresManagerApproval = true, SortOrder = 3, CreatedDate = now },
-                new() { NameEn = "Emergency Leave", NameAr = "إجازة طارئة", Description = "Short-term urgent leave for emergencies.", IsPaid = true, RequiresManagerApproval = true, SortOrder = 4, CreatedDate = now }
+                new()
+                {
+                    NameEn = "Annual Leave",
+                    NameAr = "إجازة سنوية",
+                    Description = "Paid annual leave covering standard vacation requests.",
+                    IsPaid = true,
+                    RequiresManagerApproval = true,
+                    SortOrder = 1,
+                    MaxDaysPerYear = 21,
+                    CreatedDate = now
+                },
+                new()
+                {
+                    NameEn = "Sick Leave",
+                    NameAr = "إجازة مرضية",
+                    Description = "Medical leave that requires proof of illness.",
+                    IsPaid = true,
+                    RequiresManagerApproval = true,
+                    SortOrder = 2,
+                    MaxDaysPerYear = 14,
+                    CreatedDate = now
+                },
+                new()
+                {
+                    NameEn = "Unpaid Leave",
+                    NameAr = "إجازة بدون راتب",
+                    Description = "Leave without pay for exceptional cases.",
+                    IsPaid = false,
+                    RequiresManagerApproval = true,
+                    SortOrder = 3,
+                    MaxDaysPerYear = 0,
+                    CreatedDate = now
+                },
+                new()
+                {
+                    NameEn = "Emergency Leave",
+                    NameAr = "إجازة طارئة",
+                    Description = "Short-term urgent leave for emergencies.",
+                    IsPaid = true,
+                    RequiresManagerApproval = true,
+                    SortOrder = 4,
+                    MaxDaysPerYear = 7,
+                    CreatedDate = now
+                }
             };
             await context.VacationTypes.AddRangeAsync(vacationTypes);
             Console.WriteLine($"Seeded {vacationTypes.Count} vacation types");
