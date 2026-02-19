@@ -13,6 +13,7 @@ public record CreatePermissionTypeCommand(
     string NameEn,
     string? Description,
     bool RequiresManagerApproval,
+    bool RequireAttachment,
     bool IsActive,
     int SortOrder
 ) : IRequest<ErrorOr<GenericResponse<PermissionTypeDetailDto>>>;
@@ -36,6 +37,7 @@ public class CreatePermissionTypeCommandHandler : IRequestHandler<CreatePermissi
             NameEn = request.NameEn,
             Description = request.Description,
             RequiresManagerApproval = request.RequiresManagerApproval,
+            RequireAttachment = request.RequireAttachment,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
             CreatedDate = DateTimeOffset.UtcNow
@@ -51,6 +53,7 @@ public class CreatePermissionTypeCommandHandler : IRequestHandler<CreatePermissi
             NameEn = entity.NameEn,
             Description = entity.Description,
             RequiresManagerApproval = entity.RequiresManagerApproval,
+            RequireAttachment = entity.RequireAttachment,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
             CreatedDate = entity.CreatedDate,
@@ -69,6 +72,7 @@ public record UpdatePermissionTypeCommand(
     string NameEn,
     string? Description,
     bool RequiresManagerApproval,
+    bool RequireAttachment,
     bool IsActive,
     int SortOrder
 ) : IRequest<ErrorOr<GenericResponse<PermissionTypeDetailDto>>>;
@@ -94,6 +98,7 @@ public class UpdatePermissionTypeCommandHandler : IRequestHandler<UpdatePermissi
         entity.NameEn = request.NameEn;
         entity.Description = request.Description;
         entity.RequiresManagerApproval = request.RequiresManagerApproval;
+        entity.RequireAttachment = request.RequireAttachment;
         entity.IsActive = request.IsActive;
         entity.SortOrder = request.SortOrder;
         entity.ModifiedDate = DateTimeOffset.UtcNow;
@@ -107,6 +112,7 @@ public class UpdatePermissionTypeCommandHandler : IRequestHandler<UpdatePermissi
             NameEn = entity.NameEn,
             Description = entity.Description,
             RequiresManagerApproval = entity.RequiresManagerApproval,
+            RequireAttachment = entity.RequireAttachment,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
             CreatedDate = entity.CreatedDate,

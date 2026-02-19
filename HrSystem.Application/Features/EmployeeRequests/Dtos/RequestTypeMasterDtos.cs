@@ -44,17 +44,30 @@ public record RequestTypeDto
 #endregion
 
 #region VacationType DTOs
-public record CreateVacationTypeDto : CreateRequestTypeMasterDto
+public record CreateVacationTypeDto
 {
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool IsPaid { get; init; } = true;
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
     public int? MaxDaysPerYear { get; init; }
 }
 
-public record UpdateVacationTypeDto : UpdateRequestTypeMasterDto
+public record UpdateVacationTypeDto
 {
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool IsPaid { get; init; } = true;
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
     public int? MaxDaysPerYear { get; init; }
 }
 
@@ -66,6 +79,7 @@ public record VacationTypeDetailDto
     public string? Description { get; init; }
     public bool IsPaid { get; init; }
     public bool RequiresManagerApproval { get; init; }
+    public bool RequireAttachment { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
     public int? MaxDaysPerYear { get; init; }
@@ -75,16 +89,29 @@ public record VacationTypeDetailDto
 #endregion
 
 #region OvertimeType DTOs
-public record CreateOvertimeTypeDto : CreateRequestTypeMasterDto
+public record CreateOvertimeTypeDto
 {
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public decimal DefaultMultiplier { get; init; } = 1.5m;
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
-public record UpdateOvertimeTypeDto : UpdateRequestTypeMasterDto
+public record UpdateOvertimeTypeDto
 {
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public decimal DefaultMultiplier { get; init; } = 1.5m;
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
 public record OvertimeTypeDetailDto
@@ -95,6 +122,7 @@ public record OvertimeTypeDetailDto
     public string? Description { get; init; }
     public decimal DefaultMultiplier { get; init; }
     public bool RequiresManagerApproval { get; init; }
+    public bool RequireAttachment { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
     public DateTimeOffset CreatedDate { get; init; }
@@ -103,14 +131,27 @@ public record OvertimeTypeDetailDto
 #endregion
 
 #region TrainingType DTOs
-public record CreateTrainingTypeDto : CreateRequestTypeMasterDto
+public record CreateTrainingTypeDto
 {
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
-public record UpdateTrainingTypeDto : UpdateRequestTypeMasterDto
+public record UpdateTrainingTypeDto
 {
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
 public record TrainingTypeDetailDto
@@ -120,6 +161,7 @@ public record TrainingTypeDetailDto
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; }
+    public bool RequireAttachment { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
     public DateTimeOffset CreatedDate { get; init; }
@@ -128,14 +170,27 @@ public record TrainingTypeDetailDto
 #endregion
 
 #region MiscellaneousType DTOs
-public record CreateMiscellaneousTypeDto : CreateRequestTypeMasterDto
+public record CreateMiscellaneousTypeDto
 {
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
-public record UpdateMiscellaneousTypeDto : UpdateRequestTypeMasterDto
+public record UpdateMiscellaneousTypeDto
 {
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
 public record MiscellaneousTypeDetailDto
@@ -145,6 +200,7 @@ public record MiscellaneousTypeDetailDto
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; }
+    public bool RequireAttachment { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
     public DateTimeOffset CreatedDate { get; init; }
@@ -153,14 +209,27 @@ public record MiscellaneousTypeDetailDto
 #endregion
 
 #region PersonalType DTOs
-public record CreatePersonalTypeDto : CreateRequestTypeMasterDto
+public record CreatePersonalTypeDto
 {
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
-public record UpdatePersonalTypeDto : UpdateRequestTypeMasterDto
+public record UpdatePersonalTypeDto
 {
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
 public record PersonalTypeDetailDto
@@ -170,6 +239,7 @@ public record PersonalTypeDetailDto
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; }
+    public bool RequireAttachment { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
     public DateTimeOffset CreatedDate { get; init; }
@@ -178,16 +248,29 @@ public record PersonalTypeDetailDto
 #endregion
 
 #region FeedbackType DTOs
-public record CreateFeedbackTypeDto : CreateRequestTypeMasterDto
+public record CreateFeedbackTypeDto
 {
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool IsAnonymousAllowed { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
-public record UpdateFeedbackTypeDto : UpdateRequestTypeMasterDto
+public record UpdateFeedbackTypeDto
 {
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool IsAnonymousAllowed { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
 public record FeedbackTypeDetailDto
@@ -198,6 +281,7 @@ public record FeedbackTypeDetailDto
     public string? Description { get; init; }
     public bool IsAnonymousAllowed { get; init; }
     public bool RequiresManagerApproval { get; init; }
+    public bool RequireAttachment { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
     public DateTimeOffset CreatedDate { get; init; }
@@ -206,14 +290,27 @@ public record FeedbackTypeDetailDto
 #endregion
 
 #region PermissionType DTOs
-public record CreatePermissionTypeDto : CreateRequestTypeMasterDto
+public record CreatePermissionTypeDto
 {
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
-public record UpdatePermissionTypeDto : UpdateRequestTypeMasterDto
+public record UpdatePermissionTypeDto
 {
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
 }
 
 public record PermissionTypeDetailDto
@@ -223,6 +320,7 @@ public record PermissionTypeDetailDto
     public string NameEn { get; init; } = string.Empty;
     public string? Description { get; init; }
     public bool RequiresManagerApproval { get; init; }
+    public bool RequireAttachment { get; init; }
     public bool IsActive { get; init; }
     public int SortOrder { get; init; }
     public DateTimeOffset CreatedDate { get; init; }

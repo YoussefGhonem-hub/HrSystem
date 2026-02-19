@@ -13,6 +13,7 @@ public class PermissionType : BaseAuditableMasterEntity
     public string? Description { get; set; }
     
     public bool RequiresManagerApproval { get; set; } = true;
+    public bool RequireAttachment { get; set; }
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
 

@@ -14,6 +14,7 @@ public record CreateVacationTypeCommand(
     string? Description,
     bool IsPaid,
     bool RequiresManagerApproval,
+    bool RequireAttachment,
     bool IsActive,
     int SortOrder,
     int? MaxDaysPerYear
@@ -39,6 +40,7 @@ public class CreateVacationTypeCommandHandler : IRequestHandler<CreateVacationTy
             Description = request.Description,
             IsPaid = request.IsPaid,
             RequiresManagerApproval = request.RequiresManagerApproval,
+            RequireAttachment = request.RequireAttachment,
             IsActive = request.IsActive,
             SortOrder = request.SortOrder,
             MaxDaysPerYear = request.MaxDaysPerYear,
@@ -56,6 +58,7 @@ public class CreateVacationTypeCommandHandler : IRequestHandler<CreateVacationTy
             Description = entity.Description,
             IsPaid = entity.IsPaid,
             RequiresManagerApproval = entity.RequiresManagerApproval,
+            RequireAttachment = entity.RequireAttachment,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
             MaxDaysPerYear = entity.MaxDaysPerYear,
@@ -76,6 +79,7 @@ public record UpdateVacationTypeCommand(
     string? Description,
     bool IsPaid,
     bool RequiresManagerApproval,
+    bool RequireAttachment,
     bool IsActive,
     int SortOrder,
     int? MaxDaysPerYear
@@ -103,6 +107,7 @@ public class UpdateVacationTypeCommandHandler : IRequestHandler<UpdateVacationTy
         entity.Description = request.Description;
         entity.IsPaid = request.IsPaid;
         entity.RequiresManagerApproval = request.RequiresManagerApproval;
+        entity.RequireAttachment = request.RequireAttachment;
         entity.IsActive = request.IsActive;
         entity.SortOrder = request.SortOrder;
         entity.MaxDaysPerYear = request.MaxDaysPerYear;
@@ -118,6 +123,7 @@ public class UpdateVacationTypeCommandHandler : IRequestHandler<UpdateVacationTy
             Description = entity.Description,
             IsPaid = entity.IsPaid,
             RequiresManagerApproval = entity.RequiresManagerApproval,
+            RequireAttachment = entity.RequireAttachment,
             IsActive = entity.IsActive,
             SortOrder = entity.SortOrder,
             MaxDaysPerYear = entity.MaxDaysPerYear,

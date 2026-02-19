@@ -13,6 +13,7 @@ public class OvertimeType : BaseAuditableMasterEntity
     public string? Description { get; set; }
     public decimal DefaultMultiplier { get; set; } = 1.5m;
     public bool RequiresManagerApproval { get; set; } = true;
+    public bool RequireAttachment { get; set; }
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; } = 1;
 }

@@ -68,7 +68,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateVacationTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.IsPaid, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder, dto.MaxDaysPerYear);
+            dto.IsPaid, dto.RequiresManagerApproval, dto.RequireAttachment, dto.IsActive, dto.SortOrder, dto.MaxDaysPerYear);
 
         var result = await _mediator.Send(command);
         return result.Match(
@@ -86,7 +86,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateVacationTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.IsPaid, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder, dto.MaxDaysPerYear);
+            dto.IsPaid, dto.RequiresManagerApproval, dto.RequireAttachment, dto.IsActive, dto.SortOrder, dto.MaxDaysPerYear);
 
         var result = await _mediator.Send(command);
         return result.Match(Ok, Problem);
@@ -134,7 +134,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateOvertimeTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.DefaultMultiplier, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
+            dto.DefaultMultiplier, dto.RequiresManagerApproval, dto.RequireAttachment, dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
         return result.Match(
@@ -152,7 +152,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateOvertimeTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.DefaultMultiplier, dto.RequiresManagerApproval, dto.IsActive, dto.SortOrder);
+            dto.DefaultMultiplier, dto.RequiresManagerApproval, dto.RequireAttachment, dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
         return result.Match(Ok, Problem);
@@ -200,7 +200,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateTrainingTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -219,7 +219,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateTrainingTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -268,7 +268,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateMiscellaneousTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -287,7 +287,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateMiscellaneousTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -336,7 +336,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreatePersonalTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -355,7 +355,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdatePersonalTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -404,7 +404,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreateFeedbackTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.IsAnonymousAllowed, dto.RequiresManagerApproval,
+            dto.IsAnonymousAllowed, dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -423,7 +423,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdateFeedbackTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.IsAnonymousAllowed, dto.RequiresManagerApproval,
+            dto.IsAnonymousAllowed, dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -472,7 +472,7 @@ public class RequestTypesController : APIBaseController
     {
         var command = new CreatePermissionTypeCommand(
             dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
@@ -491,7 +491,7 @@ public class RequestTypesController : APIBaseController
 
         var command = new UpdatePermissionTypeCommand(
             dto.Id, dto.NameAr, dto.NameEn, dto.Description,
-            dto.RequiresManagerApproval,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
             dto.IsActive, dto.SortOrder);
 
         var result = await _mediator.Send(command);
