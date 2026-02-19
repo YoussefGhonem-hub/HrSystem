@@ -1,9 +1,10 @@
-using HrSystem.Domain.Common;
+﻿using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Infrustructure.Extensions;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,20 @@ namespace HrSystem.Infrustructure.Persistence;
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+
+    // â”€â”€ Scope filter properties â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // EF Core evaluates these per-query when referenced inside global query filters.
+    // SuperAdmin  â†’ no filter at all
+    // OrgAdmin    â†’ filter by TenantId only
+    // Others      â†’ filter by BranchId only
+    public Guid CurrentTenantId => CurrentUser.OrganizationId ?? Guid.Empty;
+    public Guid CurrentBranchId => CurrentUser.BranchId ?? Guid.Empty;
+
+    public bool FilterBypassEnabled => CurrentUser.BypassScopeFilters
+        || CurrentUser.Roles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase));
+
+    public bool IsOrgAdminScope => CurrentUser.Roles.Any(r =>
+        string.Equals(r, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase));
 
     // Identity
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -118,92 +133,88 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         ApplyScopedFilters(modelBuilder);
     }
 
+    /// <summary>
+    /// Builds per-entity global query filters that reference DbContext instance properties
+    /// so EF Core re-evaluates them on every query (not cached at model-creation time).
+    ///
+    /// Rules:
+    ///   â€¢ BypassScopeFilters / SuperAdmin â†’ no scope filter
+    ///   â€¢ OrganizationAdmin              â†’ entity.TenantId == CurrentTenantId
+    ///   â€¢ HRManager / HRSpecialist / DepartmentManager / Employee
+    ///                                    â†’ entity.TenantId == CurrentTenantId
+    ///                                      AND entity.BranchId == CurrentBranchId
+    /// </summary>
     private void ApplyScopedFilters(ModelBuilder modelBuilder)
     {
-        if (CurrentUser.BypassScopeFilters || CurrentUser.IsSuperAdmin)
-        {
-            return;
-        }
+        // Cache MethodInfo / PropertyInfo once â€” they don't change.
+        var dbContextType = typeof(ApplicationDbContext);
+        var bypassProp = dbContextType.GetProperty(nameof(FilterBypassEnabled))!;
+        var orgAdminProp = dbContextType.GetProperty(nameof(IsOrgAdminScope))!;
+        var tenantProp = dbContextType.GetProperty(nameof(CurrentTenantId))!;
+        var branchProp = dbContextType.GetProperty(nameof(CurrentBranchId))!;
+        
+        // Expression that represents "this" DbContext instance.
+        var dbContextExpr = Expression.Constant(this);
 
-        var organizationId = CurrentUser.OrganizationId;
-        var branchId = CurrentUser.BranchId;
-        var isOrgAdmin = CurrentUser.IsOrganizationAdmin;
+        // Shared sub-expressions (reference DbContext properties â†’ evaluated per query).
+        var bypassExpr = Expression.Property(dbContextExpr, bypassProp);       // bool
+        var orgAdminExpr = Expression.Property(dbContextExpr, orgAdminProp);    // bool
+        var tenantIdExpr = Expression.Property(dbContextExpr, tenantProp);      // Guid
+        var branchIdExpr = Expression.Property(dbContextExpr, branchProp);      // Guid
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
-            {
                 continue;
-            }
 
-            var parameter = Expression.Parameter(entityType.ClrType, "entity");
-            Expression? scopePredicate = null;
+            var param = Expression.Parameter(entityType.ClrType, "e");
 
-            if (!organizationId.HasValue)
-            {
-                scopePredicate = Expression.Constant(false);
-            }
-            else if (isOrgAdmin)
-            {
-                scopePredicate = BuildTenantPredicate(parameter, organizationId.Value);
-            }
-            else
-            {
-                if (!branchId.HasValue)
-                {
-                    scopePredicate = Expression.Constant(false);
-                }
-                else
-                {
-                    var tenantPredicate = BuildTenantPredicate(parameter, organizationId.Value);
-                    var branchPredicate = BuildBranchPredicate(parameter, branchId.Value);
-                    scopePredicate = Expression.AndAlso(tenantPredicate, branchPredicate);
-                }
-            }
+            // entity.TenantId == this.CurrentTenantId
+            var entityTenant = Expression.Property(param, nameof(BaseEntity.TenantId));
+            var tenantMatch = Expression.Equal(entityTenant, tenantIdExpr);
 
+            // Resolve BranchId via DeclaredOnly first to avoid AmbiguousMatchException
+            // when a subclass hides the base property with `new` (e.g. BranchHoliday).
+            var branchPropInfo = entityType.ClrType.GetProperty(
+                    nameof(BaseEntity.BranchId),
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                ?? typeof(BaseEntity).GetProperty(nameof(BaseEntity.BranchId))!;
+
+            var entityBranch = Expression.Property(param, branchPropInfo);
+
+            // Handle both Guid? (base) and Guid (overridden) property types
+            Expression branchMatch = entityBranch.Type == typeof(Guid?)
+                ? Expression.Equal(entityBranch, Expression.Convert(branchIdExpr, typeof(Guid?)))
+                : Expression.Equal(entityBranch, branchIdExpr);
+
+            // Flat boolean expression â€” translates to clean SQL OR/AND:
+            //
+            //   bypass
+            //   OR (entity.TenantId == tenantId
+            //       AND (orgAdmin OR entity.BranchId == branchId))
+            //
+            // SuperAdmin  â†’ bypass=true  â†’ whole expression is true, no filter
+            // OrgAdmin    â†’ bypass=false, orgAdmin=true  â†’ only TenantId check
+            // HR/Employee â†’ bypass=false, orgAdmin=false â†’ TenantId + BranchId check
+            var scopePredicate = Expression.OrElse(
+                bypassExpr,
+                Expression.AndAlso(
+                    tenantMatch,
+                    Expression.OrElse(orgAdminExpr, branchMatch)));
+
+            // Merge with the existing soft-delete filter (if any).
             var existingFilter = entityType.GetQueryFilter();
+            Expression body = scopePredicate;
+
             if (existingFilter != null)
             {
                 var existingBody = ReplacingExpressionVisitor.Replace(
-                    existingFilter.Parameters.First(),
-                    parameter,
-                    existingFilter.Body);
-
-                scopePredicate = scopePredicate == null
-                    ? existingBody
-                    : Expression.AndAlso(existingBody, scopePredicate);
+                    existingFilter.Parameters[0], param, existingFilter.Body);
+                body = Expression.AndAlso(existingBody, scopePredicate);
             }
 
-            if (scopePredicate == null)
-            {
-                continue;
-            }
-
-            var lambda = Expression.Lambda(scopePredicate, parameter);
-            entityType.SetQueryFilter(lambda);
+            entityType.SetQueryFilter(Expression.Lambda(body, param));
         }
-    }
-
-    private static Expression BuildTenantPredicate(ParameterExpression parameter, Guid tenantId)
-    {
-        var property = Expression.Property(parameter, nameof(BaseEntity.TenantId));
-        var constant = Expression.Constant(tenantId);
-        return Expression.Equal(property, constant);
-    }
-
-    private static Expression BuildBranchPredicate(ParameterExpression parameter, Guid branchId)
-    {
-        var property = Expression.Property(parameter, nameof(BaseEntity.BranchId));
-        Expression branchConstant = property.Type == typeof(Guid)
-            ? Expression.Constant(branchId)
-            : Expression.Constant((Guid?)branchId, property.Type);
-
-        if (property.Type != branchConstant.Type)
-        {
-            branchConstant = Expression.Convert(branchConstant, property.Type);
-        }
-
-        return Expression.Equal(property, branchConstant);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
