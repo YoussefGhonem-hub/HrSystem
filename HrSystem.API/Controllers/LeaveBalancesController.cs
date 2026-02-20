@@ -3,6 +3,8 @@ using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.LeaveBalances.Commands.UpsertEmployeeLeaveBalances;
 using HrSystem.Application.Features.LeaveBalances.Queries.GetEmployeeLeaveHistory;
 using HrSystem.Application.Features.LeaveBalances.Queries.GetEmployeeLeaveBalanceSummary;
+using HrSystem.Application.Features.LeaveBalances.Queries.GetLeaveReport;
+using HrSystem.Domain.Enums;
 using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -88,6 +90,52 @@ public class LeaveBalancesController : APIBaseController
 
         var result = await _mediator.Send(query);
         return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get leave report with statistics and a filterable/sortable grid of vacation requests.
+    /// </summary>
+    /// <param name="year">Filter by year (matches requests whose start or end date falls in this year)</param>
+    /// <param name="employeeId">Filter by specific employee</param>
+    /// <param name="departmentId">Filter by department</param>
+    /// <param name="vacationTypeId">Filter by vacation type (annual, sick, etc.)</param>
+    /// <param name="status">Filter by request status (Pending, Approved, Rejected, etc.)</param>
+    /// <param name="searchTerm">Search by employee code or name</param>
+    /// <param name="sortBy">Sort field (EmployeeCode, EmployeeName, Department, VacationType, StartDate, EndDate, TotalDays, Status, RequestedDate)</param>
+    /// <param name="sortDescending">Sort descending (default: true)</param>
+    /// <param name="pageNumber">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 10)</param>
+    [HttpGet("report")]
+    public async Task<IActionResult> GetLeaveReport(
+        [FromQuery] int? year = null,
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] Guid? departmentId = null,
+        [FromQuery] Guid? vacationTypeId = null,
+        [FromQuery] EmployeeRequestStatus? status = null,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? sortBy = "RequestedDate",
+        [FromQuery] bool sortDescending = true)
+    {
+        var query = new GetLeaveReportQuery(
+            year,
+            employeeId,
+            departmentId,
+            vacationTypeId,
+            status,
+            searchTerm,
+            pageNumber,
+            pageSize,
+            sortBy,
+            sortDescending);
+
+        var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
     }
 
     public class UpsertLeaveBalancesRequest
