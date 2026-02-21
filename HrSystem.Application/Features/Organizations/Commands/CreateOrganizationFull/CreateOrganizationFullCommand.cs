@@ -65,7 +65,7 @@ public record OrganizationProfileInput(
 );
 
 /// <summary>
-/// Branch input with nested holidays (org-branches-tab)
+/// Branch input with nested schedules and holidays (org-branches-tab)
 /// </summary>
 public record BranchFullInput(
     // Basic Info
@@ -96,9 +96,35 @@ public record BranchFullInput(
     // Status
     bool IsHeadquarter,
     DateTime? OpeningDate,
-    
+
+    // Nested: Work Schedules (org-work-schedule-tab)
+    List<BranchWorkScheduleInput>? WorkSchedules,
+
     // Nested: Holidays (org-holidays-tab)
     List<BranchHolidayInput>? Holidays
+);
+
+/// <summary>
+/// Work schedule configuration for a branch
+/// </summary>
+public record BranchWorkScheduleInput(
+    string Name,
+    TimeSpan StartTime,
+    TimeSpan EndTime,
+    TimeSpan? BreakDuration,
+    int WorkingHoursPerDay,
+    int WorkingDaysPerWeek,
+    TimeSpan? GracePeriodLate,
+    TimeSpan? GracePeriodEarlyLeave,
+    bool IsSunday,
+    bool IsMonday,
+    bool IsTuesday,
+    bool IsWednesday,
+    bool IsThursday,
+    bool IsFriday,
+    bool IsSaturday,
+    bool IsDefault,
+    string? TimeZone
 );
 
 /// <summary>
@@ -174,7 +200,15 @@ public record BranchFullDto
     public string NameEn { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
     public bool IsHeadquarter { get; init; }
+    public List<WorkScheduleDto> WorkSchedules { get; init; } = new();
     public List<HolidayDto> Holidays { get; init; } = new();
+}
+
+public record WorkScheduleDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public bool IsDefault { get; init; }
 }
 
 public record HolidayDto
@@ -258,6 +292,7 @@ public class CreateOrganizationFullCommandHandler
         // Check branch codes don't exist in database
         var existingBranchCodes = await _context.Branches
             .Where(b => branchCodes.Contains(b.Code))
+            .Select(b => b.Code)
             .ToListAsync(cancellationToken);
         if (existingBranchCodes.Count > 0)
             return Error.Conflict("Branch.CodeExists", $"Branch code(s) already exist: {string.Join(", ", existingBranchCodes)}");
@@ -345,6 +380,7 @@ public class CreateOrganizationFullCommandHandler
 
         // Create Branches with Work Schedules and Holidays
         var branches = new List<Branch>();
+        var allWorkSchedules = new List<BranchWorkSchedule>();
         var allHolidays = new List<BranchHoliday>();
 
         foreach (var branchInput in request.Branches)
@@ -379,6 +415,70 @@ public class CreateOrganizationFullCommandHandler
                 CreatedDate = DateTimeOffset.UtcNow
             };
             branches.Add(branch);
+
+            // Create work schedules for this branch
+            if (branchInput.WorkSchedules?.Count > 0)
+            {
+                foreach (var scheduleInput in branchInput.WorkSchedules)
+                {
+                    var schedule = new BranchWorkSchedule
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = orgId,
+                        BranchId = branchId,
+                        Name = scheduleInput.Name,
+                        StartTime = scheduleInput.StartTime,
+                        EndTime = scheduleInput.EndTime,
+                        BreakDuration = scheduleInput.BreakDuration,
+                        WorkingHoursPerDay = scheduleInput.WorkingHoursPerDay,
+                        WorkingDaysPerWeek = scheduleInput.WorkingDaysPerWeek,
+                        GracePeriodLate = scheduleInput.GracePeriodLate,
+                        GracePeriodEarlyLeave = scheduleInput.GracePeriodEarlyLeave,
+                        IsSunday = scheduleInput.IsSunday,
+                        IsMonday = scheduleInput.IsMonday,
+                        IsTuesday = scheduleInput.IsTuesday,
+                        IsWednesday = scheduleInput.IsWednesday,
+                        IsThursday = scheduleInput.IsThursday,
+                        IsFriday = scheduleInput.IsFriday,
+                        IsSaturday = scheduleInput.IsSaturday,
+                        IsDefault = scheduleInput.IsDefault,
+                        TimeZone = scheduleInput.TimeZone ?? branch.TimeZone,
+                        IsActive = true,
+                        CreatedDate = DateTimeOffset.UtcNow
+                    };
+                    allWorkSchedules.Add(schedule);
+                }
+            }
+            else
+            {
+                // Create default schedule if none provided
+                var defaultSchedule = new BranchWorkSchedule
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = orgId,
+                    BranchId = branchId,
+                    Name = "Default Schedule",
+                    StartTime = new TimeSpan(9, 0, 0),
+                    EndTime = new TimeSpan(17, 0, 0),
+                    BreakDuration = new TimeSpan(1, 0, 0),
+                    WorkingHoursPerDay = 8,
+                    WorkingDaysPerWeek = 5,
+                    GracePeriodLate = new TimeSpan(0, 15, 0),
+                    GracePeriodEarlyLeave = new TimeSpan(0, 15, 0),
+                    IsSunday = true,
+                    IsMonday = true,
+                    IsTuesday = true,
+                    IsWednesday = true,
+                    IsThursday = true,
+                    IsFriday = false,
+                    IsSaturday = false,
+                    IsDefault = true,
+                    TimeZone = branch.TimeZone,
+                    IsActive = true,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+                allWorkSchedules.Add(defaultSchedule);
+            }
 
             // Create holidays for this branch
             if (branchInput.Holidays?.Count > 0)
@@ -508,6 +608,9 @@ public class CreateOrganizationFullCommandHandler
             
             // Save branches
             await _context.Branches.AddRangeAsync(branches, cancellationToken);
+
+            // Save work schedules
+            await _context.BranchWorkSchedules.AddRangeAsync(allWorkSchedules, cancellationToken);
             
             // Save holidays
             await _context.BranchHolidays.AddRangeAsync(allHolidays, cancellationToken);
@@ -573,6 +676,14 @@ public class CreateOrganizationFullCommandHandler
                 NameEn = b.NameEn,
                 Code = b.Code,
                 IsHeadquarter = b.IsHeadquarter,
+                WorkSchedules = allWorkSchedules
+                    .Where(s => s.BranchId == b.Id)
+                    .Select(s => new WorkScheduleDto
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        IsDefault = s.IsDefault
+                    }).ToList(),
                 Holidays = allHolidays
                     .Where(h => h.BranchId == b.Id)
                     .Select(h => new HolidayDto

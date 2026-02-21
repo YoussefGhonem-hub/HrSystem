@@ -112,12 +112,38 @@ public record BranchFullDetailsDto
     public bool IsActive { get; init; }
     public DateTime? OpeningDate { get; init; }
     
+    // Work Schedules for this branch
+    public List<WorkScheduleDetailsDto> WorkSchedules { get; init; } = new();
+
     // Holidays for this branch
     public List<HolidayDetailsDto> Holidays { get; init; } = new();
     
     // Stats
     public int EmployeeCount { get; init; }
     public int DepartmentCount { get; init; }
+}
+
+public record WorkScheduleDetailsDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public TimeSpan StartTime { get; init; }
+    public TimeSpan EndTime { get; init; }
+    public TimeSpan? BreakDuration { get; init; }
+    public int WorkingHoursPerDay { get; init; }
+    public int WorkingDaysPerWeek { get; init; }
+    public TimeSpan? GracePeriodLate { get; init; }
+    public TimeSpan? GracePeriodEarlyLeave { get; init; }
+    public bool IsSunday { get; init; }
+    public bool IsMonday { get; init; }
+    public bool IsTuesday { get; init; }
+    public bool IsWednesday { get; init; }
+    public bool IsThursday { get; init; }
+    public bool IsFriday { get; init; }
+    public bool IsSaturday { get; init; }
+    public bool IsDefault { get; init; }
+    public bool IsActive { get; init; }
+    public string TimeZone { get; init; } = string.Empty;
 }
 
 public record HolidayDetailsDto
@@ -183,6 +209,7 @@ public record OrganizationStatsDto
     public int TotalJobTitles { get; init; }
     public int TotalEmployees { get; init; }
     public int TotalHolidays { get; init; }
+    public int TotalWorkSchedules { get; init; }
 }
 
 #endregion
@@ -216,6 +243,7 @@ public class GetOrganizationFullDetailsQueryHandler
         var branches = await _context.Branches
             .AsNoTracking()
             .Include(b => b.Country)
+            .Include(b => b.WorkSchedules.Where(s => !s.IsDeleted))
             .Include(b => b.Holidays.Where(h => !h.IsDeleted))
             .Where(b => b.OrganizationId == request.Id && !b.IsDeleted)
             .OrderByDescending(b => b.IsHeadquarter)
@@ -351,6 +379,31 @@ public class GetOrganizationFullDetailsQueryHandler
                 OpeningDate = b.OpeningDate,
                 EmployeeCount = branchEmployeeCounts.GetValueOrDefault(b.Id, 0),
                 DepartmentCount = departments.Count(d => d.BranchId == b.Id),
+                WorkSchedules = b.WorkSchedules
+                    .OrderByDescending(s => s.IsDefault)
+                    .ThenBy(s => s.Name)
+                    .Select(s => new WorkScheduleDetailsDto
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        StartTime = s.StartTime,
+                        EndTime = s.EndTime,
+                        BreakDuration = s.BreakDuration,
+                        WorkingHoursPerDay = s.WorkingHoursPerDay,
+                        WorkingDaysPerWeek = s.WorkingDaysPerWeek,
+                        GracePeriodLate = s.GracePeriodLate,
+                        GracePeriodEarlyLeave = s.GracePeriodEarlyLeave,
+                        IsSunday = s.IsSunday,
+                        IsMonday = s.IsMonday,
+                        IsTuesday = s.IsTuesday,
+                        IsWednesday = s.IsWednesday,
+                        IsThursday = s.IsThursday,
+                        IsFriday = s.IsFriday,
+                        IsSaturday = s.IsSaturday,
+                        IsDefault = s.IsDefault,
+                        IsActive = s.IsActive,
+                        TimeZone = s.TimeZone
+                    }).ToList(),
                 Holidays = b.Holidays
                     .OrderBy(h => h.Date)
                     .Select(h => new HolidayDetailsDto
@@ -395,7 +448,8 @@ public class GetOrganizationFullDetailsQueryHandler
                 TotalDepartments = departments.Count,
                 TotalJobTitles = jobTitles.Count,
                 TotalEmployees = totalEmployees,
-                TotalHolidays = branches.Sum(b => b.Holidays.Count)
+                TotalHolidays = branches.Sum(b => b.Holidays.Count),
+                TotalWorkSchedules = branches.Sum(b => b.WorkSchedules.Count)
             }
         };
 

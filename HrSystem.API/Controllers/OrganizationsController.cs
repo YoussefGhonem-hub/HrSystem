@@ -2,6 +2,7 @@
 using HrSystem.Application.Features.Organizations.Commands.CreateOrganizationFull;
 using HrSystem.Application.Features.Organizations.Commands.CreateOrganizationWithAdmin;
 using HrSystem.Application.Features.Organizations.Commands.UpdateBranchHolidays;
+using HrSystem.Application.Features.Organizations.Commands.UpdateBranchWorkSchedule;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationBranches;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationCompanyInfo;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationStructure;
@@ -189,6 +190,29 @@ public class OrganizationsController : APIBaseController
 
     #endregion
 
+    #region Work Schedule Tab
+
+    /// <summary>
+    /// Update work schedules for a specific branch (Work Schedule Tab)
+    /// </summary>
+    [HttpPut("{organizationId:guid}/branches/{branchId:guid}/work-schedules")]
+    public async Task<IActionResult> UpdateBranchWorkSchedules(
+        Guid organizationId,
+        Guid branchId,
+        [FromBody] UpdateWorkSchedulesRequest request)
+    {
+        var command = new UpdateBranchWorkScheduleCommand(organizationId, branchId, request.Schedules);
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    #endregion
+
     #region Holidays Tab
 
     /// <summary>
@@ -244,6 +268,8 @@ public record UpdateStructureRequest(
     List<DepartmentUpdateInput>? Departments,
     List<JobTitleUpdateInput>? JobTitles
 );
+
+public record UpdateWorkSchedulesRequest(List<WorkScheduleUpdateInput> Schedules);
 
 public record UpdateHolidaysRequest(List<HolidayUpdateInput> Holidays);
 
