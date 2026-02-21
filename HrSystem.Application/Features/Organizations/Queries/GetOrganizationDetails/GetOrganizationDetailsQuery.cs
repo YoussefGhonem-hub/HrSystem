@@ -14,6 +14,7 @@ public record OrganizationDetailsDto
     public string NameEn { get; init; } = string.Empty;
     public string NameAr { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
+    public string? Industry { get; init; }
     public string? LogoUrl { get; init; }
     public string? Email { get; init; }
     public string? PhoneNumber { get; init; }
@@ -31,7 +32,18 @@ public record OrganizationDetailsDto
     public string TimeZone { get; init; } = string.Empty;
     public string Currency { get; init; } = string.Empty;
     public string? WeekStartDay { get; init; }
+    public string? DefaultLanguage { get; init; }
+    public OrganizationUserDto? AdminUser { get; init; }
+    public OrganizationUserDto? HrManagerUser { get; init; }
     public List<BranchDetailsDto> Branches { get; init; } = new();
+}
+
+public record OrganizationUserDto
+{
+    public Guid Id { get; init; }
+    public string? FullName { get; init; }
+    public string Email { get; init; } = string.Empty;
+    public string? UserName { get; init; }
 }
 
 public record BranchDetailsDto
@@ -70,12 +82,39 @@ public class GetOrganizationDetailsQueryHandler : IRequestHandler<GetOrganizatio
             return Error.NotFound("Organization.NotFound", "Organization not found");
         }
 
+        var adminUser = await (from u in _context.Users.AsNoTracking()
+                               join ur in _context.UserRoles.AsNoTracking() on u.Id equals ur.UserId
+                               join r in _context.Roles.AsNoTracking() on ur.RoleId equals r.Id
+                               where u.OrganizationId == request.Id && r.Name == Shared.Constants.RoleNames.OrganizationAdmin
+                               orderby u.CreatedDate
+                               select new OrganizationUserDto
+                               {
+                                   Id = u.Id,
+                                   FullName = u.FullName,
+                                   Email = u.Email ?? string.Empty,
+                                   UserName = u.UserName
+                               }).FirstOrDefaultAsync(cancellationToken);
+
+        var hrManagerUser = await (from u in _context.Users.AsNoTracking()
+                                   join ur in _context.UserRoles.AsNoTracking() on u.Id equals ur.UserId
+                                   join r in _context.Roles.AsNoTracking() on ur.RoleId equals r.Id
+                                   where u.OrganizationId == request.Id && r.Name == Shared.Constants.RoleNames.HRManager
+                                   orderby u.CreatedDate
+                                   select new OrganizationUserDto
+                                   {
+                                       Id = u.Id,
+                                       FullName = u.FullName,
+                                       Email = u.Email ?? string.Empty,
+                                       UserName = u.UserName
+                                   }).FirstOrDefaultAsync(cancellationToken);
+
         var dto = new OrganizationDetailsDto
         {
             Id = org.Id,
             NameEn = org.NameEn,
             NameAr = org.NameAr,
             Code = org.Code,
+            Industry = org.Industry,
             LogoUrl = org.LogoUrl,
             Email = org.Email,
             PhoneNumber = org.PhoneNumber,
@@ -93,6 +132,9 @@ public class GetOrganizationDetailsQueryHandler : IRequestHandler<GetOrganizatio
             TimeZone = org.TimeZone,
             Currency = org.Currency,
             WeekStartDay = org.WeekStartDay ?? string.Empty,
+            DefaultLanguage = org.DefaultLanguage,
+            AdminUser = adminUser,
+            HrManagerUser = hrManagerUser,
             Branches = org.Branches
                 .OrderByDescending(b => b.IsHeadquarter)
                 .ThenBy(b => b.NameEn)

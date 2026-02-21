@@ -24,6 +24,10 @@ public record OrganizationFullDetailsDto
 {
     // Company Info Tab
     public CompanyInfoDto CompanyInfo { get; init; } = new();
+
+    // Users
+    public OrganizationUserDto? AdminUser { get; init; }
+    public OrganizationUserDto? HrManagerUser { get; init; }
     
     // Branches Tab
     public List<BranchFullDetailsDto> Branches { get; init; } = new();
@@ -33,6 +37,14 @@ public record OrganizationFullDetailsDto
     
     // Summary stats
     public OrganizationStatsDto Stats { get; init; } = new();
+}
+
+public record OrganizationUserDto
+{
+    public Guid Id { get; init; }
+    public string? FullName { get; init; }
+    public string Email { get; init; } = string.Empty;
+    public string? UserName { get; init; }
 }
 
 public record CompanyInfoDto
@@ -291,6 +303,32 @@ public class GetOrganizationFullDetailsQueryHandler
         var totalEmployees = await _context.Employees
             .CountAsync(e => e.TenantId == request.Id && !e.IsDeleted, cancellationToken);
 
+        var adminUser = await (from u in _context.Users.AsNoTracking()
+                               join ur in _context.UserRoles.AsNoTracking() on u.Id equals ur.UserId
+                               join r in _context.Roles.AsNoTracking() on ur.RoleId equals r.Id
+                               where u.OrganizationId == request.Id && r.Name == Shared.Constants.RoleNames.OrganizationAdmin
+                               orderby u.CreatedDate
+                               select new OrganizationUserDto
+                               {
+                                   Id = u.Id,
+                                   FullName = u.FullName,
+                                   Email = u.Email ?? string.Empty,
+                                   UserName = u.UserName
+                               }).FirstOrDefaultAsync(cancellationToken);
+
+        var hrManagerUser = await (from u in _context.Users.AsNoTracking()
+                                   join ur in _context.UserRoles.AsNoTracking() on u.Id equals ur.UserId
+                                   join r in _context.Roles.AsNoTracking() on ur.RoleId equals r.Id
+                                   where u.OrganizationId == request.Id && r.Name == Shared.Constants.RoleNames.HRManager
+                                   orderby u.CreatedDate
+                                   select new OrganizationUserDto
+                                   {
+                                       Id = u.Id,
+                                       FullName = u.FullName,
+                                       Email = u.Email ?? string.Empty,
+                                       UserName = u.UserName
+                                   }).FirstOrDefaultAsync(cancellationToken);
+
         // Build department hierarchy
         var deptLookup = departments.ToDictionary(d => d.Id);
         var rootDepartments = departments.Where(d => d.ParentDepartmentId == null).ToList();
@@ -353,6 +391,8 @@ public class GetOrganizationFullDetailsQueryHandler
                 MaxEmployees = org.MaxEmployees,
                 CurrentEmployeeCount = totalEmployees
             },
+            AdminUser = adminUser,
+            HrManagerUser = hrManagerUser,
             Branches = branches.Select(b => new BranchFullDetailsDto
             {
                 Id = b.Id,

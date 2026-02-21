@@ -19,10 +19,13 @@ public record OrganizationListDto
     public string NameEn { get; init; } = string.Empty;
     public string NameAr { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
+    public string? Industry { get; init; }
+    public string? DefaultLanguage { get; init; }
     public string? Email { get; init; }
     public string? PhoneNumber { get; init; }
     public bool IsActive { get; init; }
     public int BranchesCount { get; init; }
+    public int EmployeesCount { get; init; }
 }
 
 public class GetOrganizationsListQueryHandler : IRequestHandler<GetOrganizationsListQuery, ErrorOr<GenericResponse<PagedResult<OrganizationListDto>>>>
@@ -40,7 +43,6 @@ public class GetOrganizationsListQueryHandler : IRequestHandler<GetOrganizations
     {
         var query = _context.Organizations
             .AsNoTracking()
-            .Include(o => o.Branches)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
@@ -64,10 +66,13 @@ public class GetOrganizationsListQueryHandler : IRequestHandler<GetOrganizations
                 NameEn = o.NameEn,
                 NameAr = o.NameAr,
                 Code = o.Code,
+                Industry = o.Industry,
+                DefaultLanguage = o.DefaultLanguage,
                 Email = o.Email,
                 PhoneNumber = o.PhoneNumber,
                 IsActive = o.IsActive,
-                BranchesCount = o.Branches.Count
+                BranchesCount = o.Branches.Count,
+                EmployeesCount = _context.Employees.Count(e => e.TenantId == o.Id && !e.IsDeleted)
             })
             .ToListAsync(cancellationToken);
 

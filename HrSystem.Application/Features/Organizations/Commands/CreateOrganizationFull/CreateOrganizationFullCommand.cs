@@ -22,7 +22,8 @@ public record CreateOrganizationFullCommand(
     List<BranchFullInput> Branches,
     List<DepartmentInput>? Departments,
     List<JobTitleInput>? JobTitles,
-    OrganizationAdminUserInput AdminUser
+    OrganizationAdminUserInput AdminUser,
+    OrganizationHrManagerUserInput HrManagerUser
 ) : IRequest<ErrorOr<GenericResponse<OrganizationFullDto>>>;
 
 /// <summary>
@@ -178,6 +179,16 @@ public record OrganizationAdminUserInput(
     string? UserName
 );
 
+/// <summary>
+/// Initial HR manager user credentials
+/// </summary>
+public record OrganizationHrManagerUserInput(
+    string Email,
+    string FullName,
+    string Password,
+    string? UserName
+);
+
 #endregion
 
 #region Response DTOs
@@ -189,6 +200,8 @@ public record OrganizationFullDto
     public string OrganizationNameEn { get; init; } = string.Empty;
     public Guid AdminUserId { get; init; }
     public string AdminEmail { get; init; } = string.Empty;
+    public Guid HrManagerUserId { get; init; }
+    public string HrManagerEmail { get; init; } = string.Empty;
     public List<BranchFullDto> Branches { get; init; } = new();
     public List<DepartmentDto> Departments { get; init; } = new();
     public List<JobTitleDto> JobTitles { get; init; } = new();
@@ -277,9 +290,24 @@ public class CreateOrganizationFullCommandHandler
         if (adminExists != null)
             return Error.Conflict("User.EmailExists", "Admin email already exists");
 
+        // Check HR manager email uniqueness
+        var hrManagerExists = await _userManager.FindByEmailAsync(request.HrManagerUser.Email);
+        if (hrManagerExists != null)
+            return Error.Conflict("User.EmailExists", "HR Manager email already exists");
+
+        if (string.Equals(request.AdminUser.Email, request.HrManagerUser.Email, StringComparison.OrdinalIgnoreCase))
+            return Error.Validation("User.DuplicateEmail", "Admin and HR Manager must have different emails");
+
         // Check OrganizationAdmin role exists
         if (!await _roleManager.RoleExistsAsync(RoleNames.OrganizationAdmin))
             return Error.NotFound("Role.NotFound", "OrganizationAdmin role not found");
+
+        // Check HRManager and Employee roles exist
+        if (!await _roleManager.RoleExistsAsync(RoleNames.HRManager))
+            return Error.NotFound("Role.NotFound", "HRManager role not found");
+
+        if (!await _roleManager.RoleExistsAsync(RoleNames.Employee))
+            return Error.NotFound("Role.NotFound", "Employee role not found");
 
         // Validate branch codes uniqueness within request
         var branchCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -354,6 +382,7 @@ public class CreateOrganizationFullCommandHandler
             Code = request.Organization.Code,
             NameAr = request.Organization.NameAr,
             NameEn = request.Organization.NameEn,
+            Industry = request.Organization.Industry,
             LogoUrl = request.Organization.LogoUrl,
             CommercialRegistrationNumber = request.Organization.CommercialRegistrationNumber,
             TaxRegistrationNumber = request.Organization.TaxRegistrationNumber,
@@ -375,6 +404,7 @@ public class CreateOrganizationFullCommandHandler
             TimeZone = request.Organization.TimeZone ?? "Egypt Standard Time",
             Currency = request.Organization.Currency ?? "EGP",
             WeekStartDay = request.Organization.WeekStartDay ?? "Sunday",
+            DefaultLanguage = request.Organization.DefaultLanguage ?? "en",
             CreatedDate = DateTimeOffset.UtcNow
         };
 
@@ -581,7 +611,7 @@ public class CreateOrganizationFullCommandHandler
         }
 
         // Create Admin User
-        var user = new ApplicationUser
+        var adminUser = new ApplicationUser
         {
             Id = Guid.NewGuid(),
             UserName = string.IsNullOrWhiteSpace(request.AdminUser.UserName) 
@@ -592,6 +622,22 @@ public class CreateOrganizationFullCommandHandler
             FullName = request.AdminUser.FullName,
             IsActive = true,
             OrganizationId = orgId,
+            CreatedDate = DateTimeOffset.UtcNow
+        };
+
+        // Create Initial HR Manager User
+        var hrManagerUser = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = string.IsNullOrWhiteSpace(request.HrManagerUser.UserName)
+                ? request.HrManagerUser.Email
+                : request.HrManagerUser.UserName,
+            Email = request.HrManagerUser.Email,
+            EmailConfirmed = true,
+            FullName = request.HrManagerUser.FullName,
+            IsActive = true,
+            OrganizationId = orgId,
+            BranchId = branches.OrderByDescending(b => b.IsHeadquarter).ThenBy(b => b.NameEn).Select(b => (Guid?)b.Id).FirstOrDefault(),
             CreatedDate = DateTimeOffset.UtcNow
         };
 
@@ -626,29 +672,68 @@ public class CreateOrganizationFullCommandHandler
             await _context.SaveChangesAsync(cancellationToken);
 
             // Create user with Identity
-            var createUserResult = await _userManager.CreateAsync(user, request.AdminUser.Password);
-            if (!createUserResult.Succeeded)
+            var createAdminResult = await _userManager.CreateAsync(adminUser, request.AdminUser.Password);
+            if (!createAdminResult.Succeeded)
             {
                 return Error.Validation("User.CreateFailed", 
-                    string.Join("; ", createUserResult.Errors.Select(e => e.Description)));
+                    string.Join("; ", createAdminResult.Errors.Select(e => e.Description)));
             }
 
-            // Assign role
-            var roleResult = await _userManager.AddToRoleAsync(user, RoleNames.OrganizationAdmin);
-            if (!roleResult.Succeeded)
+            var createHrManagerResult = await _userManager.CreateAsync(hrManagerUser, request.HrManagerUser.Password);
+            if (!createHrManagerResult.Succeeded)
             {
-                return Error.Validation("User.RoleAssignFailed", 
-                    string.Join("; ", roleResult.Errors.Select(e => e.Description)));
+                return Error.Validation("User.CreateFailed",
+                    string.Join("; ", createHrManagerResult.Errors.Select(e => e.Description)));
+            }
+
+            // Assign roles
+            var adminRoleResult = await _userManager.AddToRoleAsync(adminUser, RoleNames.OrganizationAdmin);
+            if (!adminRoleResult.Succeeded)
+            {
+                return Error.Validation("User.RoleAssignFailed",
+                    string.Join("; ", adminRoleResult.Errors.Select(e => e.Description)));
+            }
+
+            var hrManagerRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.HRManager);
+            if (!hrManagerRoleResult.Succeeded)
+            {
+                return Error.Validation("User.RoleAssignFailed",
+                    string.Join("; ", hrManagerRoleResult.Errors.Select(e => e.Description)));
+            }
+
+            var employeeRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.Employee);
+            if (!employeeRoleResult.Succeeded)
+            {
+                return Error.Validation("User.RoleAssignFailed",
+                    string.Join("; ", employeeRoleResult.Errors.Select(e => e.Description)));
             }
 
             // Create UserBranchRole for all branches
-            var branchRoles = branches.Select(branch => new UserBranchRole
+            var adminBranchRoles = branches.Select(branch => new UserBranchRole
             {
-                UserId = user.Id,
+                UserId = adminUser.Id,
                 BranchId = branch.Id,
                 RoleName = RoleNames.OrganizationAdmin
             });
-            await _context.UserBranchRoles.AddRangeAsync(branchRoles, cancellationToken);
+
+            var hrManagerBranchRoles = branches.SelectMany(branch => new[]
+            {
+                new UserBranchRole
+                {
+                    UserId = hrManagerUser.Id,
+                    BranchId = branch.Id,
+                    RoleName = RoleNames.HRManager
+                },
+                new UserBranchRole
+                {
+                    UserId = hrManagerUser.Id,
+                    BranchId = branch.Id,
+                    RoleName = RoleNames.Employee
+                }
+            });
+
+            await _context.UserBranchRoles.AddRangeAsync(adminBranchRoles, cancellationToken);
+            await _context.UserBranchRoles.AddRangeAsync(hrManagerBranchRoles, cancellationToken);
             
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
@@ -668,8 +753,10 @@ public class CreateOrganizationFullCommandHandler
             OrganizationId = organization.Id,
             OrganizationCode = organization.Code,
             OrganizationNameEn = organization.NameEn,
-            AdminUserId = user.Id,
-            AdminEmail = user.Email ?? string.Empty,
+            AdminUserId = adminUser.Id,
+            AdminEmail = adminUser.Email ?? string.Empty,
+            HrManagerUserId = hrManagerUser.Id,
+            HrManagerEmail = hrManagerUser.Email ?? string.Empty,
             Branches = branches.Select(b => new BranchFullDto
             {
                 BranchId = b.Id,
