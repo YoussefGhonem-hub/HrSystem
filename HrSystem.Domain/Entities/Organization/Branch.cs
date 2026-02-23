@@ -1,5 +1,6 @@
 using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
+using HrSystem.Domain.Entities.Attendance;
 using HrSystem.Domain.Entities.Requests;
 
 namespace HrSystem.Domain.Entities.Organization;
@@ -69,4 +70,6 @@ public class Branch : BaseAuditableEntity
     public virtual ICollection<BranchWorkSchedule> WorkSchedules { get; set; } = new List<BranchWorkSchedule>();
     public virtual ICollection<BranchHoliday> Holidays { get; set; } = new List<BranchHoliday>();
     public virtual ICollection<BranchRequestSetting> RequestSettings { get; set; } = new List<BranchRequestSetting>();
+    public virtual BranchAttendanceSetting? AttendanceSetting { get; set; }
+    public virtual ICollection<BranchCheckInPoint> CheckInPoints { get; set; } = new List<BranchCheckInPoint>();
 }

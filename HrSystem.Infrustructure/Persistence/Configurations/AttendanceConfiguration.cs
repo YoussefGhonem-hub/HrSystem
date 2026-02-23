@@ -33,5 +33,25 @@ public class AttendanceConfiguration : IEntityTypeConfiguration<Attendance>
             .WithMany(e => e.Attendances)
             .HasForeignKey(a => a.EmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // ── Check-in/out method stored as string ─────────────
+        builder.Property(a => a.CheckInMethod)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        builder.Property(a => a.CheckOutMethod)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        // ── Check-in/out point relationships ─────────────────
+        builder.HasOne(a => a.CheckInPoint)
+            .WithMany()
+            .HasForeignKey(a => a.CheckInPointId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(a => a.CheckOutPoint)
+            .WithMany()
+            .HasForeignKey(a => a.CheckOutPointId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

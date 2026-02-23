@@ -59,9 +59,10 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
         if (user.EmployeeId.HasValue)
         {
             var employee = await _context.Employees
+                .IgnoreQueryFilters()
                 .Include(e => e.JobTitle)
                 .Include(e => e.Department)
-                .FirstOrDefaultAsync(e => e.Id == user.EmployeeId.Value, cancellationToken);
+                .FirstOrDefaultAsync(e => e.Id == user.EmployeeId.Value && !e.IsDeleted, cancellationToken);
 
             if (employee != null)
             {
@@ -80,6 +81,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
         if (!branchId.HasValue)
         {
             branchId = await _context.UserBranchRoles
+                .IgnoreQueryFilters()
                 .Where(ubr => ubr.UserId == user.Id)
                 .Select(ubr => (Guid?)ubr.BranchId)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -94,9 +96,10 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
         if (branchId.HasValue)
         {
             var branchSettings = await _context.BranchRequestSettings
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Include(s => s.RequestTypeRef)
-                .Where(s => s.BranchId == branchId.Value && s.IsVisibleToEmployees)
+                .Where(s => s.BranchId == branchId.Value && !s.IsDeleted && s.IsVisibleToEmployees)
                 .OrderBy(s => s.RequestTypeRef != null ? s.RequestTypeRef.SortOrder : 0)
                 .ToListAsync(cancellationToken);
 
@@ -110,7 +113,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
 
                 // Load type-specific options
                 var vacationTypes = requestTypeCodes.Contains("Vacation")
-                    ? await _context.VacationTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
+                    ? await _context.VacationTypes.IgnoreQueryFilters().AsNoTracking().Where(t => t.IsActive && !t.IsDeleted).OrderBy(t => t.SortOrder)
                         .Select(t => new VacationTypeDto
                         {
                             Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
@@ -119,7 +122,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                     : null;
 
                 var trainingTypes = requestTypeCodes.Contains("Training")
-                    ? await _context.TrainingTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
+                    ? await _context.TrainingTypes.IgnoreQueryFilters().AsNoTracking().Where(t => t.IsActive && !t.IsDeleted).OrderBy(t => t.SortOrder)
                         .Select(t => new TrainingTypeDto
                         {
                             Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
@@ -128,7 +131,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                     : null;
 
                 var miscellaneousTypes = requestTypeCodes.Contains("Miscellaneous")
-                    ? await _context.MiscellaneousTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
+                    ? await _context.MiscellaneousTypes.IgnoreQueryFilters().AsNoTracking().Where(t => t.IsActive && !t.IsDeleted).OrderBy(t => t.SortOrder)
                         .Select(t => new MiscellaneousTypeDto
                         {
                             Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
@@ -137,7 +140,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                     : null;
 
                 var personalTypes = requestTypeCodes.Contains("Personal")
-                    ? await _context.PersonalTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
+                    ? await _context.PersonalTypes.IgnoreQueryFilters().AsNoTracking().Where(t => t.IsActive && !t.IsDeleted).OrderBy(t => t.SortOrder)
                         .Select(t => new PersonalTypeDto
                         {
                             Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
@@ -146,7 +149,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                     : null;
 
                 var feedbackTypes = requestTypeCodes.Contains("Feedback")
-                    ? await _context.FeedbackTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
+                    ? await _context.FeedbackTypes.IgnoreQueryFilters().AsNoTracking().Where(t => t.IsActive && !t.IsDeleted).OrderBy(t => t.SortOrder)
                         .Select(t => new FeedbackTypeDto
                         {
                             Id = t.Id, NameEn = t.NameEn, NameAr = t.NameAr, Description = t.Description,
@@ -187,6 +190,122 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
             directManagerId,
             branchId);
 
+        // ── Load organization settings ────────────────────────
+        OrganizationSettingDto? organizationSetting = null;
+        var isSuperAdmin = roles.Contains("SuperAdmin", StringComparer.OrdinalIgnoreCase);
+
+        if (!isSuperAdmin && user.OrganizationId != Guid.Empty)
+        {
+            var org = await _context.Organizations
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == user.OrganizationId && !o.IsDeleted, cancellationToken);
+
+            if (org is not null)
+            {
+                organizationSetting = new OrganizationSettingDto
+                {
+                    OrganizationId = org.Id,
+                    NameAr = org.NameAr,
+                    NameEn = org.NameEn,
+                    Code = org.Code,
+                    Industry = org.Industry,
+                    LogoUrl = org.LogoUrl,
+                    Email = org.Email,
+                    PhoneNumber = org.PhoneNumber,
+                    Website = org.Website,
+                    AddressAr = org.AddressAr,
+                    AddressEn = org.AddressEn,
+                    City = org.City,
+                    Country = org.Country,
+                    TimeZone = org.TimeZone,
+                    Currency = org.Currency,
+                    WeekStartDay = org.WeekStartDay,
+                    DefaultLanguage = org.DefaultLanguage,
+                    IsActive = org.IsActive,
+                    IsTrialPeriod = org.IsTrialPeriod,
+                    TrialEndDate = org.TrialEndDate,
+                    SubscriptionEndDate = org.SubscriptionEndDate,
+                    MaxEmployees = org.MaxEmployees,
+                    CurrentEmployeeCount = org.CurrentEmployeeCount
+                };
+            }
+        }
+
+        // ── Load branch attendance configuration ─────────────
+        BranchAttendanceConfigDto? branchAttendanceConfig = null;
+        if (branchId.HasValue)
+        {
+            var attendanceSetting = await _context.BranchAttendanceSettings
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(s => s.CheckInPoints.Where(p => !p.IsDeleted && p.IsActive))
+                .FirstOrDefaultAsync(s => s.BranchId == branchId.Value && !s.IsDeleted, cancellationToken);
+
+            if (attendanceSetting is not null)
+            {
+                // ── Check biometric enrollment status ────────────
+                BiometricEnrollmentDto? biometricEnrollment = null;
+                if (employeeId.HasValue)
+                {
+                    var enrolledBiometrics = await _context.EmployeeBiometrics
+                        .IgnoreQueryFilters()
+                        .AsNoTracking()
+                        .Where(b => b.EmployeeId == employeeId.Value && b.IsActive && !b.IsDeleted)
+                        .Select(b => b.BiometricType)
+                        .ToListAsync(cancellationToken);
+
+                    var hasFaceId = enrolledBiometrics.Contains(Domain.Enums.BiometricType.FaceId);
+                    var hasFingerprint = enrolledBiometrics.Contains(Domain.Enums.BiometricType.Fingerprint);
+
+                    var pendingMethods = new List<string>();
+                    if (attendanceSetting.AllowFaceId && !hasFaceId)
+                        pendingMethods.Add("FaceId");
+                    if (attendanceSetting.AllowFingerprint && !hasFingerprint)
+                        pendingMethods.Add("Fingerprint");
+
+                    biometricEnrollment = new BiometricEnrollmentDto
+                    {
+                        IsFaceIdEnrolled = hasFaceId,
+                        IsFingerprintEnrolled = hasFingerprint,
+                        RequiresEnrollment = pendingMethods.Count > 0,
+                        PendingEnrollmentMethods = pendingMethods
+                    };
+                }
+
+                branchAttendanceConfig = new BranchAttendanceConfigDto
+                {
+                    SettingId = attendanceSetting.Id,
+                    BranchId = attendanceSetting.BranchId,
+                    PrimaryMethod = attendanceSetting.PrimaryMethod.ToString(),
+                    AllowFaceId = attendanceSetting.AllowFaceId,
+                    AllowLocation = attendanceSetting.AllowLocation,
+                    AllowFingerprint = attendanceSetting.AllowFingerprint,
+                    AllowManual = attendanceSetting.AllowManual,
+                    RequireLocationValidation = attendanceSetting.RequireLocationValidation,
+                    DefaultGeofenceRadiusMeters = attendanceSetting.DefaultGeofenceRadiusMeters,
+                    FaceIdConfidenceThreshold = attendanceSetting.FaceIdConfidenceThreshold,
+                    FaceIdRequireLiveness = attendanceSetting.FaceIdRequireLiveness,
+                    AllowMultipleCheckInsPerDay = attendanceSetting.AllowMultipleCheckInsPerDay,
+                    CheckInPoints = attendanceSetting.CheckInPoints
+                        .OrderBy(p => p.DisplayOrder)
+                        .Select(p => new CheckInPointInfoDto
+                        {
+                            Id = p.Id,
+                            NameAr = p.NameAr,
+                            NameEn = p.NameEn,
+                            Latitude = p.Latitude,
+                            Longitude = p.Longitude,
+                            RadiusMeters = p.RadiusMeters,
+                            IsCheckInPoint = p.IsCheckInPoint,
+                            IsCheckOutPoint = p.IsCheckOutPoint,
+                            Address = p.Address
+                        }).ToList(),
+                    BiometricEnrollment = biometricEnrollment
+                };
+            }
+        }
+
         var response = new LoginResponse(
             AccessToken: accessToken,
             ExpiresAt: expiresAt,
@@ -196,7 +315,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
             Roles: roles.ToList(),
             BranchId: branchId,
             EmployeeId: employeeId,
-            BranchRequestAccess: branchRequestAccess);
+            BranchRequestAccess: branchRequestAccess,
+            BranchAttendanceConfig: branchAttendanceConfig,
+            OrganizationSetting: organizationSetting);
 
         return new GenericResponse<LoginResponse>
         {

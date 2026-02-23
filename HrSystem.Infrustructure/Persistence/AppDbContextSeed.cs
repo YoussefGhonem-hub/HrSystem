@@ -63,6 +63,7 @@ public static class AppDbContextSeed
             // Seed organization foundation before any dependent entities
             await SeedSubscriptionPlansAsync(context, seedDataPath);
             await SeedOrganizationAsync(context, seedDataPath);
+            await SeedSecondOrganizationAsync(context, seedDataPath);
             if (!await context.Organizations.AnyAsync())
             {
                 Console.WriteLine("Organization seeding failed or organization already missing; aborting remaining seed steps.");
@@ -72,6 +73,7 @@ public static class AppDbContextSeed
             await SeedRolesAsync(roleManager, seedDataPath);
             await SeedCountriesAsync(context, seedDataPath);
             await SeedBranchesAsync(context, seedDataPath);
+            await SeedSecondOrgBranchesAsync(context, seedDataPath);
             if (!await context.Branches.AnyAsync())
             {
                 Console.WriteLine("Branch seeding failed; aborting remaining seed steps.");
@@ -87,6 +89,7 @@ public static class AppDbContextSeed
             await SeedAttendanceStatusesAsync(context, seedDataPath);
             await SeedRequestTypeMastersAsync(context);
             await SeedBranchRequestSettingsAsync(context);
+            await SeedBranchAttendanceSettingsAsync(context);
 
             if (await HasEmployeeSeedPrerequisitesAsync(context))
             {
@@ -98,6 +101,7 @@ public static class AppDbContextSeed
             }
 
             await SeedRoleUsersAsync(context, userManager, roleManager, seedDataPath);
+            await SeedSecondOrgUsersAsync(context, userManager, roleManager);
             await SeedEmployeeLeaveBalancesAsync(context);
             await SeedEmployeeDocumentsAsync(context);
             await SeedEmployeeRequestsAsync(context);
@@ -272,6 +276,353 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded demo organization: {orgData.NameEn}");
     }
 
+    private static async Task SeedSecondOrganizationAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        var filePath = Path.Combine(seedDataPath, "DemoOrganization2.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var orgData = JsonSerializer.Deserialize<OrganizationSeedData>(json, _jsonOptions);
+
+        if (orgData == null) return;
+
+        // Skip if this organization already exists
+        if (await context.Organizations.AnyAsync(o => o.Code == orgData.Code)) return;
+
+        var plan = await context.SubscriptionPlans.FirstOrDefaultAsync(p => p.Code == orgData.SubscriptionPlanCode);
+        if (plan == null)
+        {
+            Console.WriteLine($"Subscription plan '{orgData.SubscriptionPlanCode}' not found for second organization. Skipping.");
+            return;
+        }
+
+        var organizationId = Guid.NewGuid();
+
+        var organization = new Organization
+        {
+            Id = organizationId,
+            Code = orgData.Code,
+            NameAr = orgData.NameAr,
+            NameEn = orgData.NameEn,
+            LogoUrl = orgData.LogoUrl,
+            CommercialRegistrationNumber = orgData.CommercialRegistrationNumber,
+            TaxRegistrationNumber = orgData.TaxRegistrationNumber,
+            LegalEntityType = orgData.LegalEntityType,
+            Email = orgData.Email,
+            PhoneNumber = orgData.PhoneNumber,
+            Website = orgData.Website,
+            AddressAr = orgData.AddressAr,
+            AddressEn = orgData.AddressEn,
+            City = orgData.City,
+            Country = orgData.Country,
+            PostalCode = orgData.PostalCode,
+            SubscriptionPlanId = plan.Id,
+            SubscriptionStartDate = DateTime.UtcNow,
+            SubscriptionEndDate = DateTime.UtcNow.AddDays(orgData.TrialDays),
+            IsActive = orgData.IsActive,
+            IsTrialPeriod = orgData.IsTrialPeriod,
+            TrialEndDate = DateTime.UtcNow.AddDays(orgData.TrialDays),
+            MaxEmployees = orgData.MaxEmployees,
+            CurrentEmployeeCount = orgData.CurrentEmployeeCount,
+            MaxStorageGB = orgData.MaxStorageGB,
+            CurrentStorageGB = orgData.CurrentStorageGB,
+            TimeZone = orgData.TimeZone,
+            Currency = orgData.Currency,
+            WeekStartDay = orgData.WeekStartDay,
+            CreatedDate = DateTimeOffset.UtcNow,
+            TenantId = organizationId
+        };
+
+        await context.Organizations.AddAsync(organization);
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded second organization: {orgData.NameEn}");
+    }
+
+    private static async Task SeedSecondOrgBranchesAsync(ApplicationDbContext context, string seedDataPath)
+    {
+        var filePath = Path.Combine(seedDataPath, "Branches2.json");
+        if (!File.Exists(filePath)) return;
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var branches = JsonSerializer.Deserialize<List<BranchSeedData>>(json, _jsonOptions);
+
+        if (branches == null || branches.Count == 0) return;
+
+        var organization = await context.Organizations.FirstOrDefaultAsync(o => o.Code == "ALPHA001");
+        if (organization == null) return;
+
+        // Skip if branches for this organization already exist
+        if (await context.Branches.AnyAsync(b => b.OrganizationId == organization.Id)) return;
+
+        foreach (var branchData in branches)
+        {
+            var branch = new Branch
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organization.Id,
+                NameAr = branchData.NameAr,
+                NameEn = branchData.NameEn,
+                Code = branchData.Code,
+                Description = branchData.Description,
+                CountryId = Guid.Parse(branchData.CountryId),
+                City = branchData.City,
+                AddressAr = branchData.AddressAr,
+                AddressEn = branchData.AddressEn,
+                PostalCode = branchData.PostalCode,
+                PhoneNumber = branchData.PhoneNumber,
+                Email = branchData.Email,
+                TimeZone = branchData.TimeZone,
+                Currency = branchData.Currency,
+                Language = branchData.Language,
+                IsHeadquarter = branchData.IsHeadquarter,
+                IsActive = branchData.IsActive,
+                MaxEmployeeCapacity = branchData.MaxEmployeeCapacity,
+                CurrentEmployeeCount = 0,
+                OpeningDate = DateTime.UtcNow,
+                WorkStartTime = TimeSpan.Parse(branchData.WorkStartTime),
+                WorkEndTime = TimeSpan.Parse(branchData.WorkEndTime),
+                WorkingDays = branchData.WorkingDays,
+                TenantId = organization.Id,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            branch.BranchId = branch.Id;
+            await context.Branches.AddAsync(branch);
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {branches.Count} branches for {organization.NameEn}");
+    }
+
+    /// <summary>
+    /// Seeds attendance settings for all organizations:
+    /// - Demo Company (DEMO001): FaceId-based attendance with liveness detection.
+    /// - Alpha Tech Solutions (ALPHA001): Location/GPS-based attendance with Cairo check-in points.
+    /// </summary>
+    private static async Task SeedBranchAttendanceSettingsAsync(ApplicationDbContext context)
+    {
+        var organizations = await context.Organizations.ToListAsync();
+        var allBranches = await context.Branches.ToListAsync();
+        var existingSettings = await context.BranchAttendanceSettings.ToListAsync();
+        var existingCheckInPoints = await context.BranchCheckInPoints.ToListAsync();
+
+        foreach (var org in organizations)
+        {
+            var orgBranches = allBranches.Where(b => b.OrganizationId == org.Id).ToList();
+            if (orgBranches.Count == 0) continue;
+
+            if (org.Code == "DEMO001")
+            {
+                await SeedOrUpdateFaceIdAttendanceAsync(context, org, orgBranches, existingSettings);
+            }
+            else if (org.Code == "ALPHA001")
+            {
+                await SeedOrUpdateLocationAttendanceAsync(context, org, orgBranches, existingSettings, existingCheckInPoints);
+            }
+        }
+
+        Console.WriteLine("Seeded/updated branch attendance settings for all organizations.");
+    }
+
+    /// <summary>
+    /// Seeds or updates FaceId attendance settings for Demo Company branches.
+    /// </summary>
+    private static async Task SeedOrUpdateFaceIdAttendanceAsync(
+        ApplicationDbContext context,
+        Organization org,
+        List<Branch> branches,
+        List<BranchAttendanceSetting> existingSettings)
+    {
+        var changed = false;
+
+        foreach (var branch in branches)
+        {
+            var existing = existingSettings.FirstOrDefault(s => s.BranchId == branch.Id && !s.IsDeleted);
+
+            if (existing != null)
+            {
+                // Update existing record to match FaceId-only config
+                existing.PrimaryMethod = AttendanceMethod.FaceId;
+                existing.AllowFaceId = true;
+                existing.AllowLocation = false;
+                existing.AllowExcelImport = false;
+                existing.AllowFingerprint = false;
+                existing.AllowManual = false;
+                existing.RequireLocationValidation = false;
+                existing.FaceIdConfidenceThreshold = 0.85;
+                existing.FaceIdRequireLiveness = true;
+                existing.AutoCheckoutEnabled = true;
+                existing.AutoCheckoutTime = new TimeSpan(23, 59, 0);
+                existing.Notes = "FaceId attendance with liveness detection enabled.";
+                changed = true;
+                Console.WriteLine($"  → Updated {branch.NameEn} to FaceId-only.");
+            }
+            else
+            {
+                var setting = new BranchAttendanceSetting
+                {
+                    Id = Guid.NewGuid(),
+                    BranchId = branch.Id,
+                    PrimaryMethod = AttendanceMethod.FaceId,
+                    AllowFaceId = true,
+                    AllowLocation = false,
+                    AllowExcelImport = false,
+                    AllowFingerprint = false,
+                    AllowManual = false,
+                    RequireLocationValidation = false,
+                    DefaultGeofenceRadiusMeters = 200,
+                    AutoCheckoutEnabled = true,
+                    AutoCheckoutTime = new TimeSpan(23, 59, 0),
+                    FaceIdConfidenceThreshold = 0.85,
+                    FaceIdRequireLiveness = true,
+                    ExcelImportSkipDuplicates = true,
+                    AllowMultipleCheckInsPerDay = false,
+                    MinCheckInDurationMinutes = 1,
+                    Notes = "FaceId attendance with liveness detection enabled.",
+                    TenantId = org.Id,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+                await context.BranchAttendanceSettings.AddAsync(setting);
+                changed = true;
+                Console.WriteLine($"  → Created FaceId setting for {branch.NameEn}.");
+            }
+        }
+
+        if (changed)
+        {
+            await context.SaveChangesAsync();
+            Console.WriteLine($"  → {org.NameEn}: FaceId attendance for {branches.Count} branch(es).");
+        }
+    }
+
+    /// <summary>
+    /// Seeds or updates Location/GPS attendance settings for Alpha Tech branches with Cairo check-in points.
+    /// </summary>
+    private static async Task SeedOrUpdateLocationAttendanceAsync(
+        ApplicationDbContext context,
+        Organization org,
+        List<Branch> branches,
+        List<BranchAttendanceSetting> existingSettings,
+        List<BranchCheckInPoint> existingCheckInPoints)
+    {
+        // Cairo landmark coordinates for check-in points
+        var cairoCheckInPoints = new Dictionary<string, (string NameAr, string NameEn, string Description, double Lat, double Lng, int Radius, string Address)[]>
+        {
+            ["ALPHA-HQ"] = new[]
+            {
+                ("البوابة الرئيسية - ميدان التحرير", "Main Gate - Tahrir Square",
+                 "Primary entrance near Tahrir Square, Downtown Cairo",
+                 30.0444, 31.2357, 150, "Tahrir Square, Downtown Cairo, Egypt"),
+
+                ("المدخل الخلفي - كورنيش النيل", "Back Entrance - Nile Corniche",
+                 "Secondary entrance on the Nile Corniche side",
+                 30.0420, 31.2340, 100, "Nile Corniche, Downtown Cairo, Egypt")
+            },
+            ["ALPHA-NSR"] = new[]
+            {
+                ("المدخل الرئيسي - عباس العقاد", "Main Entrance - Abbas El-Akkad",
+                 "Primary entrance on Abbas El-Akkad Street, Nasr City",
+                 30.0511, 31.3462, 200, "Abbas El-Akkad Street, Nasr City, Cairo, Egypt"),
+
+                ("بوابة الموظفين", "Staff Gate",
+                 "Staff entrance from the side street",
+                 30.0505, 31.3470, 100, "Side Street, Nasr City, Cairo, Egypt")
+            }
+        };
+
+        foreach (var branch in branches)
+        {
+            var existing = existingSettings.FirstOrDefault(s => s.BranchId == branch.Id && !s.IsDeleted);
+            Guid settingId;
+
+            if (existing != null)
+            {
+                // Update existing record to match Location-only config
+                existing.PrimaryMethod = AttendanceMethod.Location;
+                existing.AllowFaceId = false;
+                existing.AllowLocation = true;
+                existing.AllowExcelImport = false;
+                existing.AllowFingerprint = false;
+                existing.AllowManual = false;
+                existing.RequireLocationValidation = true;
+                existing.DefaultGeofenceRadiusMeters = 200;
+                existing.AutoCheckoutEnabled = true;
+                existing.AutoCheckoutTime = new TimeSpan(23, 59, 0);
+                existing.FaceIdRequireLiveness = false;
+                existing.Notes = "Location/GPS-based attendance with geofenced Cairo check-in points.";
+                settingId = existing.Id;
+                Console.WriteLine($"  → Updated {branch.NameEn} to Location-only.");
+            }
+            else
+            {
+                settingId = Guid.NewGuid();
+                var setting = new BranchAttendanceSetting
+                {
+                    Id = settingId,
+                    BranchId = branch.Id,
+                    PrimaryMethod = AttendanceMethod.Location,
+                    AllowFaceId = false,
+                    AllowLocation = true,
+                    AllowExcelImport = false,
+                    AllowFingerprint = false,
+                    AllowManual = false,
+                    RequireLocationValidation = true,
+                    DefaultGeofenceRadiusMeters = 200,
+                    AutoCheckoutEnabled = true,
+                    AutoCheckoutTime = new TimeSpan(23, 59, 0),
+                    FaceIdConfidenceThreshold = 0.85,
+                    FaceIdRequireLiveness = false,
+                    ExcelImportSkipDuplicates = true,
+                    AllowMultipleCheckInsPerDay = false,
+                    MinCheckInDurationMinutes = 1,
+                    Notes = "Location/GPS-based attendance with geofenced Cairo check-in points.",
+                    TenantId = org.Id,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+                await context.BranchAttendanceSettings.AddAsync(setting);
+                Console.WriteLine($"  → Created Location setting for {branch.NameEn}.");
+            }
+
+            await context.SaveChangesAsync();
+
+            // Seed check-in points if they don't exist for this branch
+            var branchHasPoints = existingCheckInPoints.Any(p => p.BranchId == branch.Id && !p.IsDeleted);
+            if (!branchHasPoints && cairoCheckInPoints.TryGetValue(branch.Code, out var points))
+            {
+                var displayOrder = 1;
+                foreach (var (nameAr, nameEn, description, lat, lng, radius, address) in points)
+                {
+                    var checkInPoint = new BranchCheckInPoint
+                    {
+                        Id = Guid.NewGuid(),
+                        BranchId = branch.Id,
+                        BranchAttendanceSettingId = settingId,
+                        NameAr = nameAr,
+                        NameEn = nameEn,
+                        Description = description,
+                        Latitude = lat,
+                        Longitude = lng,
+                        RadiusMeters = radius,
+                        IsCheckInPoint = true,
+                        IsCheckOutPoint = true,
+                        IsActive = true,
+                        Address = address,
+                        DisplayOrder = displayOrder++,
+                        TenantId = org.Id,
+                        CreatedDate = DateTimeOffset.UtcNow
+                    };
+
+                    await context.BranchCheckInPoints.AddAsync(checkInPoint);
+                }
+
+                await context.SaveChangesAsync();
+                Console.WriteLine($"  → Added {points.Length} Cairo check-in points for {branch.NameEn}.");
+            }
+        }
+
+        Console.WriteLine($"  → {org.NameEn}: Location attendance for {branches.Count} branch(es) with Cairo GPS check-in points.");
+    }
+
     private static async Task SeedRoleUsersAsync(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
@@ -306,7 +657,23 @@ public static class AppDbContextSeed
         };
 
         var branchRoleAdded = false;
-        var employeeCodeCounter = 900; // Start with a high number to avoid conflicts
+
+        // Determine starting counter based on existing employee codes to avoid duplicates
+        var maxExistingCode = await context.Employees
+            .Where(e => e.EmployeeCode != null && e.EmployeeCode.StartsWith("EMP-"))
+            .Select(e => e.EmployeeCode)
+            .ToListAsync();
+
+        var employeeCodeCounter = 900;
+        if (maxExistingCode.Count > 0)
+        {
+            var maxNum = maxExistingCode
+                .Select(c => int.TryParse(c.Replace("EMP-", ""), out var n) ? n : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+            if (maxNum >= employeeCodeCounter)
+                employeeCodeCounter = maxNum + 1;
+        }
 
         foreach (var roleData in roles)
         {
@@ -426,6 +793,264 @@ public static class AppDbContextSeed
         Console.WriteLine("Finished creating default role-based users");
     }
 
+    /// <summary>
+    /// Seeds users for the second organization (Alpha Tech Solutions - ALPHA001).
+    /// Creates an OrgAdmin + one HR Manager per branch, each with employee records.
+    /// </summary>
+    private static async Task SeedSecondOrgUsersAsync(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager)
+    {
+        var organization = await context.Organizations.FirstOrDefaultAsync(o => o.Code == "ALPHA001");
+        if (organization == null) return;
+
+        var branches = await context.Branches
+            .Where(b => b.OrganizationId == organization.Id)
+            .OrderByDescending(b => b.IsHeadquarter)
+            .ThenBy(b => b.CreatedDate)
+            .ToListAsync();
+
+        if (branches.Count == 0) return;
+
+        var hqBranch = branches.FirstOrDefault(b => b.IsHeadquarter) ?? branches.First();
+
+        var orgAdminEmail = $"admin@{organization.Code.ToLowerInvariant()}.local";
+
+        var departments = await context.Departments.ToListAsync();
+        var jobTitles = await context.JobTitles.ToListAsync();
+
+        // Determine next available employee code
+        var allCodes = await context.Employees
+            .Where(e => e.EmployeeCode != null && e.EmployeeCode.StartsWith("EMP-"))
+            .Select(e => e.EmployeeCode)
+            .ToListAsync();
+
+        var codeCounter = 1000;
+        if (allCodes.Count > 0)
+        {
+            var maxNum = allCodes
+                .Select(c => int.TryParse(c.Replace("EMP-", ""), out var n) ? n : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+            if (maxNum >= codeCounter)
+                codeCounter = maxNum + 1;
+        }
+
+        const string defaultPassword = "Password@123";
+
+        // ── 1) Organization Admin (org-wide, assigned to HQ branch) ──
+        if (await userManager.FindByEmailAsync(orgAdminEmail) == null)
+        {
+            var orgAdminUser = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = orgAdminEmail,
+                Email = orgAdminEmail,
+                EmailConfirmed = true,
+                FullName = "Khaled Mansour",
+                IsActive = true,
+                OrganizationId = organization.Id,
+                BranchId = hqBranch.Id,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            var result = await userManager.CreateAsync(orgAdminUser, defaultPassword);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(orgAdminUser, RoleNames.OrganizationAdmin);
+                await EnsureUserBranchRoleAsync(context, orgAdminUser.Id, hqBranch.Id, RoleNames.OrganizationAdmin);
+                Console.WriteLine($"  → Created OrgAdmin: {orgAdminEmail}");
+            }
+        }
+
+        // ── 2) Per-branch users: HR Manager + Employee ──
+        var branchUserDefinitions = new Dictionary<string, (string HrFullName, string HrFirstEn, string HrLastEn, string HrFirstAr, string HrLastAr,
+                                                            string EmpFullName, string EmpFirstEn, string EmpLastEn, string EmpFirstAr, string EmpLastAr)>
+        {
+            ["ALPHA-HQ"] = ("Fatima Hassan", "Fatima", "Hassan", "فاطمة", "حسن",
+                            "Youssef Ibrahim", "Youssef", "Ibrahim", "يوسف", "إبراهيم"),
+            ["ALPHA-NSR"] = ("Nour El-Din", "Nour", "El-Din", "نور", "الدين",
+                             "Mona Saeed", "Mona", "Saeed", "منى", "سعيد")
+        };
+
+        foreach (var branch in branches)
+        {
+            if (!branchUserDefinitions.TryGetValue(branch.Code, out var defs)) continue;
+
+            // ── HR Manager for this branch ──
+            var hrEmail = $"hr.{branch.Code.ToLowerInvariant().Replace("-", "")}@{organization.Code.ToLowerInvariant()}.local";
+            if (await userManager.FindByEmailAsync(hrEmail) == null)
+            {
+                var hrDepartment = departments.FirstOrDefault(d =>
+                    d.NameEn.Contains("Human", StringComparison.OrdinalIgnoreCase))
+                    ?? departments.FirstOrDefault();
+
+                var hrJobTitle = jobTitles.FirstOrDefault(j =>
+                    j.TitleEn.Contains("HR Manager", StringComparison.OrdinalIgnoreCase))
+                    ?? jobTitles.FirstOrDefault();
+
+                Guid? hrEmployeeId = null;
+                if (hrDepartment != null && hrJobTitle != null)
+                {
+                    var maleGenderId = Guid.Parse("00000000-0000-0000-0006-000000000001");
+                    var femaleGenderId = Guid.Parse("00000000-0000-0000-0006-000000000002");
+                    var singleMaritalStatusId = Guid.Parse("00000000-0000-0000-0007-000000000001");
+                    var permanentContractTypeId = Guid.Parse("00000000-0000-0000-0005-000000000001");
+                    var activeStatusId = Guid.Parse("00000000-0000-0000-0008-000000000001");
+
+                    var hrEmployee = new Employee
+                    {
+                        Id = Guid.NewGuid(),
+                        EmployeeCode = $"EMP-{codeCounter++:D4}",
+                        FirstNameEn = defs.HrFirstEn,
+                        LastNameEn = defs.HrLastEn,
+                        FirstNameAr = defs.HrFirstAr,
+                        LastNameAr = defs.HrLastAr,
+                        NationalId = BuildAlphaNationalId(codeCounter),
+                        DateOfBirth = DateTime.UtcNow.AddYears(-32),
+                        GenderId = femaleGenderId,
+                        MaritalStatusId = singleMaritalStatusId,
+                        Email = hrEmail,
+                        PhoneNumber = $"+2012000{codeCounter:D4}",
+                        MobileNumber = $"+2010200{codeCounter:D5}",
+                        AddressAr = "القاهرة، مصر",
+                        AddressEn = "Cairo, Egypt",
+                        DepartmentId = hrDepartment.Id,
+                        JobTitleId = hrJobTitle.Id,
+                        BranchId = branch.Id,
+                        ContractTypeId = permanentContractTypeId,
+                        StatusId = activeStatusId,
+                        HiringDate = DateTime.UtcNow.AddYears(-2),
+                        ProbationPeriodMonths = 0,
+                        TenantId = organization.Id,
+                        CreatedDate = DateTimeOffset.UtcNow
+                    };
+
+                    await context.Employees.AddAsync(hrEmployee);
+                    await context.SaveChangesAsync();
+                    hrEmployeeId = hrEmployee.Id;
+                }
+
+                var hrUser = new ApplicationUser
+                {
+                    Id = Guid.NewGuid(),
+                    UserName = hrEmail,
+                    Email = hrEmail,
+                    EmailConfirmed = true,
+                    FullName = defs.HrFullName,
+                    IsActive = true,
+                    OrganizationId = organization.Id,
+                    EmployeeId = hrEmployeeId,
+                    BranchId = branch.Id,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+
+                var hrResult = await userManager.CreateAsync(hrUser, defaultPassword);
+                if (hrResult.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(hrUser, RoleNames.HRManager);
+                    await EnsureUserBranchRoleAsync(context, hrUser.Id, branch.Id, RoleNames.HRManager);
+
+                    if (hrEmployeeId.HasValue)
+                    {
+                        var emp = await context.Employees.FindAsync(hrEmployeeId.Value);
+                        if (emp != null) { emp.UserId = hrUser.Id; await context.SaveChangesAsync(); }
+                    }
+
+                    Console.WriteLine($"  → Created HR Manager for {branch.NameEn}: {hrEmail}");
+                }
+            }
+
+            // ── Regular Employee for this branch ──
+            var empEmail = $"emp.{branch.Code.ToLowerInvariant().Replace("-", "")}@{organization.Code.ToLowerInvariant()}.local";
+            if (await userManager.FindByEmailAsync(empEmail) == null)
+            {
+                var empDepartment = departments.FirstOrDefault(d =>
+                    d.NameEn.Contains("Operations", StringComparison.OrdinalIgnoreCase))
+                    ?? departments.FirstOrDefault();
+
+                var empJobTitle = jobTitles.FirstOrDefault(j =>
+                    j.TitleEn.Contains("Employee", StringComparison.OrdinalIgnoreCase)
+                    || j.TitleEn.Contains("Staff", StringComparison.OrdinalIgnoreCase))
+                    ?? jobTitles.FirstOrDefault();
+
+                Guid? regularEmployeeId = null;
+                if (empDepartment != null && empJobTitle != null)
+                {
+                    var maleGenderId = Guid.Parse("00000000-0000-0000-0006-000000000001");
+                    var marriedMaritalStatusId = Guid.Parse("00000000-0000-0000-0007-000000000002");
+                    var permanentContractTypeId = Guid.Parse("00000000-0000-0000-0005-000000000001");
+                    var activeStatusId = Guid.Parse("00000000-0000-0000-0008-000000000001");
+
+                    var regularEmp = new Employee
+                    {
+                        Id = Guid.NewGuid(),
+                        EmployeeCode = $"EMP-{codeCounter++:D4}",
+                        FirstNameEn = defs.EmpFirstEn,
+                        LastNameEn = defs.EmpLastEn,
+                        FirstNameAr = defs.EmpFirstAr,
+                        LastNameAr = defs.EmpLastAr,
+                        NationalId = BuildAlphaNationalId(codeCounter),
+                        DateOfBirth = DateTime.UtcNow.AddYears(-28),
+                        GenderId = maleGenderId,
+                        MaritalStatusId = marriedMaritalStatusId,
+                        Email = empEmail,
+                        PhoneNumber = $"+2012100{codeCounter:D4}",
+                        MobileNumber = $"+2010210{codeCounter:D5}",
+                        AddressAr = "القاهرة، مصر",
+                        AddressEn = "Cairo, Egypt",
+                        DepartmentId = empDepartment.Id,
+                        JobTitleId = empJobTitle.Id,
+                        BranchId = branch.Id,
+                        ContractTypeId = permanentContractTypeId,
+                        StatusId = activeStatusId,
+                        HiringDate = DateTime.UtcNow.AddYears(-1),
+                        ProbationPeriodMonths = 3,
+                        TenantId = organization.Id,
+                        CreatedDate = DateTimeOffset.UtcNow
+                    };
+
+                    await context.Employees.AddAsync(regularEmp);
+                    await context.SaveChangesAsync();
+                    regularEmployeeId = regularEmp.Id;
+                }
+
+                var empUser = new ApplicationUser
+                {
+                    Id = Guid.NewGuid(),
+                    UserName = empEmail,
+                    Email = empEmail,
+                    EmailConfirmed = true,
+                    FullName = defs.EmpFullName,
+                    IsActive = true,
+                    OrganizationId = organization.Id,
+                    EmployeeId = regularEmployeeId,
+                    BranchId = branch.Id,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+
+                var empResult = await userManager.CreateAsync(empUser, defaultPassword);
+                if (empResult.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(empUser, RoleNames.Employee);
+                    await EnsureUserBranchRoleAsync(context, empUser.Id, branch.Id, RoleNames.Employee);
+
+                    if (regularEmployeeId.HasValue)
+                    {
+                        var emp = await context.Employees.FindAsync(regularEmployeeId.Value);
+                        if (emp != null) { emp.UserId = empUser.Id; await context.SaveChangesAsync(); }
+                    }
+
+                    Console.WriteLine($"  → Created Employee for {branch.NameEn}: {empEmail}");
+                }
+            }
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine("Finished creating Alpha Tech users.");
+    }
+
     private static async Task SeedEmployeeLeaveBalancesAsync(ApplicationDbContext context)
     {
         var hasEmployees = await context.Employees.AnyAsync();
@@ -523,6 +1148,12 @@ public static class AppDbContextSeed
         Console.WriteLine($"Seeded {balancesToAdd.Count} employee leave balances for {currentYear}.");
     }
 
+    private static string BuildAlphaNationalId(int sequence)
+    {
+        var numericSegment = Math.Abs(sequence) % 1_000_000_000;
+        return $"ALPHA{numericSegment:D9}";
+    }
+
     private static string GetRoleUserFullName(string roleName)
     {
         return roleName switch
@@ -546,6 +1177,16 @@ public static class AppDbContextSeed
         int employeeCodeCounter)
     {
         // Find appropriate department and job title based on role
+        // Check if employee with this code already exists (idempotent re-run)
+        var targetCode = $"EMP-{employeeCodeCounter:D4}";
+        var existingEmployee = await context.Employees
+            .FirstOrDefaultAsync(e => e.EmployeeCode == targetCode && !e.IsDeleted);
+        if (existingEmployee != null)
+        {
+            Console.WriteLine($"Employee {targetCode} already exists for role {roleName}, reusing.");
+            return existingEmployee.Id;
+        }
+
         var (departmentName, jobTitleName, firstNameEn, lastNameEn, firstNameAr, lastNameAr) = roleName switch
         {
             RoleNames.HRManager => ("Human Resources", "HR Manager", "Sarah", "Johnson", "سارة", "جونسون"),

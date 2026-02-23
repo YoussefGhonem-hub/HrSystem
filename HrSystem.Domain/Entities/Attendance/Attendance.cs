@@ -24,6 +24,18 @@ public class Attendance : BaseAuditableEntity
     public string? CheckInDeviceId { get; set; }
     public string? CheckOutDeviceId { get; set; }
     
+    // Location Info (GPS coordinates at time of check-in/out)
+    public double? CheckInLatitude { get; set; }
+    public double? CheckInLongitude { get; set; }
+    public Guid? CheckInPointId { get; set; }
+    public double? CheckOutLatitude { get; set; }
+    public double? CheckOutLongitude { get; set; }
+    public Guid? CheckOutPointId { get; set; }
+    
+    // Source tracking
+    public AttendanceMethod? CheckInMethod { get; set; }
+    public AttendanceMethod? CheckOutMethod { get; set; }
+    
     // Calculated Fields
     public TimeSpan? WorkedHours { get; set; }
     public TimeSpan? OvertimeHours { get; set; }
@@ -54,4 +66,6 @@ public class Attendance : BaseAuditableEntity
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;
     public virtual AttendanceStatus Status { get; set; } = null!;
+    public virtual BranchCheckInPoint? CheckInPoint { get; set; }
+    public virtual BranchCheckInPoint? CheckOutPoint { get; set; }
 }

@@ -59,6 +59,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     // Attendance
     public DbSet<HrSystem.Domain.Entities.Attendance.Attendance> Attendances => Set<HrSystem.Domain.Entities.Attendance.Attendance>();
     public DbSet<HrSystem.Domain.Entities.Attendance.EmployeeBiometric> EmployeeBiometrics => Set<HrSystem.Domain.Entities.Attendance.EmployeeBiometric>();
+    public DbSet<HrSystem.Domain.Entities.Attendance.BranchAttendanceSetting> BranchAttendanceSettings => Set<HrSystem.Domain.Entities.Attendance.BranchAttendanceSetting>();
+    public DbSet<HrSystem.Domain.Entities.Attendance.BranchCheckInPoint> BranchCheckInPoints => Set<HrSystem.Domain.Entities.Attendance.BranchCheckInPoint>();
 
     // Lookup Tables
     public DbSet<HrSystem.Domain.Entities.Attendance.AttendanceStatus> AttendanceStatuses => Set<HrSystem.Domain.Entities.Attendance.AttendanceStatus>();
