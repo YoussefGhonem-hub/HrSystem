@@ -27,6 +27,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     // Others      â†’ filter by BranchId only
     public Guid CurrentTenantId => CurrentUser.OrganizationId ?? Guid.Empty;
     public Guid CurrentBranchId => CurrentUser.BranchId ?? Guid.Empty;
+    public Guid CurrentEmployeeId => CurrentUser.EmployeeId ?? Guid.Empty;
+    public Guid CurrentUserId => CurrentUser.Id ?? Guid.Empty;
 
     public bool FilterBypassEnabled => CurrentUser.BypassScopeFilters
         || CurrentUser.Roles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase));
@@ -154,15 +156,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         var orgAdminProp = dbContextType.GetProperty(nameof(IsOrgAdminScope))!;
         var tenantProp = dbContextType.GetProperty(nameof(CurrentTenantId))!;
         var branchProp = dbContextType.GetProperty(nameof(CurrentBranchId))!;
+        var empIdProp = dbContextType.GetProperty(nameof(CurrentEmployeeId))!;
+        var userIdProp = dbContextType.GetProperty(nameof(CurrentUserId))!;
         
         // Expression that represents "this" DbContext instance.
         var dbContextExpr = Expression.Constant(this);
 
-        // Shared sub-expressions (reference DbContext properties â†’ evaluated per query).
-        var bypassExpr = Expression.Property(dbContextExpr, bypassProp);       // bool
-        var orgAdminExpr = Expression.Property(dbContextExpr, orgAdminProp);    // bool
-        var tenantIdExpr = Expression.Property(dbContextExpr, tenantProp);      // Guid
-        var branchIdExpr = Expression.Property(dbContextExpr, branchProp);      // Guid
+        // Shared sub-expressions (reference DbContext properties → evaluated per query).
+        var bypassExpr = Expression.Property(dbContextExpr, bypassProp);               // bool
+        var orgAdminExpr = Expression.Property(dbContextExpr, orgAdminProp);            // bool
+        var tenantIdExpr = Expression.Property(dbContextExpr, tenantProp);              // Guid
+        var branchIdExpr = Expression.Property(dbContextExpr, branchProp);              // Guid
+        var currentEmpIdExpr = Expression.Property(dbContextExpr, empIdProp);           // Guid
+        var currentUserIdExpr = Expression.Property(dbContextExpr, userIdProp);         // Guid
+        var guidEmptyExpr = Expression.Constant(Guid.Empty);
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
@@ -185,24 +192,68 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             var entityBranch = Expression.Property(param, branchPropInfo);
 
             // Handle both Guid? (base) and Guid (overridden) property types
-            Expression branchMatch = entityBranch.Type == typeof(Guid?)
-                ? Expression.Equal(entityBranch, Expression.Convert(branchIdExpr, typeof(Guid?)))
-                : Expression.Equal(entityBranch, branchIdExpr);
+            // For nullable BranchId, also allow NULL (shared/lookup records available to all branches)
+            Expression branchMatch;
+            if (entityBranch.Type == typeof(Guid?))
+            {
+                var branchIsNull = Expression.Equal(
+                    entityBranch,
+                    Expression.Constant(null, typeof(Guid?)));
+                var branchEquals = Expression.Equal(
+                    entityBranch,
+                    Expression.Convert(branchIdExpr, typeof(Guid?)));
+                branchMatch = Expression.OrElse(branchIsNull, branchEquals);
+            }
+            else
+            {
+                branchMatch = Expression.Equal(entityBranch, branchIdExpr);
+            }
 
-            // Flat boolean expression â€” translates to clean SQL OR/AND:
-            //
-            //   bypass
-            //   OR (entity.TenantId == tenantId
-            //       AND (orgAdmin OR entity.BranchId == branchId))
-            //
-            // SuperAdmin  â†’ bypass=true  â†’ whole expression is true, no filter
-            // OrgAdmin    â†’ bypass=false, orgAdmin=true  â†’ only TenantId check
-            // HR/Employee â†’ bypass=false, orgAdmin=false â†’ TenantId + BranchId check
-            var scopePredicate = Expression.OrElse(
-                bypassExpr,
-                Expression.AndAlso(
-                    tenantMatch,
-                    Expression.OrElse(orgAdminExpr, branchMatch)));
+            // Lookup/reference entities (BaseEntity but NOT BaseAuditableEntity) are org-wide
+            // shared data (e.g., Gender, MaritalStatus, EmployeeStatus) â€" only filter by TenantId.
+            // Operational entities (BaseAuditableEntity) get the full TenantId + BranchId filter.
+            var isLookupEntity = !typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType);
+
+            Expression scopePredicate;
+            if (isLookupEntity)
+            {
+                // Lookup entities: bypass OR tenantMatch (no branch check)
+                scopePredicate = Expression.OrElse(bypassExpr, tenantMatch);
+            }
+            else
+            {
+                // Operational entities: bypass OR (tenantMatch AND (orgAdmin OR branchMatch))
+                scopePredicate = Expression.OrElse(
+                    bypassExpr,
+                    Expression.AndAlso(
+                        tenantMatch,
+                        Expression.OrElse(orgAdminExpr, branchMatch)));
+            }
+
+            // For the Employee entity, allow self-access bypassing branch/tenant scope:
+            //   (CurrentEmployeeId != Guid.Empty AND entity.Id == CurrentEmployeeId)
+            //   OR (CurrentUserId != Guid.Empty AND entity.UserId == CurrentUserId)
+            if (entityType.ClrType == typeof(HrSystem.Domain.Entities.Employee.Employee))
+            {
+                // entity.Id == CurrentEmployeeId (when employee_id claim is in JWT)
+                var entityId = Expression.Property(param, nameof(BaseEntity.Id));
+                var empIdNotEmpty = Expression.NotEqual(currentEmpIdExpr, guidEmptyExpr);
+                var empIdMatch = Expression.Equal(entityId, currentEmpIdExpr);
+                var selfByEmpId = Expression.AndAlso(empIdNotEmpty, empIdMatch);
+
+                // entity.UserId == CurrentUserId (fallback when employee_id claim is absent)
+                var entityUserId = Expression.Property(param,
+                    typeof(HrSystem.Domain.Entities.Employee.Employee).GetProperty("UserId")!);
+                var userIdNotEmpty = Expression.NotEqual(currentUserIdExpr, guidEmptyExpr);
+                var userIdMatch = Expression.Equal(
+                    entityUserId,
+                    Expression.Convert(currentUserIdExpr, typeof(Guid?)));
+                var selfByUserId = Expression.AndAlso(userIdNotEmpty, userIdMatch);
+
+                scopePredicate = Expression.OrElse(
+                    scopePredicate,
+                    Expression.OrElse(selfByEmpId, selfByUserId));
+            }
 
             // Merge with the existing soft-delete filter (if any).
             var existingFilter = entityType.GetQueryFilter();
