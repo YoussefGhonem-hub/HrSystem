@@ -1,4 +1,5 @@
 using HrSystem.Shared.Common;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Text.Json;
 
@@ -80,13 +81,32 @@ public class ExceptionMiddleware
                 "Invalid operation",
                 new[] { exception.Message }
             ),
+            DbUpdateException dbEx => (
+                (int)HttpStatusCode.InternalServerError,
+                "A database error occurred while saving changes",
+                _environment.IsDevelopment()
+                    ? GetAllExceptionMessages(dbEx).ToArray()
+                    : new[] { "A database error occurred. Please try again later." }
+            ),
             _ => (
                 (int)HttpStatusCode.InternalServerError,
                 "An error occurred while processing your request",
                 _environment.IsDevelopment() 
-                    ? new[] { exception.Message, exception.StackTrace ?? "No stack trace available" }
+                    ? GetAllExceptionMessages(exception).ToArray()
                     : new[] { "An unexpected error occurred. Please try again later." }
             )
         };
+    }
+
+    private static List<string> GetAllExceptionMessages(Exception ex)
+    {
+        var messages = new List<string>();
+        var current = ex;
+        while (current != null)
+        {
+            messages.Add(current.Message);
+            current = current.InnerException;
+        }
+        return messages;
     }
 }

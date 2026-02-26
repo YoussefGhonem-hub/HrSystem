@@ -14,7 +14,9 @@ public class BranchRequestSettingConfiguration : IEntityTypeConfiguration<Branch
         builder.Property(s => s.CustomInstructions).HasMaxLength(1000);
         builder.Property(s => s.RequestTypeId).IsRequired();
 
-        builder.HasIndex(s => new { s.BranchId, s.RequestTypeId }).IsUnique();
+        builder.HasIndex(s => new { s.BranchId, s.RequestTypeId })
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
         builder.HasIndex(s => new { s.TenantId, s.RequestTypeId });
 
         builder.HasOne(s => s.Branch)
