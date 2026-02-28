@@ -11,6 +11,7 @@ using HrSystem.Application.Features.Payroll.Queries.GetPayslipsList;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPaymentDetails;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollOverview;
 using HrSystem.Application.Features.Payroll.Queries.GetPayslipsWithStatistics;
+using HrSystem.Application.Features.Payroll.Queries.GetPayrollHistory;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -238,6 +239,30 @@ public class PayrollController : APIBaseController
             sortBy,
             sortDescending);
 
+        var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get payroll history (monthly payslip cards) for the current user or a specific employee.
+    /// Returns a paginated list of payslips with full salary breakdown per month.
+    /// </summary>
+    /// <param name="employeeId">Optional employee ID (HR/Admin can query any employee; omit to use current user)</param>
+    /// <param name="year">Filter by year (e.g., 2025). Omit to return all years.</param>
+    /// <param name="pageNumber">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 12)</param>
+    [HttpGet("payroll-history")]
+    public async Task<IActionResult> GetPayrollHistory(
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] int? year = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 12)
+    {
+        var query = new GetPayrollHistoryQuery(employeeId, year, pageNumber, pageSize);
         var result = await _mediator.Send(query);
 
         return result.Match(
