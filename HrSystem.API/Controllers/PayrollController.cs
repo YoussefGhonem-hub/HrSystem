@@ -248,21 +248,44 @@ public class PayrollController : APIBaseController
     }
 
     /// <summary>
-    /// Get payroll history (monthly payslip cards) for the current user or a specific employee.
-    /// Returns a paginated list of payslips with full salary breakdown per month.
+    /// Get payroll history for all employees with filters and pagination.
+    /// Returns a paginated grid of payslips with employee info and full salary breakdown per month.
     /// </summary>
-    /// <param name="employeeId">Optional employee ID (HR/Admin can query any employee; omit to use current user)</param>
-    /// <param name="year">Filter by year (e.g., 2025). Omit to return all years.</param>
+    /// <param name="year">Filter by year (e.g., 2025)</param>
+    /// <param name="month">Filter by month (1-12)</param>
+    /// <param name="employeeId">Filter by specific employee</param>
+    /// <param name="departmentId">Filter by department</param>
+    /// <param name="isPaid">Filter by payment status</param>
+    /// <param name="searchTerm">Search by employee code, name, or payslip number</param>
+    /// <param name="sortBy">Sort field (EmployeeCode, EmployeeName, Department, NetSalary, GrossSalary, Month, Status)</param>
+    /// <param name="sortDescending">Sort descending (default: true)</param>
     /// <param name="pageNumber">Page number (default: 1)</param>
-    /// <param name="pageSize">Page size (default: 12)</param>
+    /// <param name="pageSize">Page size (default: 10)</param>
     [HttpGet("payroll-history")]
     public async Task<IActionResult> GetPayrollHistory(
-        [FromQuery] Guid? employeeId = null,
         [FromQuery] int? year = null,
+        [FromQuery] int? month = null,
+        [FromQuery] Guid? employeeId = null,
+        [FromQuery] Guid? departmentId = null,
+        [FromQuery] bool? isPaid = null,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = true,
         [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 12)
+        [FromQuery] int pageSize = 10)
     {
-        var query = new GetPayrollHistoryQuery(employeeId, year, pageNumber, pageSize);
+        var query = new GetPayrollHistoryQuery(
+            year,
+            month,
+            employeeId,
+            departmentId,
+            isPaid,
+            searchTerm,
+            sortBy,
+            sortDescending,
+            pageNumber,
+            pageSize);
+
         var result = await _mediator.Send(query);
 
         return result.Match(

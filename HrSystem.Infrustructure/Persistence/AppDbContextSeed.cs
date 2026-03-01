@@ -2526,10 +2526,13 @@ public static class AppDbContextSeed
             Console.WriteLine($"Seeded {newSalaries.Count} salary records");
         }
 
-        if (await context.PayrollCycles.AnyAsync())
-        {
-            return;
-        }
+        // Build a set of already-seeded (Year, Month) pairs so we only add missing cycles
+        var existingPeriods = new HashSet<(int Year, int Month)>(
+            await context.PayrollCycles
+                .AsNoTracking()
+                .Select(c => new { c.Year, c.Month })
+                .ToListAsync()
+                .ContinueWith(t => t.Result.Select(x => (x.Year, x.Month))));
 
         var currentSalaries = await context.Salaries
             .Where(s => s.IsCurrent)
@@ -2558,10 +2561,17 @@ public static class AppDbContextSeed
         var payrollCycles = new List<PayrollCycle>();
         var today = DateTime.UtcNow;
 
-        for (var offset = 0; offset < 3; offset++)
+        for (var offset = 0; offset < 12; offset++)
         {
             var periodStart = new DateTime(today.Year, today.Month, 1).AddMonths(-offset);
             var periodEnd = periodStart.AddMonths(1).AddDays(-1);
+            var isCurrent = offset == 0;
+
+            // Skip if this cycle was already seeded
+            if (existingPeriods.Contains((periodStart.Year, periodStart.Month)))
+            {
+                continue;
+            }
 
             var cycle = new PayrollCycle
             {
@@ -2570,7 +2580,7 @@ public static class AppDbContextSeed
                 Year = periodStart.Year,
                 PeriodStartDate = periodStart,
                 PeriodEndDate = periodEnd,
-                PaymentDate = periodEnd.AddDays(3),
+                PaymentDate = isCurrent ? null : periodEnd.AddDays(3),
                 StatusId = payrollStatusId,
                 Notes = "Auto-generated sample payroll cycle",
                 TenantId = organization.Id,
@@ -2622,8 +2632,8 @@ public static class AppDbContextSeed
                     ActualWorkingDays = 22 - unpaidLeaveDays,
                     AbsentDays = unpaidLeaveDays,
                     GeneratedDate = DateTime.UtcNow,
-                    IsPaid = true,
-                    PaidDate = cycle.PaymentDate,
+                    IsPaid = !isCurrent,
+                    PaidDate = isCurrent ? null : cycle.PaymentDate,
                     TenantId = salary.TenantId,
                     BranchId = salary.BranchId ?? defaultBranchId.Value,
                     CreatedDate = DateTimeOffset.UtcNow

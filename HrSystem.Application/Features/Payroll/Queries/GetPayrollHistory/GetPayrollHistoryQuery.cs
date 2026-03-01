@@ -10,10 +10,16 @@ using Microsoft.EntityFrameworkCore;
 namespace HrSystem.Application.Features.Payroll.Queries.GetPayrollHistory;
 
 public record GetPayrollHistoryQuery(
-    Guid? EmployeeId = null,
     int? Year = null,
+    int? Month = null,
+    Guid? EmployeeId = null,
+    Guid? DepartmentId = null,
+    bool? IsPaid = null,
+    string? SearchTerm = null,
+    string? SortBy = "RequestedDate",
+    bool SortDescending = true,
     int PageNumber = 1,
-    int PageSize = 12
+    int PageSize = 10
 ) : IRequest<ErrorOr<GenericResponse<PagedResult<PayrollHistoryListItemDto>>>>;
 
 public class GetPayrollHistoryQueryHandler
@@ -30,7 +36,7 @@ public class GetPayrollHistoryQueryHandler
         GetPayrollHistoryQuery request,
         CancellationToken cancellationToken)
     {
-        // Resolve target employee
+        // Resolve EmployeeId from CurrentUser when not provided
         var employeeId = request.EmployeeId;
 
         if (!employeeId.HasValue || employeeId.Value == Guid.Empty)
@@ -56,32 +62,38 @@ public class GetPayrollHistoryQueryHandler
                 "Current user is not linked to an employee");
         }
 
-        // Get the employee's salary currency
-        var currency = await _context.Salaries
-            .Where(s => s.EmployeeId == employeeId.Value && s.IsCurrent)
-            .OrderByDescending(s => s.EffectiveDate)
-            .Select(s => s.Currency)
-            .FirstOrDefaultAsync(cancellationToken) ?? "EGP";
-
-        // Build query
+        // Build base query
         var query = _context.Payslips
             .Include(p => p.PayrollCycle)
-            .Where(p => !p.IsDeleted && p.EmployeeId == employeeId.Value)
+            .Include(p => p.Employee)
+                .ThenInclude(e => e.Department)
+            .Where(p => !p.IsDeleted)
             .AsQueryable();
 
-        if (request.Year.HasValue)
-        {
-            query = query.Where(p => p.PayrollCycle.Year == request.Year.Value);
-        }
+        // Apply filters & sorting via extension methods
+        query = query
+            .ApplyFilters(
+                request.Year,
+                request.Month,
+                employeeId,
+                request.DepartmentId,
+                request.IsPaid,
+                request.SearchTerm)
+            .ApplySorting(request.SortBy, request.SortDescending);
 
-        var payslipsQuery = query
-            .OrderByDescending(p => p.PayrollCycle.Year)
-            .ThenByDescending(p => p.PayrollCycle.Month)
-            .ThenByDescending(p => p.GeneratedDate)
+        // Projection + Pagination
+        var projectedQuery = query
             .Select(p => new PayrollHistoryListItemDto
             {
                 PayslipId = p.Id,
                 PayrollCycleId = p.PayrollCycleId,
+                EmployeeId = p.EmployeeId,
+                EmployeeCode = p.Employee.EmployeeCode,
+                EmployeeNameEn = p.Employee.FullNameEn,
+                EmployeeNameAr = p.Employee.FullNameAr,
+                DepartmentNameEn = p.Employee.Department != null ? p.Employee.Department.NameEn : "No Department",
+                DepartmentNameAr = p.Employee.Department != null ? p.Employee.Department.NameAr : "No Department",
+                ProfilePictureUrl = p.Employee.ProfilePictureUrl,
                 Year = p.PayrollCycle.Year,
                 Month = p.PayrollCycle.Month,
                 MonthName = CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(p.PayrollCycle.Month),
@@ -98,7 +110,7 @@ public class GetPayrollHistoryQueryHandler
                 LeaveDeductions = p.LeaveDeductions,
                 UnpaidLeaveDays = p.UnpaidLeaveDays,
                 NetSalary = p.NetSalary,
-                Currency = currency,
+                Currency = "EGP",
                 TotalWorkingDays = p.TotalWorkingDays,
                 ActualWorkingDays = p.ActualWorkingDays,
                 AbsentDays = p.AbsentDays,
@@ -109,7 +121,7 @@ public class GetPayrollHistoryQueryHandler
                 PdfFileUrl = p.PdfFileUrl
             });
 
-        var pagedResult = await payslipsQuery.ToPagedResultAsync(
+        var pagedResult = await projectedQuery.ToPagedResultAsync(
             request.PageNumber,
             request.PageSize,
             cancellationToken);

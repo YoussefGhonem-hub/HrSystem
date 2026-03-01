@@ -1,11 +1,20 @@
-using System.Globalization;
-
 namespace HrSystem.Application.Features.Payroll.Queries.GetPayrollHistory;
 
 public class PayrollHistoryListItemDto
 {
     public Guid PayslipId { get; set; }
     public Guid PayrollCycleId { get; set; }
+
+    // Employee identification
+    public Guid EmployeeId { get; set; }
+    public string EmployeeCode { get; set; } = string.Empty;
+    public string EmployeeNameEn { get; set; } = string.Empty;
+    public string EmployeeNameAr { get; set; } = string.Empty;
+    public string DepartmentNameEn { get; set; } = string.Empty;
+    public string DepartmentNameAr { get; set; } = string.Empty;
+    public string? ProfilePictureUrl { get; set; }
+
+    // Period
     public int Year { get; set; }
     public int Month { get; set; }
     public string MonthName { get; set; } = string.Empty;
