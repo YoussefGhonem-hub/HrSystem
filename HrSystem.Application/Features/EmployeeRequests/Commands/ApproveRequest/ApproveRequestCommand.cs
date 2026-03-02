@@ -53,7 +53,8 @@ public class ApproveRequestCommandHandler
 
         // Determine approval level from caller's role
         var roles = CurrentUser.Roles;
-        var currentUserId = CurrentUser.EmployeeId;
+        var currentUserId = CurrentUser.Id;
+        var currentEmployeeId = CurrentUser.EmployeeId;
 
         bool isHR = roles.Any(r =>
             r == RoleNames.HRManager ||
@@ -90,11 +91,11 @@ public class ApproveRequestCommandHandler
         // Apply type-specific approval logic
         if (level == ApprovalLevel.Manager)
         {
-            return await HandleManagerApproval(employeeRequest, requestTypeCode, request, currentUserId, cancellationToken);
+            return await HandleManagerApproval(employeeRequest, requestTypeCode, request, currentUserId, currentEmployeeId, cancellationToken);
         }
         else
         {
-            return await HandleHRApproval(employeeRequest, requestTypeCode, request, currentUserId, cancellationToken);
+            return await HandleHRApproval(employeeRequest, requestTypeCode, request, currentUserId, currentEmployeeId, cancellationToken);
         }
     }
 
@@ -103,6 +104,7 @@ public class ApproveRequestCommandHandler
         string requestTypeCode,
         ApproveRequestCommand request,
         Guid? currentUserId,
+        Guid? currentEmployeeId,
         CancellationToken cancellationToken)
     {
         employeeRequest.ManagerComments = request.Comments;
@@ -117,7 +119,7 @@ public class ApproveRequestCommandHandler
         {
             employeeRequest.PermissionDetail.ManagerApprovalDate = DateTime.UtcNow;
             employeeRequest.PermissionDetail.ManagerComments = request.Comments;
-            employeeRequest.PermissionDetail.ManagerId = currentUserId;
+            employeeRequest.PermissionDetail.ManagerId = currentEmployeeId;
         }
 
         if (request.IsApproved)
@@ -147,6 +149,7 @@ public class ApproveRequestCommandHandler
         string requestTypeCode,
         ApproveRequestCommand request,
         Guid? currentUserId,
+        Guid? currentEmployeeId,
         CancellationToken cancellationToken)
     {
         if (request.IsApproved)
@@ -155,7 +158,7 @@ public class ApproveRequestCommandHandler
             if (requestTypeCode == "Vacation" && employeeRequest.VacationDetail != null)
             {
                 employeeRequest.VacationDetail.HRApprovalDate = DateTime.UtcNow;
-                employeeRequest.VacationDetail.HRApprovedBy = currentUserId;
+                employeeRequest.VacationDetail.HRApprovedBy = currentEmployeeId;
                 employeeRequest.VacationDetail.HRComments = request.Comments;
 
                 var deductionError = await TryDeductLeaveBalanceAsync(employeeRequest, cancellationToken);
@@ -179,7 +182,7 @@ public class ApproveRequestCommandHandler
             if (requestTypeCode == "Vacation" && employeeRequest.VacationDetail != null)
             {
                 employeeRequest.VacationDetail.HRApprovalDate = DateTime.UtcNow;
-                employeeRequest.VacationDetail.HRApprovedBy = currentUserId;
+                employeeRequest.VacationDetail.HRApprovedBy = currentEmployeeId;
                 employeeRequest.VacationDetail.HRComments = request.Comments;
                 employeeRequest.VacationDetail.RejectionReason = request.Comments;
             }
