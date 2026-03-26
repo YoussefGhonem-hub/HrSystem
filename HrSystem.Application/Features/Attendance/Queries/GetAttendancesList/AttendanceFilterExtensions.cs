@@ -66,8 +66,8 @@ public static class AttendanceFilterExtensions
         query = sortBy?.ToLower() switch
         {
             "date" => isDescending ? query.OrderByDescending(a => a.Date) : query.OrderBy(a => a.Date),
-            "employee" => isDescending ? query.OrderByDescending(a => a.Employee.FullNameEn) : query.OrderBy(a => a.Employee.FullNameEn),
-            "status" => isDescending ? query.OrderByDescending(a => a.Status) : query.OrderBy(a => a.Status),
+            "employee" => isDescending ? query.OrderByDescending(a => a.Employee.FirstNameEn).ThenByDescending(a => a.Employee.LastNameEn) : query.OrderBy(a => a.Employee.FirstNameEn).ThenBy(a => a.Employee.LastNameEn),
+            "status" => isDescending ? query.OrderByDescending(a => a.Status.NameEn) : query.OrderBy(a => a.Status.NameEn),
             "workedhours" => isDescending ? query.OrderByDescending(a => a.WorkedHours) : query.OrderBy(a => a.WorkedHours),
             _ => query.OrderByDescending(a => a.Date) // Default sort by date descending
         };

@@ -119,8 +119,11 @@ public class CheckInOutCommandHandler
                     "GPS coordinates are required for location-based attendance.");
 
             // Load active check-in points for this branch
+            // IgnoreQueryFilters bypasses the global tenant/branch scope filter,
+            // which is too restrictive here — we already validated the employee's branch above.
             var checkInPoints = await _context.BranchCheckInPoints
                 .AsNoTracking()
+                .IgnoreQueryFilters()
                 .Where(p => p.BranchId == branchId && !p.IsDeleted && p.IsActive)
                 .Where(p => request.PunchType == AttendancePunchType.CheckIn ? p.IsCheckInPoint : p.IsCheckOutPoint)
                 .ToListAsync(cancellationToken);
@@ -133,6 +136,8 @@ public class CheckInOutCommandHandler
 
             // Find the nearest check-in point within geofence
             BranchCheckInPointMatch? bestMatch = null;
+            var nearestPointInfo = new List<string>();
+
             foreach (var point in checkInPoints)
             {
                 var distance = CalculateDistanceMeters(
@@ -140,6 +145,8 @@ public class CheckInOutCommandHandler
                     point.Latitude, point.Longitude);
 
                 var allowedRadius = point.RadiusMeters ?? defaultRadius;
+
+                nearestPointInfo.Add($"{point.NameEn ?? point.NameAr ?? "Point"}: {distance:F2}m away (allowed: {allowedRadius}m)");
 
                 if (distance <= allowedRadius)
                 {
@@ -151,8 +158,13 @@ public class CheckInOutCommandHandler
             }
 
             if (bestMatch is null)
-                return Error.Validation("Attendance.OutOfRange",
-                    "You are not within the allowed check-in area. Please move closer to a designated check-in point.");
+            {
+                var errorMessage = checkInPoints.Count == 1
+                    ? $"You are not within the allowed check-in area. {nearestPointInfo[0]}"
+                    : $"You are not within the allowed check-in area. Nearest points: {string.Join("; ", nearestPointInfo)}";
+
+                return Error.Validation("Attendance.OutOfRange", errorMessage);
+            }
 
             matchedCheckInPointId = bestMatch.PointId;
         }
@@ -163,9 +175,11 @@ public class CheckInOutCommandHandler
         var time = eventTime.TimeOfDay;
 
         var attendance = await _context.Attendances
+            .IgnoreQueryFilters()
             .Include(a => a.Employee)
             .Include(a => a.Status)
-            .FirstOrDefaultAsync(a => !a.IsDeleted && a.EmployeeId == employeeId && a.Date == date, cancellationToken);
+            .FirstOrDefaultAsync(a => !a.IsDeleted && !a.IsConfigurationRecord
+                && a.EmployeeId == employeeId && a.Date == date, cancellationToken);
 
         if (attendance is null)
         {
@@ -239,9 +253,10 @@ public class CheckInOutCommandHandler
 
         // Re-query for response DTO with navigations
         attendance = await _context.Attendances
+            .IgnoreQueryFilters()
             .Include(a => a.Employee)
             .Include(a => a.Status)
-            .FirstAsync(a => a.Id == attendance.Id, cancellationToken);
+            .FirstAsync(a => a.Id == attendance.Id && !a.IsDeleted && !a.IsConfigurationRecord, cancellationToken);
 
         var dto = new AttendanceDto
         {

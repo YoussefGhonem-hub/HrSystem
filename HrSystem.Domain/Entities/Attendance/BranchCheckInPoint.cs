@@ -5,7 +5,6 @@ namespace HrSystem.Domain.Entities.Attendance;
 
 public class BranchCheckInPoint : BaseAuditableEntity
 {
-    public new Guid BranchId { get; set; }
 
     /// <summary>
     /// The attendance setting this check-in point belongs to.

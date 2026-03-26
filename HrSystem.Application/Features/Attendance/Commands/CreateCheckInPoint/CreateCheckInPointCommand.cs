@@ -81,7 +81,7 @@ public class CreateCheckInPointCommandHandler
         var dto = new CheckInPointDto
         {
             Id = point.Id,
-            BranchId = point.BranchId,
+            BranchId = point.BranchId??Guid.Empty,
             NameAr = point.NameAr,
             NameEn = point.NameEn,
             Description = point.Description,

@@ -119,7 +119,7 @@ public class UpsertBranchAttendanceSettingCommandHandler
                 .Select(p => new CheckInPointDto
                 {
                     Id = p.Id,
-                    BranchId = p.BranchId,
+                    BranchId = p.BranchId ?? Guid.Empty,
                     NameAr = p.NameAr,
                     NameEn = p.NameEn,
                     Description = p.Description,

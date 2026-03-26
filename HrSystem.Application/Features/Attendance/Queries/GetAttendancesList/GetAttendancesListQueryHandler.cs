@@ -2,6 +2,7 @@ using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,10 +32,27 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
         GetAttendancesListQuery request,
         CancellationToken cancellationToken)
     {
+        // IgnoreQueryFilters avoids global scope filters on joined entities (Employee, Status)
+        // which generate INNER JOINs that can exclude valid attendance rows.
+        // Attendance-level scope is applied manually below.
         var query = _context.Attendances
-            .Include(a => a.Employee)
-            .Include(a => a.Status)
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(a => !a.IsDeleted)
             .AsQueryable();
+
+        // Apply tenant/branch scope (replaces the bypassed global scope filter)
+        if (!CurrentUser.BypassScopeFilters && !CurrentUser.IsSuperAdmin)
+        {
+            var tenantId = CurrentUser.OrganizationId ?? Guid.Empty;
+            query = query.Where(a => a.TenantId == tenantId);
+
+            if (!CurrentUser.IsOrganizationAdmin)
+            {
+                var branchId = CurrentUser.BranchId ?? Guid.Empty;
+                query = query.Where(a => a.BranchId == branchId || a.BranchId == null);
+            }
+        }
 
         // Apply filters
         query = query.ApplyFilters(
@@ -55,25 +73,24 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
         // Apply pagination
         query = query.ApplyPaging(request.PageNumber, request.PageSize);
 
-        var attendances = await query.ToListAsync(cancellationToken);
-
-        var dtos = attendances.Select(a => new AttendanceListDto
+        // Project to DTO directly — avoids Include INNER JOIN issues
+        var dtos = await query.Select(a => new AttendanceListDto
         {
             Id = a.Id,
             EmployeeId = a.EmployeeId,
-            EmployeeName = a.Employee?.FullNameEn ?? string.Empty,
-            EmployeeCode = a.Employee?.EmployeeCode ?? string.Empty,
+            EmployeeName = a.Employee.FirstNameEn + " " + a.Employee.LastNameEn,
+            EmployeeCode = a.Employee.EmployeeCode,
             Date = a.Date,
             CheckInTime = a.CheckInTime,
             CheckOutTime = a.CheckOutTime,
             StatusId = a.StatusId,
-            StatusNameEn = a.Status?.NameEn,
-            StatusNameAr = a.Status?.NameAr,
+            StatusNameEn = a.Status.NameEn,
+            StatusNameAr = a.Status.NameAr,
             WorkedHours = a.WorkedHours,
             IsLate = a.IsLate,
             IsEarlyLeave = a.IsEarlyLeave,
             IsOvertime = a.IsOvertime
-        }).ToList();
+        }).ToListAsync(cancellationToken);
 
         var pagedResult = new PagedResult<AttendanceListDto>
         {
