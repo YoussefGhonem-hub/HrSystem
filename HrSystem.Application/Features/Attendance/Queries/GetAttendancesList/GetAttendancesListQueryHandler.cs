@@ -1,8 +1,8 @@
 using ErrorOr;
+using HrSystem.Application.Common.Extensions;
 using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,27 +32,10 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
         GetAttendancesListQuery request,
         CancellationToken cancellationToken)
     {
-        // IgnoreQueryFilters avoids global scope filters on joined entities (Employee, Status)
-        // which generate INNER JOINs that can exclude valid attendance rows.
-        // Attendance-level scope is applied manually below.
         var query = _context.Attendances
-            .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(a => !a.IsDeleted)
+            .ApplyBranchScope()
             .AsQueryable();
-
-        // Apply tenant/branch scope (replaces the bypassed global scope filter)
-        if (!CurrentUser.BypassScopeFilters && !CurrentUser.IsSuperAdmin)
-        {
-            var tenantId = CurrentUser.OrganizationId ?? Guid.Empty;
-            query = query.Where(a => a.TenantId == tenantId);
-
-            if (!CurrentUser.IsOrganizationAdmin)
-            {
-                var branchId = CurrentUser.BranchId ?? Guid.Empty;
-                query = query.Where(a => a.BranchId == branchId || a.BranchId == null);
-            }
-        }
 
         // Apply filters
         query = query.ApplyFilters(

@@ -117,6 +117,7 @@ public static class AppDbContextSeed
             await SeedGoalPrioritiesAsync(context, seedDataPath);
             await SeedInvoiceStatusesAsync(context, seedDataPath);
             await EnsureDefaultScopeForSeedData(context);
+            await EnsureDeptManagerDataAsync(context);
 
             Console.WriteLine("Database seeding completed successfully!");
         }
@@ -790,6 +791,47 @@ public static class AppDbContextSeed
             await context.SaveChangesAsync();
         }
 
+        // ── Assign DirectManagerId for employees in the DepartmentManager's branch ──
+        // Find the DepartmentManager employee we just created
+        var deptManagerRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == RoleNames.DepartmentManager);
+        Employee? deptManagerEmployee = null;
+        if (deptManagerRole != null)
+        {
+            var deptManagerUserId = await context.UserRoles
+                .Where(ur => ur.RoleId == deptManagerRole.Id)
+                .Join(context.Users.Where(u => u.EmployeeId != null),
+                    ur => ur.UserId, u => u.Id, (ur, u) => u.EmployeeId!.Value)
+                .FirstOrDefaultAsync();
+
+            if (deptManagerUserId != Guid.Empty)
+            {
+                deptManagerEmployee = await context.Employees
+                    .FirstOrDefaultAsync(e => e.Id == deptManagerUserId);
+            }
+        }
+
+        if (deptManagerEmployee != null)
+        {
+            // Assign any employees in the same branch (and same org) that have no DirectManager
+            var subordinates = await context.Employees
+                .Where(e => e.BranchId == deptManagerEmployee.BranchId
+                    && e.TenantId == deptManagerEmployee.TenantId
+                    && e.Id != deptManagerEmployee.Id
+                    && e.DirectManagerId == null)
+                .ToListAsync();
+
+            foreach (var sub in subordinates)
+            {
+                sub.DirectManagerId = deptManagerEmployee.Id;
+            }
+
+            if (subordinates.Any())
+            {
+                await context.SaveChangesAsync();
+                Console.WriteLine($"Assigned {subordinates.Count} employees as subordinates of DepartmentManager ({deptManagerEmployee.EmployeeCode}).");
+            }
+        }
+
         Console.WriteLine("Finished creating default role-based users");
     }
 
@@ -878,6 +920,8 @@ public static class AppDbContextSeed
         {
             if (!branchUserDefinitions.TryGetValue(branch.Code, out var defs)) continue;
 
+            Guid? hrEmployeeId = null;
+
             // ── HR Manager for this branch ──
             var hrEmail = $"hr.{branch.Code.ToLowerInvariant().Replace("-", "")}@{organization.Code.ToLowerInvariant()}.local";
             if (await userManager.FindByEmailAsync(hrEmail) == null)
@@ -890,7 +934,6 @@ public static class AppDbContextSeed
                     j.TitleEn.Contains("HR Manager", StringComparison.OrdinalIgnoreCase))
                     ?? jobTitles.FirstOrDefault();
 
-                Guid? hrEmployeeId = null;
                 if (hrDepartment != null && hrJobTitle != null)
                 {
                     var maleGenderId = Guid.Parse("00000000-0000-0000-0006-000000000001");
@@ -961,6 +1004,13 @@ public static class AppDbContextSeed
                     Console.WriteLine($"  → Created HR Manager for {branch.NameEn}: {hrEmail}");
                 }
             }
+            else if (!hrEmployeeId.HasValue)
+            {
+                // HR user already exists — resolve their employee ID for DirectManager linking
+                var existingHrUser = await userManager.FindByEmailAsync(hrEmail);
+                if (existingHrUser?.EmployeeId != null)
+                    hrEmployeeId = existingHrUser.EmployeeId;
+            }
 
             // ── Regular Employee for this branch ──
             var empEmail = $"emp.{branch.Code.ToLowerInvariant().Replace("-", "")}@{organization.Code.ToLowerInvariant()}.local";
@@ -1003,6 +1053,7 @@ public static class AppDbContextSeed
                         DepartmentId = empDepartment.Id,
                         JobTitleId = empJobTitle.Id,
                         BranchId = branch.Id,
+                        DirectManagerId = hrEmployeeId,
                         ContractTypeId = permanentContractTypeId,
                         StatusId = activeStatusId,
                         HiringDate = DateTime.UtcNow.AddYears(-1),
@@ -2199,6 +2250,112 @@ public static class AppDbContextSeed
 
         await context.SaveChangesAsync();
         Console.WriteLine($"Seeded {employeeRequests.Count} employee self-service requests across multiple types.");
+
+        // ── Seed Pending requests from DeptManager's subordinates ──────────────
+        // This ensures the DeptManager sees items in the "Pending Approval" tab.
+        var deptManagerRole = await context.Roles.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Name == RoleNames.DepartmentManager);
+        if (deptManagerRole != null)
+        {
+            var deptManagerUserIds = await context.UserRoles.AsNoTracking()
+                .Where(ur => ur.RoleId == deptManagerRole.Id)
+                .Select(ur => ur.UserId)
+                .ToListAsync();
+
+            var deptManagerEmployeeIds = await context.Users.AsNoTracking()
+                .Where(u => deptManagerUserIds.Contains(u.Id) && u.EmployeeId != null)
+                .Select(u => u.EmployeeId!.Value)
+                .ToListAsync();
+
+            if (deptManagerEmployeeIds.Count > 0)
+            {
+                // Find subordinates of any DeptManager who don't already have requests
+                var existingRequestEmployeeIds = await context.EmployeeRequests
+                    .Select(er => er.EmployeeId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var subordinates = await context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.DirectManagerId != null
+                        && deptManagerEmployeeIds.Contains(e.DirectManagerId.Value)
+                        && !deptManagerEmployeeIds.Contains(e.Id)
+                        && !existingRequestEmployeeIds.Contains(e.Id))
+                    .Select(e => new EmployeeRequestSeedScope(e.Id, e.TenantId, e.BranchId, e.UserId, e.DirectManagerId))
+                    .Take(3)
+                    .ToListAsync();
+
+                var subRequests = new List<EmployeeRequest>();
+                var subVacationDetails = new List<VacationRequestDetail>();
+
+                foreach (var sub in subordinates)
+                {
+                    var subBranch = sub.BranchId ?? defaultBranchId.Value;
+
+                    // Pending vacation request (awaiting manager first-level approval)
+                    var pendingVacation = new EmployeeRequest
+                    {
+                        TenantId = sub.TenantId,
+                        BranchId = subBranch,
+                        EmployeeId = sub.Id,
+                        RequestTypeId = requestTypes["Vacation"],
+                        Status = EmployeeRequestStatus.Pending,
+                        Title = "sick",
+                        Description = "Feeling unwell, requesting sick leave.",
+                        RequestedDate = ToDate(-2),
+                        StartDate = ToDate(-1),
+                        EndDate = ToDate(1),
+                        CreatedDate = ToOffset(-2)
+                    };
+                    subRequests.Add(pendingVacation);
+                    subVacationDetails.Add(new VacationRequestDetail
+                    {
+                        EmployeeRequestId = pendingVacation.Id,
+                        VacationTypeId = vacationTypeId,
+                        TotalDays = 3,
+                        ManagerId = sub.DirectManagerId!.Value,
+                        CreatedDate = ToOffset(-2)
+                    });
+
+                    // Another Pending request
+                    var pendingOvertime = new EmployeeRequest
+                    {
+                        TenantId = sub.TenantId,
+                        BranchId = subBranch,
+                        EmployeeId = sub.Id,
+                        RequestTypeId = requestTypes["OverTime"],
+                        Status = EmployeeRequestStatus.Pending,
+                        Title = "Weekend support shift",
+                        Description = "Cover weekend production deployment.",
+                        RequestedDate = ToDate(-1),
+                        StartDate = ToDate(2),
+                        EndDate = ToDate(2),
+                        CreatedDate = ToOffset(-1)
+                    };
+                    subRequests.Add(pendingOvertime);
+                    overtimeDetails.Add(new OvertimeRequestDetail
+                    {
+                        EmployeeRequestId = pendingOvertime.Id,
+                        OvertimeTypeId = overtimeTypeId,
+                        OvertimeDate = ToDate(2),
+                        PlannedHours = TimeSpan.FromHours(6),
+                        Multiplier = 1.5m,
+                        ProjectCode = "OPS-WKD",
+                        TaskDescription = "Weekend production deployment",
+                        CreatedDate = ToOffset(-1)
+                    });
+                }
+
+                if (subRequests.Count > 0)
+                {
+                    await context.EmployeeRequests.AddRangeAsync(subRequests);
+                    if (subVacationDetails.Count > 0) await context.VacationRequestDetails.AddRangeAsync(subVacationDetails);
+                    if (overtimeDetails.Count > 0) await context.OvertimeRequestDetails.AddRangeAsync(overtimeDetails);
+                    await context.SaveChangesAsync();
+                    Console.WriteLine($"Seeded {subRequests.Count} pending requests from DeptManager subordinates.");
+                }
+            }
+        }
     }
 
     private static async Task SeedSocialInsuranceRatesAsync(ApplicationDbContext context, string seedDataPath)
@@ -2460,6 +2617,190 @@ public static class AppDbContextSeed
         int ExpiryOffsetYears,
         long MinFileSize,
         long MaxFileSize);
+
+    /// <summary>
+    /// Idempotent fixup that runs on every startup:
+    /// 1. Ensures each DepartmentManager has subordinates (DirectManagerId) in their branch.
+    /// 2. Ensures at least one Pending Vacation + Overtime request exists from those subordinates.
+    /// </summary>
+    private static async Task EnsureDeptManagerDataAsync(ApplicationDbContext context)
+    {
+        var deptManagerRole = await context.Roles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Name == RoleNames.DepartmentManager);
+
+        if (deptManagerRole == null)
+        {
+            Console.WriteLine("[EnsureDeptManagerData] DepartmentManager role not found – skipping.");
+            return;
+        }
+
+        // Find ALL DepartmentManager employees across every tenant/org
+        var deptManagerEmployeeIds = await context.UserRoles
+            .Where(ur => ur.RoleId == deptManagerRole.Id)
+            .Join(context.Users.Where(u => u.EmployeeId != null),
+                ur => ur.UserId, u => u.Id, (ur, u) => u.EmployeeId!.Value)
+            .ToListAsync();
+
+        if (deptManagerEmployeeIds.Count == 0)
+        {
+            Console.WriteLine("[EnsureDeptManagerData] No DepartmentManager employees found – skipping.");
+            return;
+        }
+
+        var deptManagers = await context.Employees
+            .Where(e => deptManagerEmployeeIds.Contains(e.Id))
+            .ToListAsync();
+
+        // ── Step 1: Assign DirectManagerId where missing ──
+        var assignedCount = 0;
+        foreach (var mgr in deptManagers)
+        {
+            var subordinates = await context.Employees
+                .Where(e => e.BranchId == mgr.BranchId
+                    && e.TenantId == mgr.TenantId
+                    && e.Id != mgr.Id
+                    && e.DirectManagerId == null)
+                .ToListAsync();
+
+            foreach (var sub in subordinates)
+            {
+                sub.DirectManagerId = mgr.Id;
+                assignedCount++;
+            }
+        }
+
+        if (assignedCount > 0)
+        {
+            await context.SaveChangesAsync();
+            Console.WriteLine($"[EnsureDeptManagerData] Assigned DirectManagerId on {assignedCount} employee(s).");
+        }
+
+        // ── Step 2: Ensure Pending requests exist for DeptManager subordinates ──
+        var requestTypes = await context.RequestTypes
+            .AsNoTracking()
+            .ToDictionaryAsync(rt => rt.Code, rt => rt.Id, StringComparer.OrdinalIgnoreCase);
+
+        if (!requestTypes.ContainsKey("Vacation") || !requestTypes.ContainsKey("OverTime"))
+        {
+            Console.WriteLine("[EnsureDeptManagerData] RequestTypes Vacation/OverTime not found – skipping request creation.");
+            return;
+        }
+
+        var vacationTypeId = await context.VacationTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+        var overtimeTypeId = await context.OvertimeTypes.AsNoTracking().Select(t => t.Id).FirstOrDefaultAsync();
+
+        if (vacationTypeId == Guid.Empty || overtimeTypeId == Guid.Empty)
+        {
+            Console.WriteLine("[EnsureDeptManagerData] VacationType/OvertimeType not seeded – skipping request creation.");
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var newRequests = new List<EmployeeRequest>();
+        var newVacationDetails = new List<VacationRequestDetail>();
+        var newOvertimeDetails = new List<OvertimeRequestDetail>();
+
+        foreach (var mgr in deptManagers)
+        {
+            // Get employees whose DirectManagerId == this manager
+            var subs = await context.Employees
+                .AsNoTracking()
+                .Where(e => e.DirectManagerId == mgr.Id)
+                .Select(e => new { e.Id, e.TenantId, e.BranchId })
+                .ToListAsync();
+
+            if (subs.Count == 0) continue;
+
+            // Find which subordinates already have at least one Pending request
+            var subsWithPending = await context.EmployeeRequests
+                .AsNoTracking()
+                .Where(r => r.Status == EmployeeRequestStatus.Pending
+                    && subs.Select(s => s.Id).Contains(r.EmployeeId))
+                .Select(r => r.EmployeeId)
+                .Distinct()
+                .ToListAsync();
+
+            var subsNeedingRequests = subs.Where(s => !subsWithPending.Contains(s.Id)).ToList();
+            if (subsNeedingRequests.Count == 0) continue;
+
+            // Create Pending Vacation + Overtime for each subordinate that has none
+            foreach (var sub in subsNeedingRequests)
+            {
+                var branchId = sub.BranchId ?? mgr.BranchId;
+
+                // Pending Vacation Request
+                var vacReq = new EmployeeRequest
+                {
+                    TenantId = sub.TenantId,
+                    BranchId = branchId,
+                    EmployeeId = sub.Id,
+                    RequestTypeId = requestTypes["Vacation"],
+                    Status = EmployeeRequestStatus.Pending,
+                    Title = "Annual Leave Request",
+                    Description = "Request for annual leave pending manager approval.",
+                    RequestedDate = now.DateTime.AddDays(-2),
+                    StartDate = now.DateTime.AddDays(5),
+                    EndDate = now.DateTime.AddDays(10),
+                    CreatedDate = now.AddDays(-2)
+                };
+                newRequests.Add(vacReq);
+
+                newVacationDetails.Add(new VacationRequestDetail
+                {
+                    EmployeeRequestId = vacReq.Id,
+                    VacationTypeId = vacationTypeId,
+                    TotalDays = 5,
+                    ManagerId = mgr.Id,
+                    EmergencyContactName = "Emergency Contact",
+                    EmergencyContactPhone = "+20100000000",
+                    CreatedDate = now.AddDays(-2)
+                });
+
+                // Pending Overtime Request
+                var otReq = new EmployeeRequest
+                {
+                    TenantId = sub.TenantId,
+                    BranchId = branchId,
+                    EmployeeId = sub.Id,
+                    RequestTypeId = requestTypes["OverTime"],
+                    Status = EmployeeRequestStatus.Pending,
+                    Title = "Overtime Request",
+                    Description = "Overtime work request pending manager approval.",
+                    RequestedDate = now.DateTime.AddDays(-1),
+                    StartDate = now.DateTime.AddDays(3),
+                    EndDate = now.DateTime.AddDays(3),
+                    CreatedDate = now.AddDays(-1)
+                };
+                newRequests.Add(otReq);
+
+                newOvertimeDetails.Add(new OvertimeRequestDetail
+                {
+                    EmployeeRequestId = otReq.Id,
+                    OvertimeTypeId = overtimeTypeId,
+                    OvertimeDate = now.DateTime.AddDays(3),
+                    PlannedHours = TimeSpan.FromHours(3),
+                    Multiplier = 1.5m,
+                    ProjectCode = "DEPT-OT",
+                    TaskDescription = "Department overtime work",
+                    CreatedDate = now.AddDays(-1)
+                });
+            }
+        }
+
+        if (newRequests.Count > 0)
+        {
+            await context.EmployeeRequests.AddRangeAsync(newRequests);
+            await context.VacationRequestDetails.AddRangeAsync(newVacationDetails);
+            await context.OvertimeRequestDetails.AddRangeAsync(newOvertimeDetails);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"[EnsureDeptManagerData] Created {newRequests.Count} pending request(s) for DeptManager subordinates.");
+        }
+        else
+        {
+            Console.WriteLine("[EnsureDeptManagerData] All DeptManager subordinates already have pending requests – nothing to do.");
+        }
+    }
 
     private static async Task SeedEmployeeSalaryAndPayrollHistoryAsync(ApplicationDbContext context)
     {

@@ -108,22 +108,29 @@ public class CheckInOutCommandHandler
         // ── 5) Location / geofence validation ────────────────
         Guid? matchedCheckInPointId = null;
 
+        // Normalize user coordinates — some front-end / mobile clients swap lat/lng.
+        var userLat = request.Latitude;
+        var userLng = request.Longitude;
+        if (userLat.HasValue && userLng.HasValue && Math.Abs(userLat.Value) > 90 && Math.Abs(userLng.Value) <= 90)
+        {
+            (userLat, userLng) = (userLng, userLat);
+        }
+
         bool requireLocation = setting?.RequireLocationValidation == true
             && (request.Method == AttendanceMethod.Location
                 || request.Method == AttendanceMethod.FaceId);
 
         if (requireLocation || request.Method == AttendanceMethod.Location)
         {
-            if (!request.Latitude.HasValue || !request.Longitude.HasValue)
+            if (!userLat.HasValue || !userLng.HasValue)
                 return Error.Validation("Attendance.LocationRequired",
                     "GPS coordinates are required for location-based attendance.");
-
-            // Load active check-in points for this branch
-            // IgnoreQueryFilters bypasses the global tenant/branch scope filter,
-            // which is too restrictive here — we already validated the employee's branch above.
+            // Load active check-in points for this branch.
+            // Use IgnoreQueryFilters to avoid global tenant filter excluding points
+            // that belong to this branch — the explicit BranchId filter is sufficient.
             var checkInPoints = await _context.BranchCheckInPoints
-                .AsNoTracking()
                 .IgnoreQueryFilters()
+                .AsNoTracking()
                 .Where(p => p.BranchId == branchId && !p.IsDeleted && p.IsActive)
                 .Where(p => request.PunchType == AttendancePunchType.CheckIn ? p.IsCheckInPoint : p.IsCheckOutPoint)
                 .ToListAsync(cancellationToken);
@@ -134,15 +141,24 @@ public class CheckInOutCommandHandler
 
             var defaultRadius = setting?.DefaultGeofenceRadiusMeters ?? 200;
 
-            // Find the nearest check-in point within geofence
+            // Find the nearest check-in point within geofence.
+            // Try both original and swapped lat/lng to handle clients that
+            // send coordinates in the wrong order (both values within [-90,90]).
             BranchCheckInPointMatch? bestMatch = null;
             var nearestPointInfo = new List<string>();
 
             foreach (var point in checkInPoints)
             {
-                var distance = CalculateDistanceMeters(
-                    request.Latitude.Value, request.Longitude.Value,
-                    point.Latitude, point.Longitude);
+                var distance = CalculateDistanceMeters(userLat.Value, userLng.Value, point.Latitude, point.Longitude);
+
+                // If both user values are within [-90,90], the swap above can't detect
+                // the error. Try swapped orientation and use whichever is closer.
+                if (Math.Abs(userLat.Value) <= 90 && Math.Abs(userLng.Value) <= 90)
+                {
+                    var swappedDistance = CalculateDistanceMeters(userLng.Value, userLat.Value, point.Latitude, point.Longitude);
+                    if (swappedDistance < distance)
+                        distance = swappedDistance;
+                }
 
                 var allowedRadius = point.RadiusMeters ?? defaultRadius;
 
@@ -204,8 +220,8 @@ public class CheckInOutCommandHandler
 
             attendance.CheckInTime = time;
             attendance.CheckInDeviceId = request.DeviceId;
-            attendance.CheckInLatitude = request.Latitude;
-            attendance.CheckInLongitude = request.Longitude;
+            attendance.CheckInLatitude = userLat;
+            attendance.CheckInLongitude = userLng;
             attendance.CheckInPointId = matchedCheckInPointId;
             attendance.CheckInMethod = request.Method;
             attendance.DeviceId ??= request.DeviceId;
@@ -226,8 +242,8 @@ public class CheckInOutCommandHandler
 
             attendance.CheckOutTime = time;
             attendance.CheckOutDeviceId = request.DeviceId;
-            attendance.CheckOutLatitude = request.Latitude;
-            attendance.CheckOutLongitude = request.Longitude;
+            attendance.CheckOutLatitude = userLat;
+            attendance.CheckOutLongitude = userLng;
             attendance.CheckOutPointId = matchedCheckInPointId;
             attendance.CheckOutMethod = request.Method;
             attendance.DeviceId ??= request.DeviceId;

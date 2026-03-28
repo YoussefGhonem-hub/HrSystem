@@ -1,10 +1,25 @@
 using System.Linq;
 using HrSystem.Domain.Common;
+using HrSystem.Shared.CurrentUser;
 
 namespace HrSystem.Application.Common.Extensions;
 
 public static class QueryableExtensions
 {
+    /// <summary>
+    /// Applies branch-level scope filtering. Use this on root query entities that need
+    /// branch isolation. Not needed in global query filters (which only handle tenant + soft-delete)
+    /// because global branch filters break Include() joins on navigation entities.
+    /// </summary>
+    public static IQueryable<T> ApplyBranchScope<T>(this IQueryable<T> query) where T : BaseEntity
+    {
+        if (CurrentUser.BypassScopeFilters || CurrentUser.IsSuperAdmin || CurrentUser.IsOrganizationAdmin)
+            return query;
+
+        var branchId = CurrentUser.BranchId;
+        return query.Where(e => e.BranchId == branchId || e.BranchId == null);
+    }
+
     /// <summary>
     /// Adds a reusable filter that excludes soft-deleted records.
     /// Keeps LINQ queries clean while still allowing composability with other filters.

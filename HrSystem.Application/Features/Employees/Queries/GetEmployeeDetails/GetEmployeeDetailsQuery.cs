@@ -261,7 +261,6 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
     {
         var configuration = await _context.Attendances
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .Where(a => a.EmployeeId == employeeId && a.IsConfigurationRecord)
             .OrderByDescending(a => a.Date)
             .FirstOrDefaultAsync(cancellationToken);

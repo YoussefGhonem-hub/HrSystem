@@ -1,7 +1,10 @@
 ﻿using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
+using HrSystem.Domain.Entities.Attendance;
 using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Organization;
+using HrSystem.Domain.Entities.Payroll;
+using HrSystem.Domain.Entities.Performance;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Infrustructure.Extensions;
 using HrSystem.Shared.Constants;
@@ -138,35 +141,54 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     }
 
     /// <summary>
+    /// Shared lookup entity types that are exempt from the tenant filter.
+    /// These are reference data seeded once and shared across all tenants.
+    /// Without this exemption, Include() on required FK relationships (INNER JOIN)
+    /// would filter out parent rows when the lookup's TenantId doesn't match
+    /// the current user's tenant.
+    /// </summary>
+    private static readonly HashSet<Type> SharedLookupTypes = new()
+    {
+        typeof(HrSystem.Domain.Entities.Employee.Gender),
+        typeof(HrSystem.Domain.Entities.Employee.MaritalStatus),
+        typeof(HrSystem.Domain.Entities.Employee.EmployeeStatus),
+        typeof(HrSystem.Domain.Entities.Employee.ContractType),
+        typeof(AttendanceStatus),
+        typeof(PayrollStatus),
+        typeof(ReviewType),
+        typeof(ReviewStatus),
+        typeof(InvoiceStatus),
+        typeof(Country),
+    };
+
+    /// <summary>
     /// Builds per-entity global query filters that reference DbContext instance properties
     /// so EF Core re-evaluates them on every query (not cached at model-creation time).
     ///
     /// Rules:
-    ///   â€¢ BypassScopeFilters / SuperAdmin â†’ no scope filter
-    ///   â€¢ OrganizationAdmin              â†’ entity.TenantId == CurrentTenantId
-    ///   â€¢ HRManager / HRSpecialist / DepartmentManager / Employee
-    ///                                    â†’ entity.TenantId == CurrentTenantId
-    ///                                      AND entity.BranchId == CurrentBranchId
+    ///   - Shared lookup entities          -> NO tenant/branch filter (shared across tenants)
+    ///   - BypassScopeFilters / SuperAdmin -> no scope filter
+    ///   - All other roles                -> entity.TenantId == CurrentTenantId
+    ///
+    /// Branch-level filtering is NOT applied globally because it breaks Include() joins --
+    /// navigation entities (Department, JobTitle, Branch, Status) would be filtered out,
+    /// causing parent rows to disappear. Use ApplyBranchScope() at the query level instead.
     /// </summary>
     private void ApplyScopedFilters(ModelBuilder modelBuilder)
     {
-        // Cache MethodInfo / PropertyInfo once â€” they don't change.
+        // Cache PropertyInfo once -- they don't change.
         var dbContextType = typeof(ApplicationDbContext);
         var bypassProp = dbContextType.GetProperty(nameof(FilterBypassEnabled))!;
-        var orgAdminProp = dbContextType.GetProperty(nameof(IsOrgAdminScope))!;
         var tenantProp = dbContextType.GetProperty(nameof(CurrentTenantId))!;
-        var branchProp = dbContextType.GetProperty(nameof(CurrentBranchId))!;
         var empIdProp = dbContextType.GetProperty(nameof(CurrentEmployeeId))!;
         var userIdProp = dbContextType.GetProperty(nameof(CurrentUserId))!;
         
         // Expression that represents "this" DbContext instance.
         var dbContextExpr = Expression.Constant(this);
 
-        // Shared sub-expressions (reference DbContext properties → evaluated per query).
+        // Shared sub-expressions (reference DbContext properties -> evaluated per query).
         var bypassExpr = Expression.Property(dbContextExpr, bypassProp);               // bool
-        var orgAdminExpr = Expression.Property(dbContextExpr, orgAdminProp);            // bool
         var tenantIdExpr = Expression.Property(dbContextExpr, tenantProp);              // Guid
-        var branchIdExpr = Expression.Property(dbContextExpr, branchProp);              // Guid
         var currentEmpIdExpr = Expression.Property(dbContextExpr, empIdProp);           // Guid
         var currentUserIdExpr = Expression.Property(dbContextExpr, userIdProp);         // Guid
         var guidEmptyExpr = Expression.Constant(Guid.Empty);
@@ -176,61 +198,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
                 continue;
 
+            // Skip tenant filter for shared lookup entities -- they are reference data
+            // shared across all tenants. Applying tenant filter here would break Include()
+            // INNER JOINs when the lookup's TenantId doesn't match the querying tenant.
+            if (SharedLookupTypes.Contains(entityType.ClrType))
+                continue;
+
             var param = Expression.Parameter(entityType.ClrType, "e");
 
             // entity.TenantId == this.CurrentTenantId
             var entityTenant = Expression.Property(param, nameof(BaseEntity.TenantId));
             var tenantMatch = Expression.Equal(entityTenant, tenantIdExpr);
 
-            // Resolve BranchId via DeclaredOnly first to avoid AmbiguousMatchException
-            // when a subclass hides the base property with `new` (e.g. BranchHoliday).
-            var branchPropInfo = entityType.ClrType.GetProperty(
-                    nameof(BaseEntity.BranchId),
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                ?? typeof(BaseEntity).GetProperty(nameof(BaseEntity.BranchId))!;
+            // All entities: bypass OR tenantMatch
+            // Branch filtering is applied at query level via ApplyBranchScope(), not globally,
+            // to avoid filtering out navigation entities loaded via Include().
+            Expression scopePredicate = Expression.OrElse(bypassExpr, tenantMatch);
 
-            var entityBranch = Expression.Property(param, branchPropInfo);
-
-            // Handle both Guid? (base) and Guid (overridden) property types
-            // For nullable BranchId, also allow NULL (shared/lookup records available to all branches)
-            Expression branchMatch;
-            if (entityBranch.Type == typeof(Guid?))
-            {
-                var branchIsNull = Expression.Equal(
-                    entityBranch,
-                    Expression.Constant(null, typeof(Guid?)));
-                var branchEquals = Expression.Equal(
-                    entityBranch,
-                    Expression.Convert(branchIdExpr, typeof(Guid?)));
-                branchMatch = Expression.OrElse(branchIsNull, branchEquals);
-            }
-            else
-            {
-                branchMatch = Expression.Equal(entityBranch, branchIdExpr);
-            }
-
-            // Lookup/reference entities (BaseEntity but NOT BaseAuditableEntity) are org-wide
-            // shared data (e.g., Gender, MaritalStatus, EmployeeStatus) â€" only filter by TenantId.
-            // Operational entities (BaseAuditableEntity) get the full TenantId + BranchId filter.
-            var isLookupEntity = !typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType);
-
-            Expression scopePredicate;
-            if (isLookupEntity)
-            {
-                // Lookup entities: bypass OR tenantMatch (no branch check)
-                scopePredicate = Expression.OrElse(bypassExpr, tenantMatch);
-            }
-            else
-            {
-                // Operational entities: bypass OR (tenantMatch AND (orgAdmin OR branchMatch))
-                scopePredicate = Expression.OrElse(
-                    bypassExpr,
-                    Expression.AndAlso(
-                        tenantMatch,
-                        Expression.OrElse(orgAdminExpr, branchMatch)));
-            }
-
-            // For the Employee entity, allow self-access bypassing branch/tenant scope:
+            // For the Employee entity, allow self-access bypassing tenant scope:
             //   (CurrentEmployeeId != Guid.Empty AND entity.Id == CurrentEmployeeId)
             //   OR (CurrentUserId != Guid.Empty AND entity.UserId == CurrentUserId)
             if (entityType.ClrType == typeof(HrSystem.Domain.Entities.Employee.Employee))
