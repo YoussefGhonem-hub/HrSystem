@@ -2,6 +2,8 @@ using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +36,16 @@ public class GetLoansListQueryHandler : IRequestHandler<GetLoansListQuery, Error
             .Include(l => l.Employee)
             .Where(l => !l.IsDeleted)
             .AsQueryable();
+
+        // Apply branch scope for HR managers
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
+
+        if (branchId.HasValue)
+        {
+            query = query.Where(l => l.Employee.BranchId == branchId.Value);
+        }
 
         if (request.EmployeeId.HasValue)
         {

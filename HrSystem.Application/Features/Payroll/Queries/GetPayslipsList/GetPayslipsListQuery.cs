@@ -60,10 +60,20 @@ public class GetPayslipsListQueryHandler : IRequestHandler<GetPayslipsListQuery,
             }
         }
 
+        // Apply branch scope for HR managers (not super/org admins)
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true;
+        var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
+
         var query = _context.Payslips
             .Include(p => p.PayrollCycle)
             .Include(p => p.Employee)
             .Where(p => !p.IsDeleted);
+
+        if (branchId.HasValue && isPrivileged)
+        {
+            query = query.Where(p => p.Employee.BranchId == branchId.Value);
+        }
 
         if (effectiveEmployeeId.HasValue)
         {

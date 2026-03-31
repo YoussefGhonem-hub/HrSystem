@@ -45,6 +45,16 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
                 return Error.Unauthorized("PayrollConfiguration.Unauthorized", "Not allowed to configure payroll for this employee");
             }
         }
+        else
+        {
+            // Verify branch scope for HR managers (not super/org admins)
+            var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+                || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+            if (!isSuperOrOrgAdmin && CurrentUser.BranchId.HasValue && employee.BranchId != CurrentUser.BranchId)
+            {
+                return Error.Forbidden("PayrollConfiguration.BranchMismatch", "You can only configure payroll for employees in your branch");
+            }
+        }
 
         var tenantId = employee.TenantId != Guid.Empty
             ? employee.TenantId

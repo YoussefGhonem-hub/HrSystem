@@ -2,6 +2,8 @@ using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,6 +38,11 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         // Calculate statistics
         var statistics = await CalculateStatistics(request.Month, request.Year, currentCycle, lastMonthCycle, cancellationToken);
 
+        // Determine branch scope for HR roles
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
+
         // Get payroll overview grid data
         var query = _context.Payslips
             .Include(p => p.Employee)
@@ -43,6 +50,12 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
             .Include(p => p.PayrollCycle)
             .Where(p => p.PayrollCycle.Month == request.Month && p.PayrollCycle.Year == request.Year)
             .AsQueryable();
+
+        // Apply branch scope for HR managers
+        if (branchId.HasValue)
+        {
+            query = query.Where(p => p.Employee.BranchId == branchId.Value);
+        }
 
         // Apply filters
         if (request.DepartmentId.HasValue)
@@ -120,18 +133,52 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         Domain.Entities.Payroll.PayrollCycle? lastMonthCycle,
         CancellationToken cancellationToken)
     {
-        var currentMonthTotal = currentCycle?.TotalNetSalary ?? 0;
-        var lastMonthTotal = lastMonthCycle?.TotalNetSalary ?? 0;
+        // Determine branch scope
+        var isSuperOrOrgAdmin2 = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        var statsBranchId = isSuperOrOrgAdmin2 ? (Guid?)null : CurrentUser.BranchId;
+
+        // Compute totals from branch-filtered payslips instead of cycle-level aggregates
+        decimal currentMonthTotal;
+        decimal lastMonthTotal;
+
+        if (statsBranchId.HasValue)
+        {
+            currentMonthTotal = currentCycle != null
+                ? await _context.Payslips
+                    .Where(p => p.PayrollCycleId == currentCycle.Id && p.Employee.BranchId == statsBranchId.Value)
+                    .SumAsync(p => (decimal?)p.NetSalary, cancellationToken) ?? 0
+                : 0;
+
+            var lastMonth2 = month == 1 ? 12 : month - 1;
+            var lastYear2 = month == 1 ? year - 1 : year;
+            lastMonthTotal = lastMonthCycle != null
+                ? await _context.Payslips
+                    .Where(p => p.PayrollCycleId == lastMonthCycle.Id && p.Employee.BranchId == statsBranchId.Value)
+                    .SumAsync(p => (decimal?)p.NetSalary, cancellationToken) ?? 0
+                : 0;
+        }
+        else
+        {
+            currentMonthTotal = currentCycle?.TotalNetSalary ?? 0;
+            lastMonthTotal = lastMonthCycle?.TotalNetSalary ?? 0;
+        }
 
         var changePercentage = lastMonthTotal > 0
             ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100
             : 0;
 
-        // Get active employees with their contract types
-        var activeEmployees = await _context.Employees
+        // Get active employees with their contract types (scoped to branch)
+        var employeesQuery = _context.Employees
             .Include(e => e.ContractType)
-            .Where(e => e.Status.NameEn == "Active")
-            .ToListAsync(cancellationToken);
+            .Where(e => e.Status.NameEn == "Active");
+
+        if (statsBranchId.HasValue)
+        {
+            employeesQuery = employeesQuery.Where(e => e.BranchId == statsBranchId.Value);
+        }
+
+        var activeEmployees = await employeesQuery.ToListAsync(cancellationToken);
 
         var totalEmployees = activeEmployees.Count;
         
@@ -143,12 +190,18 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         
         var contractCount = totalEmployees - fullTimeCount;
 
-        // Get pending actions (unpaid payslips)
-        var pendingCount = await _context.Payslips
+        // Get pending actions (unpaid payslips, scoped to branch)
+        var pendingQuery = _context.Payslips
             .Where(p => p.PayrollCycle.Month == month && 
                        p.PayrollCycle.Year == year && 
-                       !p.IsPaid)
-            .CountAsync(cancellationToken);
+                       !p.IsPaid);
+
+        if (statsBranchId.HasValue)
+        {
+            pendingQuery = pendingQuery.Where(p => p.Employee.BranchId == statsBranchId.Value);
+        }
+
+        var pendingCount = await pendingQuery.CountAsync(cancellationToken);
 
         return new PayrollStatisticsDto
         {

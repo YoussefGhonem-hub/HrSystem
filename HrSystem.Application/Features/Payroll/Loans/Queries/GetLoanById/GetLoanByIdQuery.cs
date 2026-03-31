@@ -1,6 +1,8 @@
 using ErrorOr;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +30,14 @@ public class GetLoanByIdQueryHandler : IRequestHandler<GetLoanByIdQuery, ErrorOr
         if (loan == null)
         {
             return Error.NotFound("Loan.NotFound", "Loan not found");
+        }
+
+        // Verify branch scope for HR managers
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        if (!isSuperOrOrgAdmin && CurrentUser.BranchId.HasValue && loan.Employee?.BranchId != CurrentUser.BranchId)
+        {
+            return Error.Forbidden("Loan.BranchMismatch", "You can only view loans for employees in your branch");
         }
 
         var dto = new LoanDto

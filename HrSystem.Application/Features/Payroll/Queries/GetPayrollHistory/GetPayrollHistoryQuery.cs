@@ -3,6 +3,7 @@ using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,15 @@ public class GetPayrollHistoryQueryHandler
         GetPayrollHistoryQuery request,
         CancellationToken cancellationToken)
     {
+        // Determine branch scope and role
+        var isPrivileged = CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.HRManager) == true
+            || CurrentUser.Roles?.Contains(RoleNames.HRSpecialist) == true;
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
+
         // Resolve EmployeeId from CurrentUser when not provided
         var employeeId = request.EmployeeId;
 
@@ -69,6 +79,12 @@ public class GetPayrollHistoryQueryHandler
                 .ThenInclude(e => e.Department)
             .Where(p => !p.IsDeleted)
             .AsQueryable();
+
+        // Apply branch scope for HR managers
+        if (branchId.HasValue && isPrivileged)
+        {
+            query = query.Where(p => p.Employee.BranchId == branchId.Value);
+        }
 
         // Apply filters & sorting via extension methods
         query = query

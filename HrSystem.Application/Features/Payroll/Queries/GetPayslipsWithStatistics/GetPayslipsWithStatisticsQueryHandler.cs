@@ -2,6 +2,8 @@ using ErrorOr;
 using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -21,8 +23,13 @@ public class GetPayslipsWithStatisticsQueryHandler : IRequestHandler<GetPayslips
         GetPayslipsWithStatisticsQuery request,
         CancellationToken cancellationToken)
     {
-        // Calculate statistics
-        var statistics = await CalculatePayslipStatistics(request.Month, request.Year, cancellationToken);
+        // Determine branch scope for HR roles
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
+
+        // Calculate statistics (scoped to branch)
+        var statistics = await CalculatePayslipStatistics(request.Month, request.Year, branchId, cancellationToken);
 
         // Build query
         var query = _context.Payslips
@@ -31,6 +38,12 @@ public class GetPayslipsWithStatisticsQueryHandler : IRequestHandler<GetPayslips
             .Include(p => p.PayrollCycle)
             .Where(p => p.PayrollCycle.Month == request.Month && p.PayrollCycle.Year == request.Year)
             .AsQueryable();
+
+        // Apply branch scope for HR managers
+        if (branchId.HasValue)
+        {
+            query = query.Where(p => p.Employee.BranchId == branchId.Value);
+        }
 
         // Apply filters
         if (request.EmployeeId.HasValue)
@@ -112,10 +125,18 @@ public class GetPayslipsWithStatisticsQueryHandler : IRequestHandler<GetPayslips
     private async Task<PayslipStatisticsDto> CalculatePayslipStatistics(
         int month,
         int year,
+        Guid? branchId,
         CancellationToken cancellationToken)
     {
-        var payslips = await _context.Payslips
-            .Where(p => p.PayrollCycle.Month == month && p.PayrollCycle.Year == year)
+        var payslipQuery = _context.Payslips
+            .Where(p => p.PayrollCycle.Month == month && p.PayrollCycle.Year == year);
+
+        if (branchId.HasValue)
+        {
+            payslipQuery = payslipQuery.Where(p => p.Employee.BranchId == branchId.Value);
+        }
+
+        var payslips = await payslipQuery
             .Select(p => new
             {
                 p.IsPaid,

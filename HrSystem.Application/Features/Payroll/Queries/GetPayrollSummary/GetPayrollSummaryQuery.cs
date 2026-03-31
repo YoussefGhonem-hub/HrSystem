@@ -1,6 +1,8 @@
 using ErrorOr;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,9 +21,20 @@ public class GetPayrollSummaryQueryHandler : IRequestHandler<GetPayrollSummaryQu
 
     public async Task<ErrorOr<GenericResponse<PayrollSummaryDto>>> Handle(GetPayrollSummaryQuery request, CancellationToken cancellationToken)
     {
+        // Determine branch scope for HR roles
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
+
         var payslipQuery = _context.Payslips
             .Include(p => p.PayrollCycle)
             .AsQueryable();
+
+        // Apply branch scope
+        if (branchId.HasValue)
+        {
+            payslipQuery = payslipQuery.Where(p => p.Employee.BranchId == branchId.Value);
+        }
 
         if (request.Year.HasValue)
         {

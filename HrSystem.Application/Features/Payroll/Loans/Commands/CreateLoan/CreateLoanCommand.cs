@@ -3,6 +3,7 @@ using HrSystem.Application.Features.Payroll.Loans.Queries.GetLoanById;
 using HrSystem.Domain.Entities.Payroll;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -34,12 +35,20 @@ public class CreateLoanCommandHandler : IRequestHandler<CreateLoanCommand, Error
         CreateLoanCommand request,
         CancellationToken cancellationToken)
     {
-        var employeeExists = await _context.Employees
-            .AnyAsync(e => e.Id == request.EmployeeId, cancellationToken);
+        var employee = await _context.Employees
+            .FirstOrDefaultAsync(e => e.Id == request.EmployeeId, cancellationToken);
 
-        if (!employeeExists)
+        if (employee == null)
         {
             return Error.NotFound("Employee.NotFound", "Employee not found");
+        }
+
+        // Verify branch scope for HR managers
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        if (!isSuperOrOrgAdmin && CurrentUser.BranchId.HasValue && employee.BranchId != CurrentUser.BranchId)
+        {
+            return Error.Forbidden("Loan.BranchMismatch", "You can only create loans for employees in your branch");
         }
 
         var loan = new Loan

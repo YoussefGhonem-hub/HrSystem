@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.CurrentUser;
@@ -169,7 +170,53 @@ public class GetMySalaryBreakdownQueryHandler : IRequestHandler<GetMySalaryBreak
             breakdown.Deductions.Add(new BreakdownItemDto { Name = "Social Insurance", Amount = Math.Round(siAmount, 2) });
         }
 
-        breakdown.TotalEarnings = Math.Round(salary.BasicSalary + allowanceTotal, 2);
+        // Overtime from approved requests for this month
+        decimal overtimeAmount = 0m;
+        var periodStart = new DateTime(year, month, 1);
+        var periodEnd = periodStart.AddMonths(1).AddDays(-1);
+
+        var approvedOvertime = await _context.EmployeeRequests
+            .Include(r => r.OvertimeDetail)
+            .Include(r => r.RequestTypeRef)
+            .Where(r => r.EmployeeId == employeeId.Value
+                        && r.RequestTypeRef != null && r.RequestTypeRef.Code == "OverTime"
+                        && r.Status == EmployeeRequestStatus.Approved
+                        && r.OvertimeDetail != null
+                        && r.OvertimeDetail.OvertimeDate >= periodStart
+                        && r.OvertimeDetail.OvertimeDate <= periodEnd)
+            .ToListAsync(cancellationToken);
+
+        if (approvedOvertime.Count > 0)
+        {
+            decimal hourlyRate = salary.BasicSalary / 240m;
+            foreach (var ot in approvedOvertime)
+            {
+                var hours = ot.OvertimeDetail!.ActualHours ?? ot.OvertimeDetail.PlannedHours;
+                overtimeAmount += Math.Round((decimal)hours.TotalHours * hourlyRate * ot.OvertimeDetail.Multiplier, 2);
+            }
+            if (overtimeAmount > 0)
+                breakdown.Earnings.Add(new BreakdownItemDto { Name = "Overtime", Amount = overtimeAmount });
+        }
+
+        // Loan deductions from active loans
+        var activeLoans = await _context.Loans
+            .Where(l => !l.IsDeleted && l.IsActive
+                        && l.EmployeeId == employeeId.Value
+                        && l.StartDate <= periodEnd
+                        && l.RemainingAmount > 0)
+            .ToListAsync(cancellationToken);
+
+        foreach (var loan in activeLoans)
+        {
+            var loanDeduction = Math.Min(loan.MonthlyDeduction, loan.RemainingAmount);
+            if (loanDeduction > 0)
+            {
+                deductionTotal += loanDeduction;
+                breakdown.Deductions.Add(new BreakdownItemDto { Name = $"Loan: {loan.LoanName}", Amount = loanDeduction });
+            }
+        }
+
+        breakdown.TotalEarnings = Math.Round(salary.BasicSalary + allowanceTotal + overtimeAmount, 2);
         breakdown.TotalDeductions = Math.Round(deductionTotal, 2);
         breakdown.NetSalary = Math.Round(breakdown.TotalEarnings - breakdown.TotalDeductions, 2);
         breakdown.IsPaid = false;

@@ -1,11 +1,19 @@
 ﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
+using HrSystem.Application.Features.Payroll.Commands.CreateBankExportProfile;
+using HrSystem.Application.Features.Payroll.Commands.DeleteBankExportProfile;
+using HrSystem.Application.Features.Payroll.Commands.GeneratePayslips;
+using HrSystem.Application.Features.Payroll.Commands.MarkPayslipsAsPaid;
+using HrSystem.Application.Features.Payroll.Commands.UpdateBankExportProfile;
 using HrSystem.Application.Features.Payroll.Queries.GetMyLoans;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslips;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslipDetails;
+using HrSystem.Application.Features.Payroll.Queries.GetPayslipDetails;
 using HrSystem.Application.Features.Payroll.Queries.GetMySalarySummary;
 using HrSystem.Application.Features.Payroll.Queries.GetMyNetSalaryStatus;
 using HrSystem.Application.Features.Payroll.Queries.GetMySalaryBreakdown;
+using HrSystem.Application.Features.Payroll.Queries.ExportBankFile;
+using HrSystem.Application.Features.Payroll.Queries.GetBankExportProfiles;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollSummary;
 using HrSystem.Application.Features.Payroll.Queries.GetPayslipsList;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPaymentDetails;
@@ -27,6 +35,21 @@ public class PayrollController : APIBaseController
     public PayrollController(ISender mediator)
     {
         _mediator = mediator;
+    }
+
+    /// <summary>
+    /// Generate payslips for a given month/year. Includes overtime from approved requests and loan deductions.
+    /// Optionally pass employeeId to generate for a single employee.
+    /// </summary>
+    [HttpPost("generate-payslips")]
+    public async Task<IActionResult> GeneratePayslips([FromBody] GeneratePayslipsCommand command)
+    {
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
     }
 
     /// <summary>
@@ -347,6 +370,113 @@ public class PayrollController : APIBaseController
     {
         var result = await _mediator.Send(new GetMyPayslipDetailsQuery(payslipId));
 
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get full payslip details for HR/Admin - can view any employee's payslip
+    /// </summary>
+    [HttpGet("payslips/{payslipId:guid}")]
+    public async Task<IActionResult> GetPayslipDetails(Guid payslipId)
+    {
+        var result = await _mediator.Send(new GetPayslipDetailsQuery(payslipId));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Export bank transfer file (CIB Excel format) for unpaid payslips in a given month/year.
+    /// Uses the specified bank export profile, or the default profile if none specified.
+    /// </summary>
+    [HttpGet("export-bank-file")]
+    public async Task<IActionResult> ExportBankFile([FromQuery] int month, [FromQuery] int year, [FromQuery] Guid? profileId)
+    {
+        var result = await _mediator.Send(new ExportBankFileQuery(month, year, profileId));
+
+        return result.Match(
+            response =>
+            {
+                if (response.Data == null)
+                    return Ok(response);
+                return File(response.Data.FileContent, response.Data.ContentType, response.Data.FileName);
+            },
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Mark payslips as paid for a given month/year. Optionally specify payslip IDs to mark specific ones.
+    /// </summary>
+    [HttpPost("mark-as-paid")]
+    public async Task<IActionResult> MarkPayslipsAsPaid([FromBody] MarkPayslipsAsPaidCommand command)
+    {
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    // ═══════════════════════════════════════════
+    // Bank Export Profile Management
+    // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// Get all bank export profiles.
+    /// </summary>
+    [HttpGet("bank-export-profiles")]
+    public async Task<IActionResult> GetBankExportProfiles()
+    {
+        var result = await _mediator.Send(new GetBankExportProfilesQuery());
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Create a new bank export profile.
+    /// </summary>
+    [HttpPost("bank-export-profiles")]
+    public async Task<IActionResult> CreateBankExportProfile([FromBody] CreateBankExportProfileCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update an existing bank export profile.
+    /// </summary>
+    [HttpPut("bank-export-profiles/{id:guid}")]
+    public async Task<IActionResult> UpdateBankExportProfile(Guid id, [FromBody] UpdateBankExportProfileCommand command)
+    {
+        if (id != command.Id)
+            return BadRequest("ID mismatch.");
+
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Delete a bank export profile.
+    /// </summary>
+    [HttpDelete("bank-export-profiles/{id:guid}")]
+    public async Task<IActionResult> DeleteBankExportProfile(Guid id)
+    {
+        var result = await _mediator.Send(new DeleteBankExportProfileCommand(id));
         return result.Match(
             response => Ok(response),
             errors => Problem(errors)
