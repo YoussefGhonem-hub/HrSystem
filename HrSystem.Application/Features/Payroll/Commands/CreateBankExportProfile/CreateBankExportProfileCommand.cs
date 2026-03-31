@@ -28,6 +28,8 @@ public class BankExportProfileDto
     public string? BicCode { get; set; }
     public string Narrative { get; set; } = string.Empty;
     public bool IsDefault { get; set; }
+    public string? TemplateFileName { get; set; }
+    public bool HasTemplate { get; set; }
     public DateTimeOffset CreatedDate { get; set; }
 }
 
@@ -85,6 +87,8 @@ public class CreateBankExportProfileCommandHandler
             BicCode = profile.BicCode,
             Narrative = profile.Narrative,
             IsDefault = profile.IsDefault,
+            TemplateFileName = profile.TemplateFileName,
+            HasTemplate = !string.IsNullOrEmpty(profile.TemplateFileKey),
             CreatedDate = profile.CreatedDate
         };
 

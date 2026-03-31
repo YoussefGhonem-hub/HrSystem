@@ -6,6 +6,7 @@ using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.Payroll.Queries.ExportBankFile;
 
@@ -29,10 +30,12 @@ public class ExportBankFileQueryHandler
     : IRequestHandler<ExportBankFileQuery, ErrorOr<GenericResponse<BankFileExportDto>>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public ExportBankFileQueryHandler(ApplicationDbContext context)
+    public ExportBankFileQueryHandler(ApplicationDbContext context, IStorageService storageService)
     {
         _context = context;
+        _storageService = storageService;
     }
 
     public async Task<ErrorOr<GenericResponse<BankFileExportDto>>> Handle(
@@ -104,9 +107,23 @@ public class ExportBankFileQueryHandler
         }
 
         var totalAmount = employeeRows.Sum(r => r.CreditAmount);
-        var fileDate = DateTime.UtcNow.ToString("dd/MM/yyyy");
-        var fileContent = GenerateCibExcel(profile, employeeRows, fileDate, totalAmount);
-        var fileName = $"CIB_Payroll_{cycle.CycleName.Replace(" ", "_")}_{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx";
+        var fileDate = new DateTime(request.Year, request.Month, DateTime.DaysInMonth(request.Year, request.Month)).ToString("dd/MM/yyyy");
+
+        byte[] fileContent;
+        string fileName;
+
+        // If profile has a template, fill data into template; otherwise generate from scratch
+        if (!string.IsNullOrEmpty(profile.TemplateFileKey))
+        {
+            fileContent = await FillTemplateExcel(profile, employeeRows, fileDate, totalAmount, cancellationToken);
+            var templateExt = Path.GetExtension(profile.TemplateFileName ?? ".xlsx");
+            fileName = $"CIB_Payroll_{cycle.CycleName.Replace(" ", "_")}_{DateTime.UtcNow:yyyyMMddHHmmss}{templateExt}";
+        }
+        else
+        {
+            fileContent = GenerateCibExcel(profile, employeeRows, fileDate, totalAmount);
+            fileName = $"CIB_Payroll_{cycle.CycleName.Replace(" ", "_")}_{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx";
+        }
 
         var dto = new BankFileExportDto
         {
@@ -118,6 +135,110 @@ public class ExportBankFileQueryHandler
         };
 
         return GenericResponse<BankFileExportDto>.SuccessResult(dto, "Bank file generated successfully.");
+    }
+
+    /// <summary>
+    /// Download the bank template from S3 and fill employee payment data into it.
+    /// Template format (CIB-style):
+    ///   Row 1: Headers
+    ///   Row 2: Company debit row (dates, narrative, currency, account, debit amount)
+    ///   Rows 3..N: Employee credit rows (BIC, account, name, credit amount)
+    ///   Last used row: Summary with COUNTA/SUM formulas
+    /// </summary>
+    private async Task<byte[]> FillTemplateExcel(
+        Domain.Entities.Payroll.BankExportProfile profile,
+        List<EmployeePaymentRow> employees,
+        string fileDate,
+        decimal totalAmount,
+        CancellationToken cancellationToken)
+    {
+        var downloaded = await _storageService.DownloadFile(profile.TemplateFileKey!, cancellationToken);
+        using var templateStream = new MemoryStream(downloaded.Contents);
+        using var workbook = new XLWorkbook(templateStream);
+
+        var ws = workbook.Worksheets.First();
+
+        // --- Detect template structure ---
+        // Row 1 = headers, Row 2 = company row
+        // Find last row with data to detect summary row
+        var lastRowUsed = ws.LastRowUsed()?.RowNumber() ?? 2;
+
+        // Row 2: Fill company debit info
+        ws.Cell(2, 1).Value = fileDate;                          // File_Date (A2)
+        ws.Cell(2, 2).Value = fileDate;                          // Value_Date (B2)
+        ws.Cell(2, 3).Value = profile.Narrative;                 // Narrative (C2)
+        ws.Cell(2, 4).Value = profile.Currency.ToLower();        // Currency (D2)
+        // E2: Creditor_BIC_Code - leave empty for company row
+        ws.Cell(2, 6).Value = profile.CompanyAccountNumber;      // Account_Number (F2)
+        ws.Cell(2, 7).Value = profile.CompanyAccountName;        // Account_Name (G2)
+        ws.Cell(2, 8).Value = totalAmount;                       // Debit_Amount (H2)
+        // I2: Credit_Amount - leave empty for debit row
+
+        // --- Fill employee rows starting from Row 3 ---
+        // First, clear any existing employee data rows (between row 3 and summary row)
+        int summaryRow = lastRowUsed; // The last row is the summary row
+        int templateEmployeeRows = summaryRow - 3; // Number of placeholder rows in template
+
+        // Clear old employee data (rows 3 to summaryRow-1)
+        for (int r = 3; r < summaryRow; r++)
+        {
+            // Only clear data cells, preserve formatting
+            ws.Cell(r, 1).Value = "";   // File_Date
+            ws.Cell(r, 2).Value = "";   // Value_Date
+            ws.Cell(r, 3).Value = "";   // Narrative
+            ws.Cell(r, 4).Value = "";   // Currency
+            // Don't clear BIC if template has it pre-filled - we'll overwrite only if we have data
+            ws.Cell(r, 6).Value = "";   // Account_Number
+            ws.Cell(r, 7).Value = "";   // Account_Name
+            ws.Cell(r, 8).Value = "";   // Debit_Amount
+            ws.Cell(r, 9).Value = "";   // Credit_Amount
+        }
+
+        // If we need more rows than the template has, insert them
+        if (employees.Count > templateEmployeeRows)
+        {
+            int rowsToInsert = employees.Count - templateEmployeeRows;
+            // Insert before summary row to push it down
+            ws.Row(summaryRow).InsertRowsAbove(rowsToInsert);
+            summaryRow += rowsToInsert;
+        }
+        // If we have fewer employees than template rows, delete excess
+        else if (employees.Count < templateEmployeeRows)
+        {
+            int rowsToDelete = templateEmployeeRows - employees.Count;
+            int deleteStart = 3 + employees.Count;
+            ws.Rows(deleteStart, deleteStart + rowsToDelete - 1).Delete();
+            summaryRow -= rowsToDelete;
+        }
+
+        // Fill employee data
+        for (int i = 0; i < employees.Count; i++)
+        {
+            int row = i + 3;
+            var emp = employees[i];
+
+            // Columns A-D empty for credit rows
+            ws.Cell(row, 5).Value = emp.BicCode;                 // Creditor_BIC_Code (E)
+            ws.Cell(row, 6).Value = emp.AccountNumber;           // Account_Number (F)
+            ws.Cell(row, 7).Value = emp.AccountName;             // Account_Name (G)
+            // Column H (Debit_Amount) empty for credit rows
+            ws.Cell(row, 9).Value = emp.CreditAmount;            // Credit_Amount (I)
+        }
+
+        // Update summary row formulas
+        int firstEmpRow = 3;
+        int lastEmpRow = 2 + employees.Count;
+
+        // Column G: Employee count (COUNTA)
+        ws.Cell(summaryRow, 7).FormulaA1 = $"COUNTA(G{firstEmpRow}:G{lastEmpRow})";
+        // Column H: Total debit (same as row 2 debit)
+        ws.Cell(summaryRow, 8).Value = totalAmount;
+        // Column I: Sum of credits
+        ws.Cell(summaryRow, 9).FormulaA1 = $"SUM(I{firstEmpRow}:I{lastEmpRow})";
+
+        using var outputStream = new MemoryStream();
+        workbook.SaveAs(outputStream);
+        return outputStream.ToArray();
     }
 
     private static byte[] GenerateCibExcel(
@@ -142,19 +263,16 @@ public class ExportBankFileQueryHandler
         }
 
         // === Row 2: Company Debit Row ===
-        ws.Cell(2, 1).Value = fileDate;                          // File_Date
-        ws.Cell(2, 2).Value = fileDate;                          // Value_Date
-        ws.Cell(2, 3).Value = profile.Narrative;                 // Narrative
-        ws.Cell(2, 4).Value = profile.Currency.ToLower();        // Currency
-        // Column 5 (Creditor_BIC_Code) empty for debit row
-        ws.Cell(2, 6).Value = profile.CompanyAccountNumber;      // Account_Number
+        ws.Cell(2, 1).Value = fileDate;
+        ws.Cell(2, 2).Value = fileDate;
+        ws.Cell(2, 3).Value = profile.Narrative;
+        ws.Cell(2, 4).Value = profile.Currency.ToLower();
+        ws.Cell(2, 6).Value = profile.CompanyAccountNumber;
         ws.Cell(2, 6).Style.NumberFormat.Format = "@";
-        ws.Cell(2, 7).Value = profile.CompanyAccountName;        // Account_Name
-        ws.Cell(2, 8).Value = totalAmount;                       // Debit_Amount = sum of credits
+        ws.Cell(2, 7).Value = profile.CompanyAccountName;
+        ws.Cell(2, 8).Value = totalAmount;
         ws.Cell(2, 8).Style.NumberFormat.Format = "#,##0.00";
-        // Column 9 (Credit_Amount) empty for debit row
 
-        // Style company row
         ws.Range(2, 1, 2, 9).Style.Fill.BackgroundColor = XLColor.FromHtml("#D9E2F3");
         ws.Range(2, 1, 2, 9).Style.Font.Bold = true;
 
@@ -163,28 +281,25 @@ public class ExportBankFileQueryHandler
         {
             int row = i + 3;
             var emp = employees[i];
-            // Columns 1-4 empty for credit rows
-            ws.Cell(row, 5).Value = emp.BicCode;                 // Creditor_BIC_Code
-            ws.Cell(row, 6).Value = emp.AccountNumber;           // Account_Number
+            ws.Cell(row, 5).Value = emp.BicCode;
+            ws.Cell(row, 6).Value = emp.AccountNumber;
             ws.Cell(row, 6).Style.NumberFormat.Format = "@";
-            ws.Cell(row, 7).Value = emp.AccountName;             // Account_Name
-            // Column 8 (Debit_Amount) empty for credit rows
-            ws.Cell(row, 9).Value = emp.CreditAmount;            // Credit_Amount
+            ws.Cell(row, 7).Value = emp.AccountName;
+            ws.Cell(row, 9).Value = emp.CreditAmount;
             ws.Cell(row, 9).Style.NumberFormat.Format = "#,##0.00";
 
-            // Alternating row colors
             if (i % 2 == 1)
                 ws.Range(row, 1, row, 9).Style.Fill.BackgroundColor = XLColor.FromHtml("#F2F2F2");
         }
 
         // === Summary Row ===
         int summaryRow = employees.Count + 3;
-        ws.Cell(summaryRow, 7).Value = employees.Count;          // Count
+        ws.Cell(summaryRow, 7).Value = employees.Count;
         ws.Cell(summaryRow, 7).Style.Font.Bold = true;
-        ws.Cell(summaryRow, 8).Value = totalAmount;              // Total Debit
+        ws.Cell(summaryRow, 8).Value = totalAmount;
         ws.Cell(summaryRow, 8).Style.NumberFormat.Format = "#,##0.00";
         ws.Cell(summaryRow, 8).Style.Font.Bold = true;
-        ws.Cell(summaryRow, 9).FormulaA1 = $"SUM(I3:I{employees.Count + 2})";  // Total Credit
+        ws.Cell(summaryRow, 9).FormulaA1 = $"SUM(I3:I{employees.Count + 2})";
         ws.Cell(summaryRow, 9).Style.NumberFormat.Format = "#,##0.00";
         ws.Cell(summaryRow, 9).Style.Font.Bold = true;
         ws.Range(summaryRow, 1, summaryRow, 9).Style.Border.TopBorder = XLBorderStyleValues.Thin;
@@ -200,7 +315,6 @@ public class ExportBankFileQueryHandler
         ws.Column(8).Width = 16;
         ws.Column(9).Width = 16;
 
-        // Add borders to all data
         var dataRange = ws.Range(1, 1, summaryRow, 9);
         dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
         dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;

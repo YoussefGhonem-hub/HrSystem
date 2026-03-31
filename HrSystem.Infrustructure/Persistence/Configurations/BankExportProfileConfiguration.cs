@@ -17,5 +17,7 @@ public class BankExportProfileConfiguration : IEntityTypeConfiguration<BankExpor
         builder.Property(b => b.Currency).IsRequired().HasMaxLength(10);
         builder.Property(b => b.BicCode).HasMaxLength(50);
         builder.Property(b => b.Narrative).HasMaxLength(200);
+        builder.Property(b => b.TemplateFileKey).HasMaxLength(500);
+        builder.Property(b => b.TemplateFileName).HasMaxLength(300);
     }
 }

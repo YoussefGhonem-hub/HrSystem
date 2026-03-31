@@ -12,4 +12,8 @@ public class BankExportProfile : BaseAuditableEntity
     public string? BicCode { get; set; }
     public string Narrative { get; set; } = "Salary";
     public bool IsDefault { get; set; }
+
+    // Template file stored in S3
+    public string? TemplateFileKey { get; set; }
+    public string? TemplateFileName { get; set; }
 }

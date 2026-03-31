@@ -38,6 +38,8 @@ public class GetBankExportProfilesQueryHandler
                 BicCode = b.BicCode,
                 Narrative = b.Narrative,
                 IsDefault = b.IsDefault,
+                TemplateFileName = b.TemplateFileName,
+                HasTemplate = b.TemplateFileKey != null && b.TemplateFileKey != "",
                 CreatedDate = b.CreatedDate
             })
             .ToListAsync(cancellationToken);

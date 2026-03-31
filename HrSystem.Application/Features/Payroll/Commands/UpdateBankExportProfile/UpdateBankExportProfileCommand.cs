@@ -70,6 +70,8 @@ public class UpdateBankExportProfileCommandHandler
             BicCode = profile.BicCode,
             Narrative = profile.Narrative,
             IsDefault = profile.IsDefault,
+            TemplateFileName = profile.TemplateFileName,
+            HasTemplate = !string.IsNullOrEmpty(profile.TemplateFileKey),
             CreatedDate = profile.CreatedDate
         };
 

@@ -5,6 +5,7 @@ using HrSystem.Application.Features.Payroll.Commands.DeleteBankExportProfile;
 using HrSystem.Application.Features.Payroll.Commands.GeneratePayslips;
 using HrSystem.Application.Features.Payroll.Commands.MarkPayslipsAsPaid;
 using HrSystem.Application.Features.Payroll.Commands.UpdateBankExportProfile;
+using HrSystem.Application.Features.Payroll.Commands.UploadBankProfileTemplate;
 using HrSystem.Application.Features.Payroll.Queries.GetMyLoans;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslips;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslipDetails;
@@ -477,6 +478,20 @@ public class PayrollController : APIBaseController
     public async Task<IActionResult> DeleteBankExportProfile(Guid id)
     {
         var result = await _mediator.Send(new DeleteBankExportProfileCommand(id));
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Upload an Excel template for a bank export profile.
+    /// When exporting, data will be filled into this template instead of generating from scratch.
+    /// </summary>
+    [HttpPost("bank-export-profiles/{id:guid}/template")]
+    public async Task<IActionResult> UploadBankProfileTemplate(Guid id, IFormFile templateFile)
+    {
+        var result = await _mediator.Send(new UploadBankProfileTemplateCommand(id, templateFile));
         return result.Match(
             response => Ok(response),
             errors => Problem(errors)
