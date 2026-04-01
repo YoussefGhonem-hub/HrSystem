@@ -25,7 +25,7 @@ public class GetDirectManagersLookupQueryHandler : IRequestHandler<GetDirectMana
     {
         var directManagers = await _context.Employees
             .WhereNotDeleted()
-            .Where(e => e.Subordinates.Any(s => !s.IsDeleted))
+            .ApplyBranchScope()
             .OrderBy(e => e.FirstNameEn)
             .ThenBy(e => e.LastNameEn)
             .Select(e => new EmployeeLookupDto
@@ -33,7 +33,9 @@ public class GetDirectManagersLookupQueryHandler : IRequestHandler<GetDirectMana
                 Id = e.Id,
                 FullNameEn = e.FirstNameEn + " " + e.LastNameEn,
                 FullNameAr = e.FirstNameAr + " " + e.LastNameAr,
-                EmployeeCode = e.EmployeeCode
+                EmployeeCode = e.EmployeeCode,
+                DepartmentNameEn = e.Department != null ? e.Department.NameEn : null,
+                DepartmentNameAr = e.Department != null ? e.Department.NameAr : null
             })
             .ToListAsync(cancellationToken);
 

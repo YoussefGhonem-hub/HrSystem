@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
-using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Domain.Entities.Attendance;
 using HrSystem.Domain.Entities.Employee;
 using HrSystem.Domain.Entities.Lifecycle;
@@ -18,13 +17,11 @@ namespace HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFullCommand, ErrorOr<GenericResponse<EmployeeDto>>>
 {
     private readonly ApplicationDbContext _context;
-    private readonly ISender _sender;
     private readonly IStorageService _storageService;
 
-    public CreateEmployeeFullCommandHandler(ApplicationDbContext context, ISender sender, IStorageService storageService)
+    public CreateEmployeeFullCommandHandler(ApplicationDbContext context, IStorageService storageService)
     {
         _context = context;
-        _sender = sender;
         _storageService = storageService;
     }
 
@@ -226,28 +223,80 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
         CreateEmployeePayrollSection payroll,
         CancellationToken cancellationToken)
     {
-        var payrollCommand = new ConfigureEmployeePayrollCommand(
-            employee.Id,
-            payroll.BasicSalary,
-            payroll.EffectiveDate,
-            payroll.Currency,
-            payroll.IncludeSocialInsurance,
-            payroll.SocialInsuranceEmployeeRate,
-            payroll.SocialInsuranceEmployerRate,
-            payroll.PaymentMethod,
-            payroll.BankInfo,
-            payroll.Allowances,
-            payroll.Deductions,
-            payroll.Notes
-        );
+        // Configure salary directly instead of dispatching via MediatR
+        // to avoid the payroll handler re-querying the employee (which can fail
+        // within the same transaction when CreateEmployee just inserted it).
+        var tenantId = employee.TenantId != Guid.Empty
+            ? employee.TenantId
+            : Guid.NewGuid();
 
-        var result = await _sender.Send(payrollCommand, cancellationToken);
+        var branchId = employee.BranchId;
 
-        if (result.IsError)
+        var currency = !string.IsNullOrWhiteSpace(payroll.Currency)
+            ? payroll.Currency.Trim().ToUpperInvariant()
+            : "EGP";
+
+        var salary = new Domain.Entities.Payroll.Salary
         {
-            return result.Errors;
+            EmployeeId = employee.Id,
+            BasicSalary = payroll.BasicSalary,
+            EffectiveDate = payroll.EffectiveDate,
+            Notes = payroll.Notes,
+            IsCurrent = true,
+            Currency = currency,
+            IsSocialInsuranceEnabled = payroll.IncludeSocialInsurance,
+            SocialInsuranceEmployeeRate = payroll.SocialInsuranceEmployeeRate,
+            SocialInsuranceEmployerRate = payroll.SocialInsuranceEmployerRate,
+            PaymentMethod = payroll.PaymentMethod,
+            BankName = payroll.BankInfo?.BankName,
+            BankBranch = payroll.BankInfo?.BankBranch,
+            BankAccountNumber = payroll.BankInfo?.AccountNumber,
+            BankIban = payroll.BankInfo?.Iban,
+            BankSwiftCode = payroll.BankInfo?.SwiftCode,
+            TenantId = tenantId,
+            BranchId = branchId
+        };
+
+        _context.Salaries.Add(salary);
+
+        if (payroll.Allowances is { Count: > 0 })
+        {
+            foreach (var a in payroll.Allowances)
+            {
+                salary.Allowances.Add(new Domain.Entities.Payroll.SalaryAllowance
+                {
+                    SalaryId = salary.Id,
+                    NameAr = a.NameAr,
+                    NameEn = a.NameEn,
+                    Description = a.Description,
+                    IsTaxable = a.IsTaxable,
+                    IsSubjectToInsurance = a.IsSubjectToInsurance,
+                    Amount = a.Amount,
+                    IsPercentage = a.IsPercentage,
+                    PercentageValue = a.PercentageValue
+                });
+            }
         }
 
+        if (payroll.Deductions is { Count: > 0 })
+        {
+            foreach (var d in payroll.Deductions)
+            {
+                salary.Deductions.Add(new Domain.Entities.Payroll.SalaryDeduction
+                {
+                    SalaryId = salary.Id,
+                    NameAr = d.NameAr,
+                    NameEn = d.NameEn,
+                    Description = d.Description,
+                    IsRecurring = d.IsRecurring,
+                    Amount = d.Amount,
+                    IsPercentage = d.IsPercentage,
+                    PercentageValue = d.PercentageValue
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 

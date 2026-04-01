@@ -75,14 +75,16 @@ public record CreateEmployeeAttendanceSection(
     string? MissingCheckoutHandling
 );
 
-public record CreateEmployeeDocumentsSection(
-    List<CreateEmployeeDocumentTypeGroup> Types
-);
+public record CreateEmployeeDocumentsSection
+{
+    public List<CreateEmployeeDocumentTypeGroup> Types { get; set; } = new();
+}
 
-public record CreateEmployeeDocumentTypeGroup(
-    EmployeeDocumentType DocumentType,
-    List<IFormFile> Attachments
-);
+public record CreateEmployeeDocumentTypeGroup
+{
+    public EmployeeDocumentType DocumentType { get; set; }
+    public List<IFormFile>? Attachments { get; set; }
+}
 
 public record CreateEmployeeAssetsSection(
     List<CreateEmployeeAssetPayload> Assets
