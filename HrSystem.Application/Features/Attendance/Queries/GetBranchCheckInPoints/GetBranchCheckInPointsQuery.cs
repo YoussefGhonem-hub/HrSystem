@@ -24,12 +24,14 @@ public class GetBranchCheckInPointsQueryHandler
         GetBranchCheckInPointsQuery request, CancellationToken cancellationToken)
     {
         var branchExists = await _context.Branches
+            .IgnoreQueryFilters()
             .AnyAsync(b => b.Id == request.BranchId && !b.IsDeleted, cancellationToken);
 
         if (!branchExists)
             return Error.NotFound("Branch.NotFound", "Branch not found.");
 
         var points = await _context.BranchCheckInPoints
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(p => p.BranchId == request.BranchId && !p.IsDeleted)
             .OrderBy(p => p.DisplayOrder)

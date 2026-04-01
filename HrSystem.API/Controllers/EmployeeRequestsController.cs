@@ -1,4 +1,5 @@
 using HrSystem.API.Controllers.Shared;
+using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApprovePermissionRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveRequest;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveVacationRequest;
@@ -31,6 +32,7 @@ using HrSystem.Application.Features.EmployeeRequests.Queries.Personal;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Feedback;
 using HrSystem.Application.Features.EmployeeRequests.Queries.Overtime;
 using HrSystem.Domain.Enums;
+using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
@@ -193,7 +195,8 @@ public class EmployeeRequestsController : APIBaseController
         var employeeId = CurrentUser.EmployeeId;
         if (!employeeId.HasValue)
         {
-            return BadRequest("The logged-in user is not linked to an employee profile.");
+            // User is not linked to an employee (e.g. admin-only account) — return empty list
+            return Ok(GenericResponse<List<EmployeeRequestDto>>.SuccessResult(new List<EmployeeRequestDto>()));
         }
 
         var result = await _mediator.Send(new GetMyEmployeeRequestsQuery(employeeId.Value, requestTypeCode));

@@ -254,9 +254,6 @@ public class CreateEmployeeAssetsSectionValidator : AbstractValidator<CreateEmpl
 {
     public CreateEmployeeAssetsSectionValidator()
     {
-        RuleFor(x => x.Assets)
-            .NotEmpty();
-
         RuleForEach(x => x.Assets)
             .SetValidator(new CreateEmployeeAssetPayloadValidator());
     }

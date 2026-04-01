@@ -106,7 +106,7 @@ public class EmployeesController : APIBaseController
     /// <summary>
     /// Create a new employee with full details
     /// </summary>
-    [HttpPost]
+    [HttpPost("full")]
     public async Task<IActionResult> CreateEmployee([FromForm] CreateEmployeeFullCommand command)
     {
         var result = await _mediator.Send(command);

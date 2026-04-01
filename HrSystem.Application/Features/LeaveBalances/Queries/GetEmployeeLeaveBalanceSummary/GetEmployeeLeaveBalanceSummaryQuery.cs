@@ -48,7 +48,20 @@ public class GetEmployeeLeaveBalanceSummaryQueryHandler
 
             if (!employeeId.HasValue || employeeId.Value == Guid.Empty)
             {
-                return Error.Unauthorized(description: "Current user is not linked to an employee.");
+                // User is not linked to an employee (e.g. admin-only account) — return empty summary
+                var emptySummary = new EmployeeLeaveBalanceSummaryDto
+                {
+                    EmployeeId = Guid.Empty,
+                    EmployeeCode = string.Empty,
+                    EmployeeName = string.Empty,
+                    Year = request.Year ?? DateTime.UtcNow.Year,
+                    RemainingBalance = 0,
+                    CarryOverBalance = 0,
+                    AnnualLeavesBalance = 0,
+                    ConsumedDays = 0,
+                    LeaveTypeBalances = Array.Empty<LeaveTypeBalanceDto>()
+                };
+                return GenericResponse<EmployeeLeaveBalanceSummaryDto>.SuccessResult(emptySummary);
             }
         }
 
@@ -74,7 +87,19 @@ public class GetEmployeeLeaveBalanceSummaryQueryHandler
 
         if (!balances.Any())
         {
-            return Error.NotFound(description: $"No leave balances found for employee in year {year}.");
+            var emptySummaryForYear = new EmployeeLeaveBalanceSummaryDto
+            {
+                EmployeeId = employee.Id,
+                EmployeeCode = employee.EmployeeCode,
+                EmployeeName = employee.FullNameEn,
+                Year = year,
+                RemainingBalance = 0,
+                CarryOverBalance = 0,
+                AnnualLeavesBalance = 0,
+                ConsumedDays = 0,
+                LeaveTypeBalances = Array.Empty<LeaveTypeBalanceDto>()
+            };
+            return GenericResponse<EmployeeLeaveBalanceSummaryDto>.SuccessResult(emptySummaryForYear);
         }
 
         // Calculate totals
