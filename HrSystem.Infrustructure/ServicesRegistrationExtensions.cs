@@ -21,7 +21,7 @@ public static class ServicesRegistrationExtensions
 
         services.AddDbContext<ApplicationDbContext>((opts) =>
         {
-            opts.UseSqlServer(connectionString);
+            opts.UseSqlServer(connectionString, sqlOpts => sqlOpts.CommandTimeout(120));
         });
 
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));

@@ -29,7 +29,7 @@ public class CreateFeedbackCommandHandler : IRequestHandler<CreateFeedbackComman
             Rating = request.Rating,
             Comments = request.Comments,
             IsAnonymous = request.IsAnonymous,
-            TenantId = Guid.NewGuid() // Should come from CurrentUser.OrganizationId
+            TenantId = Guid.Empty
         };
 
         _context.Feedbacks.Add(feedback);

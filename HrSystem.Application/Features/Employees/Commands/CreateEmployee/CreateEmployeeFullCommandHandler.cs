@@ -1,14 +1,17 @@
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
+using HrSystem.Domain.Entities.Account;
 using HrSystem.Domain.Entities.Attendance;
 using HrSystem.Domain.Entities.Employee;
+using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Lifecycle;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Storage.AWS3.Services;
 using System.IO;
@@ -20,12 +23,21 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
     private readonly ApplicationDbContext _context;
     private readonly ISender _sender;
     private readonly IStorageService _storageService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
 
-    public CreateEmployeeFullCommandHandler(ApplicationDbContext context, ISender sender, IStorageService storageService)
+    public CreateEmployeeFullCommandHandler(
+        ApplicationDbContext context,
+        ISender sender,
+        IStorageService storageService,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager)
     {
         _context = context;
         _sender = sender;
         _storageService = storageService;
+        _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     public async Task<ErrorOr<GenericResponse<EmployeeDto>>> Handle(
@@ -57,6 +69,20 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
         {
             await transaction.RollbackAsync(cancellationToken);
             return payrollResult.Errors;
+        }
+
+        // Create leave balances using form data or defaults
+        await CreateLeaveBalancesAsync(employee, request.Leaves, cancellationToken);
+
+        // Create user account and assign role if RoleId provided
+        if (request.JobInfo.RoleId.HasValue && request.JobInfo.RoleId.Value != Guid.Empty)
+        {
+            var userResult = await CreateUserAccountAsync(employee, request.PersonalInfo, request.JobInfo, cancellationToken);
+            if (userResult.IsError)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return userResult.Errors;
+            }
         }
 
         await transaction.CommitAsync(cancellationToken);
@@ -98,7 +124,7 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
             City = personal.City,
             Country = personal.Country,
             StatusId = EmployeeStatusIds.Probation,
-            TenantId = Guid.NewGuid()
+            TenantId = Guid.Empty
         };
 
         _context.Employees.Add(employee);
@@ -295,6 +321,118 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
         }
 
         _context.EmployeeAssets.AddRange(assetEntities);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Unit.Value;
+    }
+
+    private async Task CreateLeaveBalancesAsync(Employee employee, CreateEmployeeLeavesSection? leaves, CancellationToken cancellationToken)
+    {
+        var currentYear = DateTime.UtcNow.Year;
+
+        var vacationTypes = await _context.VacationTypes
+            .AsNoTracking()
+            .Where(v => v.IsActive)
+            .Select(v => new { v.Id, v.NameEn })
+            .ToListAsync(cancellationToken);
+
+        if (vacationTypes.Count == 0) return;
+
+        // Use form values if provided, otherwise fall back to defaults
+        var allocations = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Annual Leave"] = leaves?.Annual ?? 21m,
+            ["Sick Leave"] = leaves?.Sick ?? 14m,
+            ["Emergency Leave"] = leaves?.Emergency ?? 7m,
+            ["Compensatory Leave"] = leaves?.Compensatory ?? 0m,
+            ["Unpaid Leave"] = 0m
+        };
+
+        foreach (var vt in vacationTypes)
+        {
+            var allocatedDays = allocations.TryGetValue(vt.NameEn, out var days) ? days : 0m;
+
+            _context.EmployeeLeaveBalances.Add(new EmployeeLeaveBalance
+            {
+                EmployeeId = employee.Id,
+                VacationTypeId = vt.Id,
+                Year = currentYear,
+                AllocatedDays = allocatedDays,
+                CarryOverDays = 0m,
+                ManualAdjustmentDays = 0m,
+                UsedDays = 0m,
+                TenantId = employee.TenantId,
+                BranchId = employee.BranchId,
+                Notes = "Initial allocation"
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<ErrorOr<Unit>> CreateUserAccountAsync(
+        Employee employee,
+        CreateEmployeePersonalInfoSection personal,
+        CreateEmployeeJobInfoSection job,
+        CancellationToken cancellationToken)
+    {
+        var role = await _roleManager.FindByIdAsync(job.RoleId!.Value.ToString());
+        if (role == null)
+        {
+            return Error.NotFound("Role.NotFound", "The specified role was not found");
+        }
+
+        // Check if email already used by another user
+        var existingUser = await _userManager.FindByEmailAsync(personal.Email);
+        if (existingUser != null)
+        {
+            return Error.Conflict("User.EmailExists", $"A user account with email '{personal.Email}' already exists");
+        }
+
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = personal.Email,
+            Email = personal.Email,
+            EmailConfirmed = true,
+            FullName = $"{personal.FirstNameEn} {personal.LastNameEn}".Trim(),
+            IsActive = true,
+            OrganizationId = employee.TenantId,
+            BranchId = employee.BranchId,
+            EmployeeId = employee.Id,
+            CreatedDate = DateTimeOffset.UtcNow
+        };
+
+        // Default password: Hr@ + first 6 chars of NationalId + Xx1
+        var defaultPassword = $"Hr@{personal.NationalId[..Math.Min(6, personal.NationalId.Length)]}Xx1";
+        var createResult = await _userManager.CreateAsync(user, defaultPassword);
+        if (!createResult.Succeeded)
+        {
+            var errors = string.Join("; ", createResult.Errors.Select(e => e.Description));
+            return Error.Validation("User.CreateFailed", errors);
+        }
+
+        // Add to ASP.NET Identity role
+        var roleResult = await _userManager.AddToRoleAsync(user, role.Name!);
+        if (!roleResult.Succeeded)
+        {
+            return Error.Validation("User.RoleAssignFailed", string.Join("; ", roleResult.Errors.Select(e => e.Description)));
+        }
+
+        // Add UserBranchRole record
+        var branchId = employee.BranchId ?? job.BranchId;
+        if (branchId.HasValue)
+        {
+            _context.UserBranchRoles.Add(new UserBranchRole
+            {
+                UserId = user.Id,
+                BranchId = branchId.Value,
+                RoleName = role.Name!
+            });
+        }
+
+        // Link employee to user
+        employee.UserId = user.Id;
         await _context.SaveChangesAsync(cancellationToken);
 
         return Unit.Value;

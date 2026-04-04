@@ -65,7 +65,7 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, E
             BranchManagerId = request.BranchManagerId,
             IsActive = true,
             OrganizationId = Guid.NewGuid(), // Should come from CurrentUser.OrganizationId
-            TenantId = Guid.NewGuid()
+            TenantId = Guid.Empty
         };
 
         _context.Branches.Add(branch);

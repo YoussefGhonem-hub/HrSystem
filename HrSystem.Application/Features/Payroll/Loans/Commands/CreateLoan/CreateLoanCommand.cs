@@ -63,7 +63,7 @@ public class CreateLoanCommandHandler : IRequestHandler<CreateLoanCommand, Error
             EndDate = request.EndDate,
             IsActive = request.IsActive,
             Notes = request.Notes,
-            TenantId = Guid.NewGuid()
+            TenantId = Guid.Empty
         };
 
         _context.Loans.Add(loan);

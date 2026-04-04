@@ -65,7 +65,12 @@ public class ApproveRequestCommandHandler
 
         ApprovalLevel level;
 
-        if (employeeRequest.Status == EmployeeRequestStatus.Pending && (isManager || isHR))
+        if (employeeRequest.Status == EmployeeRequestStatus.Pending && isHR && employeeRequest.Employee.DirectManagerId == null)
+        {
+            // Employee has no direct manager → HR handles full approval directly
+            level = ApprovalLevel.HR;
+        }
+        else if (employeeRequest.Status == EmployeeRequestStatus.Pending && (isManager || isHR))
         {
             level = ApprovalLevel.Manager;
         }

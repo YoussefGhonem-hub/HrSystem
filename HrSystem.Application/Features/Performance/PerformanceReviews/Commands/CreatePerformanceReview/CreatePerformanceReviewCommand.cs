@@ -55,7 +55,7 @@ public class CreatePerformanceReviewCommandHandler : IRequestHandler<CreatePerfo
             CommentsAr = request.CommentsAr,
             CommentsEn = request.CommentsEn,
             EmployeeAcknowledged = false,
-            TenantId = Guid.NewGuid()
+            TenantId = Guid.Empty
         };
 
         _context.PerformanceReviews.Add(review);

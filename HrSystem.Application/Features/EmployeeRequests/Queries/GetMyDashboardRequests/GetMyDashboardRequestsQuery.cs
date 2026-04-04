@@ -126,13 +126,19 @@ public class GetMyDashboardRequestsQueryHandler
 
         if (isHR)
         {
+            // HR sees:
+            //  1) ManagerApproved requests in their branch (ready for HR approval)
+            //  2) Pending requests from employees with no DirectManager (skip manager step)
+            //  3) Pending requests from their own direct reports (if HR user is also a manager)
             var pendingQuery = ApplySorting(
                 ApplyFilters(
                     BaseQuery()
                         .Where(r =>
-                            r.Status == EmployeeRequestStatus.ManagerApproved &&
                             r.EmployeeId != employeeId.Value &&
-                            (!branchId.HasValue || r.BranchId == branchId)),
+                            (!branchId.HasValue || r.BranchId == branchId) &&
+                            (r.Status == EmployeeRequestStatus.ManagerApproved ||
+                             (r.Status == EmployeeRequestStatus.Pending && r.Employee.DirectManagerId == null) ||
+                             (r.Status == EmployeeRequestStatus.Pending && r.Employee.DirectManagerId == employeeId.Value))),
                     request),
                 request);
 
@@ -356,6 +362,11 @@ public class GetMyDashboardRequestsQueryHandler
         ApprovedDate = r.ApprovedDate,
         ProcessedBy = r.ProcessedBy,
         ProcessedDate = r.ProcessedDate,
+        PendingAt = r.Status == EmployeeRequestStatus.Pending
+            ? (r.Employee.DirectManagerId != null ? "Manager" : "HR")
+            : r.Status == EmployeeRequestStatus.ManagerApproved
+                ? "HR"
+                : null,
         VacationDetail = r.VacationDetail != null ? new VacationDetailDto
         {
             VacationTypeId = r.VacationDetail.VacationTypeId,

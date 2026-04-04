@@ -30,6 +30,7 @@ public class GetMyRequestsQueryHandler
         var query = _context.EmployeeRequests
             .AsNoTracking()
             .Include(r => r.RequestTypeRef)
+            .Include(r => r.Employee)
             .Include(r => r.VacationDetail).ThenInclude(v => v!.VacationType)
             .Include(r => r.TrainingDetail).ThenInclude(t => t!.TrainingType)
             .Where(r => r.EmployeeId == request.EmployeeId);
@@ -66,6 +67,11 @@ public class GetMyRequestsQueryHandler
             RejectionReason = r.RejectionReason,
             ApprovedBy = r.ApprovedBy,
             ApprovedDate = r.ApprovedDate,
+            PendingAt = r.Status == EmployeeRequestStatus.Pending
+                ? (r.Employee != null && r.Employee.DirectManagerId != null ? "Manager" : "HR")
+                : r.Status == EmployeeRequestStatus.ManagerApproved
+                    ? "HR"
+                    : null,
             VacationDetail = r.VacationDetail != null
                 ? new VacationDetailDto
                 {

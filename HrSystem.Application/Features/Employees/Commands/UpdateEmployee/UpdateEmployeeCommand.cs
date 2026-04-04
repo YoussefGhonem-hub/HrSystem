@@ -25,5 +25,6 @@ public record UpdateEmployeeCommand(
     Guid? DirectManagerId,
     Guid? BranchId,
     Guid ContractTypeId,
-    Guid StatusId
+    Guid StatusId,
+    Guid? RoleId
 ) : IRequest<ErrorOr<GenericResponse<EmployeeDto>>>;

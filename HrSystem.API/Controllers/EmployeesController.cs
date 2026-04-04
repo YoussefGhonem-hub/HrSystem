@@ -22,6 +22,7 @@ using HrSystem.Application.Features.Employees.Queries.GetEmployeeDetails;
 using HrSystem.Application.Features.Employees.Queries.GetMyDocuments;
 using HrSystem.Application.Features.Employees.Queries.GetMyProfile;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeesList;
+using HrSystem.Application.Features.LeaveBalances.Commands.UpsertEmployeeLeaveBalances;
 using HrSystem.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -109,6 +110,23 @@ public class EmployeesController : APIBaseController
     [HttpPost("full")]
     public async Task<IActionResult> CreateEmployee([FromForm] CreateEmployeeFullCommand command)
     {
+        // Manually bind nested IFormFile lists – ASP.NET model binder doesn't auto-bind
+        // IFormFile inside deeply nested array objects from multipart form data
+        if (command.Documents?.Types != null)
+        {
+            for (var i = 0; i < command.Documents.Types.Count; i++)
+            {
+                var prefix = $"documents.types[{i}].attachments";
+                var files = Request.Form.Files
+                    .Where(f => f.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (files.Count > 0)
+                {
+                    command.Documents.Types[i].Attachments = files;
+                }
+            }
+        }
+
         var result = await _mediator.Send(command);
 
         return result.Match(
@@ -471,5 +489,50 @@ public class EmployeesController : APIBaseController
             response => Ok(response),
             errors => Problem(errors)
         );
+    }
+
+    /// <summary>
+    /// Update leave balances for an employee.
+    /// Maps the frontend payload (leavePolicyId/totalDays) to the backend UpsertEmployeeLeaveBalancesCommand.
+    /// </summary>
+    [HttpPut("{employeeId:guid}/leave-balances")]
+    public async Task<IActionResult> UpdateLeaveBalances(Guid employeeId, [FromBody] UpdateLeaveBalancesRequest request)
+    {
+        if (request?.LeaveBalances == null || request.LeaveBalances.Count == 0)
+        {
+            return BadRequest("At least one leave balance allocation is required.");
+        }
+
+        var allocations = request.LeaveBalances
+            .Select(lb => new LeaveBalanceAllocationPayload(
+                VacationTypeId: Guid.Parse(lb.LeavePolicyId),
+                AllocatedDays: lb.TotalDays,
+                CarryOverDays: lb.CarriedForwardDays,
+                ManualAdjustmentDays: null,
+                Notes: null
+            ))
+            .ToArray();
+
+        var command = new UpsertEmployeeLeaveBalancesCommand(
+            employeeId,
+            request.Year,
+            allocations
+        );
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    public class UpdateLeaveBalancesRequest
+    {
+        public int Year { get; set; }
+        public List<UpdateLeaveBalanceItem> LeaveBalances { get; set; } = new();
+    }
+
+    public class UpdateLeaveBalanceItem
+    {
+        public string LeavePolicyId { get; set; } = "";
+        public decimal TotalDays { get; set; }
+        public decimal? CarriedForwardDays { get; set; }
     }
 }

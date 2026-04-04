@@ -35,7 +35,7 @@ public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCo
             ManagerId = request.ManagerId,
             ParentDepartmentId = request.ParentDepartmentId,
             BranchId = request.BranchId,
-            TenantId = Guid.NewGuid() // Should come from CurrentUser.OrganizationId
+            TenantId = Guid.Empty
         };
 
         _context.Departments.Add(department);

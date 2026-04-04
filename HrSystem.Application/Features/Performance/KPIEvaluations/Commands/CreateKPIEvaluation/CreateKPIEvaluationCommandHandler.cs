@@ -29,7 +29,7 @@ public class CreateKPIEvaluationCommandHandler : IRequestHandler<CreateKPIEvalua
             WeightedScore = request.WeightedScore,
             Comments = request.Comments,
             Evidence = request.Evidence,
-            TenantId = Guid.NewGuid() // Should come from CurrentUser.OrganizationId
+            TenantId = Guid.Empty
         };
 
         _context.KPIEvaluations.Add(kpiEvaluation);

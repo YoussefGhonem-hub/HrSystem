@@ -30,7 +30,7 @@ public class CreateGoalMilestoneCommandHandler : IRequestHandler<CreateGoalMiles
             IsCompleted = request.IsCompleted,
             CompletionDate = request.IsCompleted ? (request.CompletionDate ?? DateTime.UtcNow) : request.CompletionDate,
             Notes = request.Notes,
-            TenantId = Guid.NewGuid() // Should come from CurrentUser.OrganizationId
+            TenantId = Guid.Empty
         };
 
         _context.GoalMilestones.Add(goalMilestone);

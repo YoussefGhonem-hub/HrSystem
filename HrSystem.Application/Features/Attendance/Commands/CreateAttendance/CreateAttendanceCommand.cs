@@ -48,7 +48,7 @@ public class CreateAttendanceCommandHandler : IRequestHandler<CreateAttendanceCo
             CheckOutDeviceId = request.CheckOutDeviceId,
             WorkedHours = workedHours,
             Notes = request.Notes,
-            TenantId = Guid.NewGuid() // Should come from CurrentUser.TenantId
+            TenantId = Guid.Empty
         };
 
         _context.Attendances.Add(attendance);

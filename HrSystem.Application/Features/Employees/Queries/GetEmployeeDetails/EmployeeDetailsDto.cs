@@ -51,6 +51,9 @@ public class EmployeeJobInfoDetailsDto
     public Guid? ContractTypeId { get; set; }
     public DateTime? HiringDate { get; set; }
     public int? ProbationPeriodMonths { get; set; }
+    public Guid? RoleId { get; set; }
+    public string? RoleNameEn { get; set; }
+    public string? RoleNameAr { get; set; }
 }
 
 public class EmployeePayrollDetailsDto

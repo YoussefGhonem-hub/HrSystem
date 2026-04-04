@@ -43,7 +43,7 @@ public class CreateGoalCommandHandler : IRequestHandler<CreateGoalCommand, Error
             Progress = 0,
             PriorityId = request.PriorityId,
             AssignedBy = request.AssignedBy,
-            TenantId = Guid.NewGuid()
+            TenantId = Guid.Empty
         };
 
         _context.Goals.Add(goal);

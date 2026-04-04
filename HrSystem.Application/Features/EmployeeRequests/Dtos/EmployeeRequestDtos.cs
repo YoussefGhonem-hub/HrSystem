@@ -123,6 +123,12 @@ public record EmployeeRequestDto
     public Guid? ProcessedBy { get; init; }
     public DateTime? ProcessedDate { get; init; }
 
+    /// <summary>
+    /// Indicates who the request is currently pending at.
+    /// "Manager", "HR", or null if not pending.
+    /// </summary>
+    public string? PendingAt { get; init; }
+
     // Type-specific details (only one is populated based on RequestType)
     public VacationDetailDto? VacationDetail { get; init; }
     public OvertimeDetailDto? OvertimeDetail { get; init; }

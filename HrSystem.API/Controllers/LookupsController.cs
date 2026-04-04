@@ -1,6 +1,7 @@
 ﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Lookups.Queries.GetAttendanceStatuses;
 using HrSystem.Application.Features.Lookups.Queries.GetContractTypes;
+using HrSystem.Application.Features.Lookups.Queries.GetRolesLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetCountries;
 using HrSystem.Application.Features.Lookups.Queries.GetBranchLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetEmployeeStatuses;
@@ -181,6 +182,16 @@ public class LookupsController : APIBaseController
     #endregion
 
     #region Employee Module
+
+    /// <summary>
+    /// Get assignable roles for dropdown
+    /// </summary>
+    [HttpGet("roles")]
+    public async Task<IActionResult> GetRoles()
+    {
+        var result = await _mediator.Send(new GetRolesLookupQuery());
+        return result.Match(Ok, Problem);
+    }
 
     /// <summary>
     /// Get all active contract types for dropdown

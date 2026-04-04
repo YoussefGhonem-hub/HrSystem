@@ -41,7 +41,7 @@ public class CreateEmployeeAssetCommandHandler : IRequestHandler<CreateEmployeeA
             Value = request.Value,
             Condition = request.Condition,
             IsReturned = false,
-            TenantId = Guid.NewGuid()
+            TenantId = Guid.Empty
         };
 
         _context.EmployeeAssets.Add(asset);

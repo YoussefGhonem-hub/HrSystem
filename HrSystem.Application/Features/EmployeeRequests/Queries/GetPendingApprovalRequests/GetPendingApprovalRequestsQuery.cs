@@ -135,6 +135,11 @@ public class GetPendingApprovalRequestsQueryHandler
             RejectionReason = r.RejectionReason,
             ApprovedBy = r.ApprovedBy,
             ApprovedDate = r.ApprovedDate,
+            PendingAt = r.Status == EmployeeRequestStatus.Pending
+                ? (r.Employee.DirectManagerId != null ? "Manager" : "HR")
+                : r.Status == EmployeeRequestStatus.ManagerApproved
+                    ? "HR"
+                    : null,
             VacationDetail = r.VacationDetail != null ? new VacationDetailDto
             {
                 VacationTypeId = r.VacationDetail.VacationTypeId,

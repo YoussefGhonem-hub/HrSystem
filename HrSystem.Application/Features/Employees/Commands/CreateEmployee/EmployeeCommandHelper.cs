@@ -78,33 +78,23 @@ internal static class EmployeeCommandHelper
         ApplicationDbContext context,
         CancellationToken cancellationToken)
     {
-        var latestCode = await context.Employees
+        // Must use IgnoreQueryFilters because IX_Employees_EmployeeCode is globally unique
+        var allCodes = await context.Employees
             .AsNoTracking()
+            .IgnoreQueryFilters()
             .Where(e => e.EmployeeCode.StartsWith(EmployeeCodePrefix))
-            .OrderByDescending(e => e.CreatedDate)
             .Select(e => e.EmployeeCode)
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
 
-        var nextValue = 1;
-        if (!string.IsNullOrWhiteSpace(latestCode))
+        var maxValue = 0;
+        foreach (var code in allCodes)
         {
-            var numericPart = latestCode[EmployeeCodePrefix.Length..];
-            if (int.TryParse(numericPart, out var parsed))
-            {
-                nextValue = parsed + 1;
-            }
+            var numericPart = code[EmployeeCodePrefix.Length..];
+            if (int.TryParse(numericPart, out var parsed) && parsed > maxValue)
+                maxValue = parsed;
         }
 
-        string candidate;
-        do
-        {
-            candidate = $"{EmployeeCodePrefix}{nextValue:D4}";
-            nextValue++;
-        }
-        while (await context.Employees
-            .AsNoTracking()
-            .AnyAsync(e => e.EmployeeCode == candidate, cancellationToken));
-
-        return candidate;
+        var nextValue = maxValue + 1;
+        return $"{EmployeeCodePrefix}{nextValue:D4}";
     }
 }

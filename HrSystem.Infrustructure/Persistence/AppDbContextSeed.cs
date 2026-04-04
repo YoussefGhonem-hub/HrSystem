@@ -117,6 +117,7 @@ public static class AppDbContextSeed
             await SeedGoalPrioritiesAsync(context, seedDataPath);
             await SeedInvoiceStatusesAsync(context, seedDataPath);
             await EnsureDefaultScopeForSeedData(context);
+            await EnsureUsersHaveEmployeeRecordsAsync(context);
             await EnsureDeptManagerDataAsync(context);
 
             Console.WriteLine("Database seeding completed successfully!");
@@ -2617,6 +2618,179 @@ public static class AppDbContextSeed
         int ExpiryOffsetYears,
         long MinFileSize,
         long MaxFileSize);
+
+    /// <summary>
+    /// Idempotent fixup that runs on every startup:
+    /// Creates Employee records for OrgAdmin/HRManager users who don't have one.
+    /// Also ensures default departments + job titles exist per org.
+    /// </summary>
+    private static async Task EnsureUsersHaveEmployeeRecordsAsync(ApplicationDbContext context)
+    {
+        // Find users with OrgAdmin or HRManager roles who have no EmployeeId
+        var orgAdminRole = await context.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Name == RoleNames.OrganizationAdmin);
+        var hrManagerRole = await context.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Name == RoleNames.HRManager);
+
+        if (orgAdminRole == null && hrManagerRole == null) return;
+
+        var roleIds = new List<Guid>();
+        if (orgAdminRole != null) roleIds.Add(orgAdminRole.Id);
+        if (hrManagerRole != null) roleIds.Add(hrManagerRole.Id);
+
+        var usersWithoutEmployee = await context.UserRoles
+            .Where(ur => roleIds.Contains(ur.RoleId))
+            .Join(context.Users.Where(u => u.EmployeeId == null && u.OrganizationId != Guid.Empty),
+                ur => ur.UserId, u => u.Id, (ur, u) => new { User = u, RoleId = ur.RoleId })
+            .ToListAsync();
+
+        if (usersWithoutEmployee.Count() == 0)
+        {
+            Console.WriteLine("[EnsureUsersHaveEmployeeRecords] All admin/HR users already have employee records.");
+            return;
+        }
+
+        // Group by org
+        var byOrg = usersWithoutEmployee.GroupBy(x => x.User.OrganizationId);
+
+        foreach (var orgGroup in byOrg)
+        {
+            var orgId = orgGroup.Key;
+            var branch = await context.Branches
+                .Where(b => b.OrganizationId == orgId)
+                .OrderByDescending(b => b.IsHeadquarter)
+                .ThenBy(b => b.CreatedDate)
+                .FirstOrDefaultAsync();
+
+            if (branch == null) continue;
+
+            // Ensure default department exists
+            var mgmtDept = await context.Departments
+                .FirstOrDefaultAsync(d => d.TenantId == orgId && d.Code == "MGMT");
+            var hrDept = await context.Departments
+                .FirstOrDefaultAsync(d => d.TenantId == orgId && d.Code == "HR");
+
+            if (mgmtDept == null)
+            {
+                var defaultDepts = new[]
+                {
+                    new Department { NameAr = "الإدارة", NameEn = "Management", Code = "MGMT", Description = "General Management", OrganizationId = orgId, TenantId = orgId, BranchId = branch.Id, IsActive = true, SortOrder = 1, CreatedDate = DateTimeOffset.UtcNow },
+                    new Department { NameAr = "الموارد البشرية", NameEn = "Human Resources", Code = "HR", Description = "Human Resources Department", OrganizationId = orgId, TenantId = orgId, BranchId = branch.Id, IsActive = true, SortOrder = 2, CreatedDate = DateTimeOffset.UtcNow },
+                    new Department { NameAr = "تكنولوجيا المعلومات", NameEn = "Information Technology", Code = "IT", Description = "IT Department", OrganizationId = orgId, TenantId = orgId, BranchId = branch.Id, IsActive = true, SortOrder = 3, CreatedDate = DateTimeOffset.UtcNow },
+                    new Department { NameAr = "المالية", NameEn = "Finance", Code = "FIN", Description = "Finance Department", OrganizationId = orgId, TenantId = orgId, BranchId = branch.Id, IsActive = true, SortOrder = 4, CreatedDate = DateTimeOffset.UtcNow },
+                    new Department { NameAr = "العمليات", NameEn = "Operations", Code = "OPS", Description = "Operations Department", OrganizationId = orgId, TenantId = orgId, BranchId = branch.Id, IsActive = true, SortOrder = 5, CreatedDate = DateTimeOffset.UtcNow },
+                };
+                await context.Departments.AddRangeAsync(defaultDepts);
+                await context.SaveChangesAsync();
+                mgmtDept = defaultDepts[0];
+                hrDept = defaultDepts[1];
+                Console.WriteLine($"[EnsureUsersHaveEmployeeRecords] Created default departments for org {orgId}.");
+            }
+
+            hrDept ??= mgmtDept;
+
+            // Ensure default job titles exist
+            var gmJob = await context.JobTitles.FirstOrDefaultAsync(j => j.TenantId == orgId && j.Code == "GM");
+            var hrMgrJob = await context.JobTitles.FirstOrDefaultAsync(j => j.TenantId == orgId && j.Code == "HR-MGR");
+
+            if (gmJob == null)
+            {
+                var defaultJobs = new[]
+                {
+                    new JobTitle { TitleAr = "مدير عام", TitleEn = "General Manager", Code = "GM", Level = 1, MinSalary = 30000, MaxSalary = 80000, OrganizationId = orgId, TenantId = orgId, BranchId = branch.Id, IsActive = true, SortOrder = 1, CreatedDate = DateTimeOffset.UtcNow },
+                    new JobTitle { TitleAr = "مدير موارد بشرية", TitleEn = "HR Manager", Code = "HR-MGR", Level = 3, MinSalary = 15000, MaxSalary = 35000, OrganizationId = orgId, TenantId = orgId, BranchId = branch.Id, IsActive = true, SortOrder = 2, CreatedDate = DateTimeOffset.UtcNow },
+                    new JobTitle { TitleAr = "موظف", TitleEn = "Employee", Code = "EMP", Level = 5, MinSalary = 5000, MaxSalary = 15000, OrganizationId = orgId, TenantId = orgId, BranchId = branch.Id, IsActive = true, SortOrder = 3, CreatedDate = DateTimeOffset.UtcNow },
+                };
+                await context.JobTitles.AddRangeAsync(defaultJobs);
+                await context.SaveChangesAsync();
+                gmJob = defaultJobs[0];
+                hrMgrJob = defaultJobs[1];
+                Console.WriteLine($"[EnsureUsersHaveEmployeeRecords] Created default job titles for org {orgId}.");
+            }
+
+            hrMgrJob ??= gmJob;
+
+            // Generate employee codes – global unique index, check ALL orgs
+            var existingCodes = await context.Employees
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(e => e.EmployeeCode.StartsWith("EMP-"))
+                .Select(e => e.EmployeeCode)
+                .ToListAsync();
+
+            var nextCode = 1;
+            foreach (var code in existingCodes)
+            {
+                var numericPart = code["EMP-".Length..];
+                if (int.TryParse(numericPart, out var parsed) && parsed >= nextCode)
+                    nextCode = parsed + 1;
+            }
+
+            // Create employee record for OrgAdmin first, then HR
+            Guid? adminEmployeeId = null;
+
+            foreach (var entry in orgGroup.OrderBy(x => x.RoleId == orgAdminRole?.Id ? 0 : 1))
+            {
+                var u = entry.User;
+                var isAdmin = orgAdminRole != null && entry.RoleId == orgAdminRole.Id;
+
+                // Check if an employee already exists for this user (partial failure recovery)
+                var existingEmployee = await context.Employees
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(e => e.UserId == u.Id && !e.IsDeleted);
+
+                if (existingEmployee != null)
+                {
+                    // Employee exists but user.EmployeeId was not set (partial failure)
+                    u.EmployeeId = existingEmployee.Id;
+                    context.Users.Update(u);
+                    await context.SaveChangesAsync();
+                    if (isAdmin) adminEmployeeId = existingEmployee.Id;
+                    Console.WriteLine($"[EnsureUsersHaveEmployeeRecords] Linked existing Employee {existingEmployee.EmployeeCode} to user {u.Email}.");
+                    continue;
+                }
+
+                var nameStr = u.FullName ?? u.Email ?? "User";
+                var nameParts = nameStr.Split(' ');
+
+                var employee = new Employee
+                {
+                    EmployeeCode = $"EMP-{nextCode:D4}",
+                    FirstNameAr = nameParts[0],
+                    LastNameAr = nameParts.Length > 1 ? string.Join(" ", nameParts.Skip(1)) : "",
+                    FirstNameEn = nameParts[0],
+                    LastNameEn = nameParts.Length > 1 ? string.Join(" ", nameParts.Skip(1)) : "",
+                    NationalId = $"SYS-{u.Id.ToString()[..8]}",
+                    DateOfBirth = DateTime.UtcNow.AddYears(-35),
+                    GenderId = Guid.Parse("00000000-0000-0000-0006-000000000001"), // Male
+                    MaritalStatusId = Guid.Parse("00000000-0000-0000-0007-000000000001"), // Single
+                    Email = u.Email ?? "",
+                    PhoneNumber = u.PhoneNumber ?? "0000000000",
+                    AddressAr = "—",
+                    DepartmentId = isAdmin ? mgmtDept!.Id : hrDept!.Id,
+                    JobTitleId = isAdmin ? gmJob!.Id : hrMgrJob!.Id,
+                    DirectManagerId = isAdmin ? null : adminEmployeeId,
+                    BranchId = u.BranchId ?? branch.Id,
+                    ContractTypeId = Guid.Parse("00000000-0000-0000-0005-000000000001"), // Permanent
+                    StatusId = Guid.Parse("00000000-0000-0000-0008-000000000001"), // Active
+                    HiringDate = DateTime.UtcNow,
+                    TenantId = orgId,
+                    UserId = u.Id,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+
+                context.Employees.Add(employee);
+                await context.SaveChangesAsync();
+
+                u.EmployeeId = employee.Id;
+                context.Users.Update(u);
+                await context.SaveChangesAsync();
+
+                if (isAdmin) adminEmployeeId = employee.Id;
+                nextCode++;
+
+                Console.WriteLine($"[EnsureUsersHaveEmployeeRecords] Created Employee {employee.EmployeeCode} for user {u.Email} ({(isAdmin ? "OrgAdmin" : "HRManager")}).");
+            }
+        }
+    }
 
     /// <summary>
     /// Idempotent fixup that runs on every startup:

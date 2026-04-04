@@ -14,5 +14,6 @@ public record UpdateEmployeeJobInfoCommand(
     Guid? BranchId,
     Guid ContractTypeId,
     DateTime HiringDate,
-    int ProbationPeriodMonths
+    int ProbationPeriodMonths,
+    Guid? RoleId = null
 ) : IRequest<ErrorOr<GenericResponse<EmployeeDto>>>;

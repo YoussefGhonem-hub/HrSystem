@@ -7,6 +7,9 @@ using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Department = HrSystem.Domain.Entities.Employee.Department;
+using Employee = HrSystem.Domain.Entities.Employee.Employee;
+using JobTitle = HrSystem.Domain.Entities.Employee.JobTitle;
 
 namespace HrSystem.Application.Features.Organizations.Commands.CreateOrganizationWithAdmin;
 
@@ -317,6 +320,121 @@ public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateO
         {
             return Error.Validation("User.RoleAssignFailed", string.Join("; ", employeeRoleResult.Errors.Select(e => e.Description)));
         }
+
+        // ── Create Employee records for OrgAdmin and HRManager ──
+        var headquarterBranch = branches.OrderByDescending(b => b.IsHeadquarter).ThenBy(b => b.NameEn).First();
+
+        // Ensure at least one department and job title exist for the new org
+        var defaultDepartment = await _context.Departments
+            .Where(d => d.TenantId == organization.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (defaultDepartment == null)
+        {
+            var defaultDepts = new[]
+            {
+                new Department { NameAr = "الإدارة", NameEn = "Management", Code = "MGMT", Description = "General Management", OrganizationId = organization.Id, TenantId = organization.Id, BranchId = headquarterBranch.Id, IsActive = true, SortOrder = 1, CreatedDate = DateTimeOffset.UtcNow },
+                new Department { NameAr = "الموارد البشرية", NameEn = "Human Resources", Code = "HR", Description = "Human Resources Department", OrganizationId = organization.Id, TenantId = organization.Id, BranchId = headquarterBranch.Id, IsActive = true, SortOrder = 2, CreatedDate = DateTimeOffset.UtcNow },
+                new Department { NameAr = "تكنولوجيا المعلومات", NameEn = "Information Technology", Code = "IT", Description = "IT Department", OrganizationId = organization.Id, TenantId = organization.Id, BranchId = headquarterBranch.Id, IsActive = true, SortOrder = 3, CreatedDate = DateTimeOffset.UtcNow },
+                new Department { NameAr = "المالية", NameEn = "Finance", Code = "FIN", Description = "Finance Department", OrganizationId = organization.Id, TenantId = organization.Id, BranchId = headquarterBranch.Id, IsActive = true, SortOrder = 4, CreatedDate = DateTimeOffset.UtcNow },
+                new Department { NameAr = "العمليات", NameEn = "Operations", Code = "OPS", Description = "Operations Department", OrganizationId = organization.Id, TenantId = organization.Id, BranchId = headquarterBranch.Id, IsActive = true, SortOrder = 5, CreatedDate = DateTimeOffset.UtcNow },
+            };
+            await _context.Departments.AddRangeAsync(defaultDepts, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            defaultDepartment = defaultDepts[0]; // Management dept
+        }
+
+        var hrDepartment = await _context.Departments
+            .Where(d => d.TenantId == organization.Id && d.Code == "HR")
+            .FirstOrDefaultAsync(cancellationToken) ?? defaultDepartment;
+
+        var defaultJobTitle = await _context.JobTitles
+            .Where(j => j.TenantId == organization.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (defaultJobTitle == null)
+        {
+            var defaultJobs = new[]
+            {
+                new JobTitle { TitleAr = "مدير عام", TitleEn = "General Manager", Code = "GM", Level = 1, MinSalary = 30000, MaxSalary = 80000, OrganizationId = organization.Id, TenantId = organization.Id, BranchId = headquarterBranch.Id, IsActive = true, SortOrder = 1, CreatedDate = DateTimeOffset.UtcNow },
+                new JobTitle { TitleAr = "مدير موارد بشرية", TitleEn = "HR Manager", Code = "HR-MGR", Level = 3, MinSalary = 15000, MaxSalary = 35000, OrganizationId = organization.Id, TenantId = organization.Id, BranchId = headquarterBranch.Id, IsActive = true, SortOrder = 2, CreatedDate = DateTimeOffset.UtcNow },
+                new JobTitle { TitleAr = "موظف", TitleEn = "Employee", Code = "EMP", Level = 5, MinSalary = 5000, MaxSalary = 15000, OrganizationId = organization.Id, TenantId = organization.Id, BranchId = headquarterBranch.Id, IsActive = true, SortOrder = 3, CreatedDate = DateTimeOffset.UtcNow },
+            };
+            await _context.JobTitles.AddRangeAsync(defaultJobs, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            defaultJobTitle = defaultJobs[0]; // General Manager title
+        }
+
+        var hrJobTitle = await _context.JobTitles
+            .Where(j => j.TenantId == organization.Id && j.Code == "HR-MGR")
+            .FirstOrDefaultAsync(cancellationToken) ?? defaultJobTitle;
+
+        var adminNameParts = (request.AdminUser.FullName ?? "Org Admin").Split(' ', 2);
+        var adminEmployee = new Employee
+        {
+            EmployeeCode = "EMP-0001",
+            FirstNameAr = adminNameParts[0],
+            LastNameAr = adminNameParts.Length > 1 ? adminNameParts[1] : "",
+            FirstNameEn = adminNameParts[0],
+            LastNameEn = adminNameParts.Length > 1 ? adminNameParts[1] : "",
+            NationalId = $"ADMIN-{organization.Code}",
+            DateOfBirth = DateTime.UtcNow.AddYears(-35),
+            GenderId = GenderIds.Male,
+            MaritalStatusId = MaritalStatusIds.Single,
+            Email = request.AdminUser.Email,
+            PhoneNumber = request.AdminUser.Email,
+            AddressAr = organization.AddressAr ?? "—",
+            AddressEn = organization.AddressEn,
+            City = organization.City,
+            Country = organization.Country,
+            DepartmentId = defaultDepartment.Id,
+            JobTitleId = defaultJobTitle.Id,
+            BranchId = headquarterBranch.Id,
+            ContractTypeId = ContractTypeIds.Permanent,
+            StatusId = EmployeeStatusIds.Active,
+            HiringDate = DateTime.UtcNow,
+            TenantId = organization.Id,
+            UserId = user.Id,
+            CreatedDate = DateTimeOffset.UtcNow
+        };
+        _context.Employees.Add(adminEmployee);
+        await _context.SaveChangesAsync(cancellationToken);
+        user.EmployeeId = adminEmployee.Id;
+        await _userManager.UpdateAsync(user);
+
+        var hrNameParts = (request.HrManagerUser.FullName ?? "HR Manager").Split(' ', 2);
+        var hrEmployee = new Employee
+        {
+            EmployeeCode = "EMP-0002",
+            FirstNameAr = hrNameParts[0],
+            LastNameAr = hrNameParts.Length > 1 ? hrNameParts[1] : "",
+            FirstNameEn = hrNameParts[0],
+            LastNameEn = hrNameParts.Length > 1 ? hrNameParts[1] : "",
+            NationalId = $"HR-{organization.Code}",
+            DateOfBirth = DateTime.UtcNow.AddYears(-30),
+            GenderId = GenderIds.Male,
+            MaritalStatusId = MaritalStatusIds.Single,
+            Email = request.HrManagerUser.Email,
+            PhoneNumber = request.HrManagerUser.Email,
+            AddressAr = organization.AddressAr ?? "—",
+            AddressEn = organization.AddressEn,
+            City = organization.City,
+            Country = organization.Country,
+            DepartmentId = hrDepartment.Id,
+            JobTitleId = hrJobTitle.Id,
+            DirectManagerId = adminEmployee.Id,
+            BranchId = headquarterBranch.Id,
+            ContractTypeId = ContractTypeIds.Permanent,
+            StatusId = EmployeeStatusIds.Active,
+            HiringDate = DateTime.UtcNow,
+            TenantId = organization.Id,
+            UserId = hrManagerUser.Id,
+            CreatedDate = DateTimeOffset.UtcNow
+        };
+        _context.Employees.Add(hrEmployee);
+        await _context.SaveChangesAsync(cancellationToken);
+        hrManagerUser.EmployeeId = hrEmployee.Id;
+        await _userManager.UpdateAsync(hrManagerUser);
 
         var branchRoles = branches.Select(branch => new UserBranchRole
         {

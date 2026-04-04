@@ -32,7 +32,7 @@ public class CreateKPICommandHandler : IRequestHandler<CreateKPICommand, ErrorOr
             MeasurementCriteria = request.MeasurementCriteria,
             JobTitleId = request.JobTitleId,
             DepartmentId = request.DepartmentId,
-            TenantId = Guid.NewGuid() // Should come from CurrentUser.OrganizationId
+            TenantId = Guid.Empty
         };
 
         _context.KPIs.Add(kpi);

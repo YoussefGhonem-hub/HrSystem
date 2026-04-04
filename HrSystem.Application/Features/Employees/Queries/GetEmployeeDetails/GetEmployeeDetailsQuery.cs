@@ -59,7 +59,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         var dto = new EmployeeDetailsDto
         {
             PersonalInfo = personalInfo,
-            JobInfo = MapJobInfo(employee),
+            JobInfo = await MapJobInfoAsync(employee, cancellationToken),
             Payroll = payroll,
             Attendance = attendance,
             Documents = documents,
@@ -152,8 +152,30 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         }
     }
 
-    private static EmployeeJobInfoDetailsDto MapJobInfo(HrSystem.Domain.Entities.Employee.Employee employee)
+    private async Task<EmployeeJobInfoDetailsDto> MapJobInfoAsync(HrSystem.Domain.Entities.Employee.Employee employee, CancellationToken cancellationToken)
     {
+        Guid? roleId = null;
+        string? roleNameEn = null;
+        string? roleNameAr = null;
+
+        if (employee.UserId.HasValue)
+        {
+            var userRole = await _context.UserRoles
+                .Where(ur => ur.UserId == employee.UserId.Value)
+                .Join(_context.Roles,
+                    ur => ur.RoleId,
+                    r => r.Id,
+                    (ur, r) => r)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (userRole != null)
+            {
+                roleId = userRole.Id;
+                roleNameEn = userRole.Name ?? string.Empty;
+                roleNameAr = userRole.DisplayName ?? userRole.Name;
+            }
+        }
+
         return new EmployeeJobInfoDetailsDto
         {
             EmployeeCode = employee.EmployeeCode,
@@ -166,7 +188,10 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             BranchId = employee.BranchId,
             ContractTypeId = employee.ContractTypeId,
             HiringDate = employee.HiringDate,
-            ProbationPeriodMonths = employee.ProbationPeriodMonths
+            ProbationPeriodMonths = employee.ProbationPeriodMonths,
+            RoleId = roleId,
+            RoleNameEn = roleNameEn,
+            RoleNameAr = roleNameAr
         };
     }
 
@@ -201,10 +226,10 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 salary.BankSwiftCode),
             Notes = salary.Notes,
             Allowances = salary.Allowances
-                .Select(a => new PayrollAllowancePayload(a.NameAr, a.NameEn, a.Description, a.IsTaxable, a.IsSubjectToInsurance, a.Amount, a.IsPercentage, a.PercentageValue))
+                .Select(a => new PayrollAllowancePayload { NameAr = a.NameAr, NameEn = a.NameEn, Description = a.Description, IsTaxable = a.IsTaxable, IsSubjectToInsurance = a.IsSubjectToInsurance, Amount = a.Amount, IsPercentage = a.IsPercentage, PercentageValue = a.PercentageValue })
                 .ToList(),
             Deductions = salary.Deductions
-                .Select(d => new PayrollDeductionPayload(d.NameAr, d.NameEn, d.Description, d.IsRecurring, d.Amount, d.IsPercentage, d.PercentageValue))
+                .Select(d => new PayrollDeductionPayload { NameAr = d.NameAr, NameEn = d.NameEn, Description = d.Description, IsRecurring = d.IsRecurring, Amount = d.Amount, IsPercentage = d.IsPercentage, PercentageValue = d.PercentageValue })
                 .ToList()
         };
 
@@ -254,7 +279,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             return null;
         }
 
-        return new PayrollBankInfoPayload(bankName, bankBranch, accountNumber, iban, swiftCode);
+        return new PayrollBankInfoPayload { BankName = bankName, BankBranch = bankBranch, AccountNumber = accountNumber, Iban = iban, SwiftCode = swiftCode };
     }
 
     private async Task<EmployeeAttendanceDetailsDto?> GetAttendanceConfigurationAsync(Guid employeeId, CancellationToken cancellationToken)

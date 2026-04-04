@@ -1,8 +1,10 @@
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
+using HrSystem.Domain.Entities.Account;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
@@ -10,10 +12,17 @@ namespace HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
 public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeCommand, ErrorOr<GenericResponse<EmployeeDto>>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
 
-    public UpdateEmployeeCommandHandler(ApplicationDbContext context)
+    public UpdateEmployeeCommandHandler(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager)
     {
         _context = context;
+        _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     public async Task<ErrorOr<GenericResponse<EmployeeDto>>> Handle(
@@ -49,6 +58,94 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         employee.StatusId = request.StatusId;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Handle role change if RoleId is provided
+        if (request.RoleId.HasValue && request.RoleId.Value != Guid.Empty)
+        {
+            var role = await _roleManager.FindByIdAsync(request.RoleId.Value.ToString());
+            if (role == null)
+            {
+                return Error.NotFound("Role.NotFound", "The specified role was not found");
+            }
+
+            if (employee.UserId.HasValue)
+            {
+                // Employee already has a user — update their role
+                var user = await _userManager.FindByIdAsync(employee.UserId.Value.ToString());
+                if (user != null)
+                {
+                    // Remove all current roles and assign new one
+                    var currentRoles = await _userManager.GetRolesAsync(user);
+                    if (currentRoles.Count > 0)
+                        await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                    await _userManager.AddToRoleAsync(user, role.Name!);
+
+                    // Update UserBranchRoles
+                    var branchId = employee.BranchId ?? request.BranchId;
+                    if (branchId.HasValue)
+                    {
+                        var existingBranchRoles = await _context.UserBranchRoles
+                            .Where(r => r.UserId == user.Id && r.BranchId == branchId.Value)
+                            .ToListAsync(cancellationToken);
+                        _context.UserBranchRoles.RemoveRange(existingBranchRoles);
+                        _context.UserBranchRoles.Add(new UserBranchRole
+                        {
+                            UserId = user.Id,
+                            BranchId = branchId.Value,
+                            RoleName = role.Name!
+                        });
+                        await _context.SaveChangesAsync(cancellationToken);
+                    }
+                }
+            }
+            else
+            {
+                // Employee has no user account — create one
+                var existingUser = await _userManager.FindByEmailAsync(employee.Email);
+                if (existingUser != null)
+                {
+                    return Error.Conflict("User.EmailExists", $"A user with email '{employee.Email}' already exists");
+                }
+
+                var user = new ApplicationUser
+                {
+                    Id = Guid.NewGuid(),
+                    UserName = employee.Email,
+                    Email = employee.Email,
+                    EmailConfirmed = true,
+                    FullName = $"{employee.FirstNameEn} {employee.LastNameEn}".Trim(),
+                    IsActive = true,
+                    OrganizationId = employee.TenantId,
+                    BranchId = employee.BranchId ?? request.BranchId,
+                    EmployeeId = employee.Id,
+                    CreatedDate = DateTimeOffset.UtcNow
+                };
+
+                var defaultPassword = $"Hr@{employee.NationalId[..Math.Min(6, employee.NationalId.Length)]}Xx1";
+                var createResult = await _userManager.CreateAsync(user, defaultPassword);
+                if (!createResult.Succeeded)
+                {
+                    return Error.Validation("User.CreateFailed",
+                        string.Join("; ", createResult.Errors.Select(e => e.Description)));
+                }
+
+                await _userManager.AddToRoleAsync(user, role.Name!);
+
+                var branchId = employee.BranchId ?? request.BranchId;
+                if (branchId.HasValue)
+                {
+                    _context.UserBranchRoles.Add(new UserBranchRole
+                    {
+                        UserId = user.Id,
+                        BranchId = branchId.Value,
+                        RoleName = role.Name!
+                    });
+                }
+
+                employee.UserId = user.Id;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
 
         // Reload with navigation properties
         var updatedEmployee = await _context.Employees
