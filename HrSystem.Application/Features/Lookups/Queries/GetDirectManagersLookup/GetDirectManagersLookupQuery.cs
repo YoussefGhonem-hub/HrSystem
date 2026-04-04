@@ -32,7 +32,9 @@ public class GetDirectManagersLookupQueryHandler : IRequestHandler<GetDirectMana
                 Id = e.Id,
                 FullNameEn = e.FirstNameEn + " " + e.LastNameEn,
                 FullNameAr = e.FirstNameAr + " " + e.LastNameAr,
-                EmployeeCode = e.EmployeeCode
+                EmployeeCode = e.EmployeeCode,
+                DepartmentNameEn = e.Department != null ? e.Department.NameEn : null,
+                DepartmentNameAr = e.Department != null ? e.Department.NameAr : null
             })
             .ToListAsync(cancellationToken);
 

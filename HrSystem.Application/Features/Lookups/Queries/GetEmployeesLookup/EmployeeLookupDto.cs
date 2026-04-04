@@ -6,4 +6,6 @@ public class EmployeeLookupDto
     public string FullNameEn { get; set; } = string.Empty;
     public string FullNameAr { get; set; } = string.Empty;
     public string EmployeeCode { get; set; } = string.Empty;
+    public string? DepartmentNameEn { get; set; }
+    public string? DepartmentNameAr { get; set; }
 }
