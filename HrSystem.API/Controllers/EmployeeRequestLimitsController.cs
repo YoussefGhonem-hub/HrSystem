@@ -37,7 +37,8 @@ public class EmployeeRequestLimitsController : APIBaseController
         var command = new UpsertEmployeeRequestLimitsCommand(
             employeeId,
             request.VacationLimits,
-            request.PermissionLimits);
+            request.PermissionLimits,
+            request.GlobalPermissionLimit);
 
         var result = await _mediator.Send(command);
         return result.Match(Ok, Problem);
@@ -58,5 +59,6 @@ public class EmployeeRequestLimitsController : APIBaseController
     {
         public IReadOnlyCollection<VacationLimitPayload>? VacationLimits { get; set; }
         public IReadOnlyCollection<PermissionLimitPayload>? PermissionLimits { get; set; }
+        public GlobalPermissionLimitPayload? GlobalPermissionLimit { get; set; }
     }
 }

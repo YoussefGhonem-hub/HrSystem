@@ -404,6 +404,28 @@ public class EmployeeRequestsController : APIBaseController
     }
 
     /// <summary>
+    /// Gets all permission balances for the employee showing remaining hours for each permission type.
+    /// Useful for displaying on the annual leaves balance page.
+    /// </summary>
+    [HttpGet("permission/balances")]
+    public async Task<IActionResult> GetPermissionBalances(
+        [FromQuery] int? year,
+        [FromQuery] int? month)
+    {
+        var employeeId = CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        var query = new GetEmployeePermissionBalancesQuery(
+            employeeId.Value,
+            year,
+            month);
+
+        var result = await _mediator.Send(query);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
     /// Manager approves or rejects a vacation request.
     /// </summary>
     [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]

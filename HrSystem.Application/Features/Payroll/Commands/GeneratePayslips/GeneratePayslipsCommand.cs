@@ -13,7 +13,8 @@ namespace HrSystem.Application.Features.Payroll.Commands.GeneratePayslips;
 public record GeneratePayslipsCommand(
     int Month,
     int Year,
-    Guid? EmployeeId = null
+    Guid? EmployeeId = null,
+    bool UpdateExisting = false
 ) : IRequest<ErrorOr<GenericResponse<GeneratePayslipsResultDto>>>;
 
 public class GeneratePayslipsResultDto
@@ -145,7 +146,15 @@ public class GeneratePayslipsCommandHandler
 
         foreach (var employee in employees)
         {
-            if (existingPayslipEmployeeIds.Contains(employee.Id))
+            // Check if payslip exists
+            var existingPayslip = await _context.Payslips
+                .Include(p => p.PayslipAllowances)
+                .Include(p => p.PayslipDeductions)
+                .FirstOrDefaultAsync(p => p.PayrollCycleId == cycle.Id 
+                    && p.EmployeeId == employee.Id 
+                    && !p.IsDeleted, cancellationToken);
+
+            if (existingPayslip != null && !request.UpdateExisting)
             {
                 result.PayslipsSkipped++;
                 result.Warnings.Add($"Payslip already exists for {employee.FullNameEn} ({employee.EmployeeCode}).");
@@ -279,50 +288,86 @@ public class GeneratePayslipsCommandHandler
             // --- Net Salary ---
             decimal netSalary = grossSalary - totalDeductions;
 
-            // --- Create Payslip ---
-            payslipCounter++;
-            var payslipNumber = $"PS-{request.Year}{request.Month:D2}-{payslipCounter:D4}";
-
-            var payslip = new Payslip
+            // --- Create or Update Payslip ---
+            if (existingPayslip != null)
             {
-                PayrollCycleId = cycle.Id,
-                EmployeeId = employee.Id,
-                PayslipNumber = payslipNumber,
-                BasicSalary = currentSalary.BasicSalary,
-                TotalAllowances = totalAllowances,
-                GrossSalary = grossSalary,
-                OvertimeAmount = overtimeAmount,
-                BonusAmount = 0,
-                TotalDeductions = totalDeductions,
-                IncomeTax = incomeTax,
-                SocialInsuranceEmployee = siEmployee,
-                SocialInsuranceEmployer = siEmployer,
-                LeaveDeductions = 0,
-                UnpaidLeaveDays = 0,
-                NetSalary = netSalary,
-                TotalWorkingDays = DateTime.DaysInMonth(request.Year, request.Month),
-                ActualWorkingDays = DateTime.DaysInMonth(request.Year, request.Month),
-                AbsentDays = 0,
-                GeneratedDate = DateTime.UtcNow,
-                TenantId = employee.TenantId,
-                BranchId = employee.BranchId
-            };
+                // Update existing payslip
+                existingPayslip.BasicSalary = currentSalary.BasicSalary;
+                existingPayslip.TotalAllowances = totalAllowances;
+                existingPayslip.GrossSalary = grossSalary;
+                existingPayslip.OvertimeAmount = overtimeAmount;
+                existingPayslip.TotalDeductions = totalDeductions;
+                existingPayslip.IncomeTax = incomeTax;
+                existingPayslip.SocialInsuranceEmployee = siEmployee;
+                existingPayslip.SocialInsuranceEmployer = siEmployer;
+                existingPayslip.NetSalary = netSalary;
+                existingPayslip.GeneratedDate = DateTime.UtcNow;
 
-            foreach (var pa in payslipAllowances)
-            {
-                pa.PayslipId = payslip.Id;
-                payslip.PayslipAllowances.Add(pa);
+                // Remove old allowances/deductions and add new ones
+                _context.PayslipAllowances.RemoveRange(existingPayslip.PayslipAllowances);
+                _context.PayslipDeductions.RemoveRange(existingPayslip.PayslipDeductions);
+
+                foreach (var pa in payslipAllowances)
+                {
+                    pa.PayslipId = existingPayslip.Id;
+                    existingPayslip.PayslipAllowances.Add(pa);
+                }
+
+                foreach (var pd in payslipDeductions)
+                {
+                    pd.PayslipId = existingPayslip.Id;
+                    existingPayslip.PayslipDeductions.Add(pd);
+                }
+
+                result.PayslipsGenerated++;
             }
-
-            foreach (var pd in payslipDeductions)
+            else
             {
-                pd.PayslipId = payslip.Id;
-                payslip.PayslipDeductions.Add(pd);
+                // Create new payslip
+                payslipCounter++;
+                var payslipNumber = $"PS-{request.Year}{request.Month:D2}-{payslipCounter:D4}";
+
+                var payslip = new Payslip
+                {
+                    PayrollCycleId = cycle.Id,
+                    EmployeeId = employee.Id,
+                    PayslipNumber = payslipNumber,
+                    BasicSalary = currentSalary.BasicSalary,
+                    TotalAllowances = totalAllowances,
+                    GrossSalary = grossSalary,
+                    OvertimeAmount = overtimeAmount,
+                    BonusAmount = 0,
+                    TotalDeductions = totalDeductions,
+                    IncomeTax = incomeTax,
+                    SocialInsuranceEmployee = siEmployee,
+                    SocialInsuranceEmployer = siEmployer,
+                    LeaveDeductions = 0,
+                    UnpaidLeaveDays = 0,
+                    NetSalary = netSalary,
+                    TotalWorkingDays = DateTime.DaysInMonth(request.Year, request.Month),
+                    ActualWorkingDays = DateTime.DaysInMonth(request.Year, request.Month),
+                    AbsentDays = 0,
+                    GeneratedDate = DateTime.UtcNow,
+                    TenantId = employee.TenantId,
+                    BranchId = employee.BranchId
+                };
+
+                foreach (var pa in payslipAllowances)
+                {
+                    pa.PayslipId = payslip.Id;
+                    payslip.PayslipAllowances.Add(pa);
+                }
+
+                foreach (var pd in payslipDeductions)
+                {
+                    pd.PayslipId = payslip.Id;
+                    payslip.PayslipDeductions.Add(pd);
+                }
+
+                _context.Payslips.Add(payslip);
+
+                result.PayslipsGenerated++;
             }
-
-            _context.Payslips.Add(payslip);
-
-            result.PayslipsGenerated++;
             result.TotalGrossSalary += grossSalary;
             result.TotalNetSalary += netSalary;
             result.TotalDeductions += totalDeductions;

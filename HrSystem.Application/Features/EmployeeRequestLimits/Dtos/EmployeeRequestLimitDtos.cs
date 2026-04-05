@@ -9,6 +9,7 @@ public class EmployeeRequestLimitsDto
     public string EmployeeName { get; init; } = string.Empty;
     public IReadOnlyCollection<EmployeeVacationLimitDto> VacationLimits { get; init; } = Array.Empty<EmployeeVacationLimitDto>();
     public IReadOnlyCollection<EmployeePermissionLimitDto> PermissionLimits { get; init; } = Array.Empty<EmployeePermissionLimitDto>();
+    public GlobalPermissionLimitDto? GlobalPermissionLimit { get; init; }
 }
 
 public class EmployeeVacationLimitDto
@@ -30,6 +31,16 @@ public class EmployeePermissionLimitDto
     public string? PermissionTypeName { get; init; }
     public string? PermissionTypeNameAr { get; init; }
     public decimal? MaxHoursPerMonth { get; init; }
+    public int Year { get; init; }
+    public int Month { get; init; }
+    public decimal UsedHours { get; init; }
+    public decimal? RemainingHours { get; init; }
+    public string? Notes { get; init; }
+}
+
+public class GlobalPermissionLimitDto
+{
+    public decimal? TotalMonthlyHours { get; init; }
     public int Year { get; init; }
     public int Month { get; init; }
     public decimal UsedHours { get; init; }

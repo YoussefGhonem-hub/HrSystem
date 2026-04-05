@@ -16,6 +16,13 @@ public class PermissionType : BaseAuditableMasterEntity
     public bool RequireAttachment { get; set; }
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
+    
+    /// <summary>
+    /// Default maximum hours per month for this permission type.
+    /// Can be overridden per employee in EmployeePermissionLimit.
+    /// If null, no monthly limit is enforced.
+    /// </summary>
+    public decimal? DefaultMonthlyHours { get; set; }
 
     // Navigation
     public virtual ICollection<PermissionRequestDetail> PermissionRequests { get; set; } = new List<PermissionRequestDetail>();

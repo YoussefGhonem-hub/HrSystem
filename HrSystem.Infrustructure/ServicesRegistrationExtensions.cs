@@ -21,7 +21,14 @@ public static class ServicesRegistrationExtensions
 
         services.AddDbContext<ApplicationDbContext>((opts) =>
         {
-            opts.UseSqlServer(connectionString, sqlOpts => sqlOpts.CommandTimeout(120));
+            opts.UseSqlServer(connectionString, sqlOpts => 
+            {
+                sqlOpts.CommandTimeout(120);
+                sqlOpts.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+            });
         });
 
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));

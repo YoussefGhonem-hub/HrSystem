@@ -277,6 +277,7 @@ public class GetMyDashboardRequestsQueryHandler
             .AsNoTracking()
             .Include(r => r.RequestTypeRef)
             .Include(r => r.Employee)
+                .ThenInclude(e => e!.DirectManager)
             .Include(r => r.VacationDetail).ThenInclude(v => v!.VacationType)
             .Include(r => r.PermissionDetail).ThenInclude(p => p!.PermissionType)
             .Include(r => r.TrainingDetail).ThenInclude(t => t!.TrainingType)
@@ -363,9 +364,9 @@ public class GetMyDashboardRequestsQueryHandler
         ProcessedBy = r.ProcessedBy,
         ProcessedDate = r.ProcessedDate,
         PendingAt = r.Status == EmployeeRequestStatus.Pending
-            ? (r.Employee.DirectManagerId != null ? "Manager" : "HR")
+            ? (r.Employee?.DirectManager != null ? r.Employee.DirectManager.FullNameEn : "HR Department")
             : r.Status == EmployeeRequestStatus.ManagerApproved
-                ? "HR"
+                ? "HR Department"
                 : null,
         VacationDetail = r.VacationDetail != null ? new VacationDetailDto
         {

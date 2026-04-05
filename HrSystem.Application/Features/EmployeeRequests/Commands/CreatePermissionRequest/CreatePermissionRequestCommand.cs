@@ -105,6 +105,78 @@ public class CreatePermissionRequestCommandHandler
         if (permissionType == null)
             return Error.Validation(description: "Invalid permission type.");
 
+        // Prepare date range for current month
+        var currentMonth = request.PermissionDate.Month;
+        var currentYear = request.PermissionDate.Year;
+        var startOfMonth = new DateTime(currentYear, currentMonth, 1);
+        var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+
+        // FIRST: Check global permission hours limit (all types combined)
+        var globalLimit = await _context.EmployeeGlobalPermissionLimits
+            .AsNoTracking()
+            .Where(gl => gl.EmployeeId == request.EmployeeId)
+            .Select(gl => gl.TotalMonthlyHours)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (globalLimit.HasValue)
+        {
+            // Calculate total hours used across ALL permission types this month
+            var totalUsedHoursAllTypes = await _context.PermissionRequestDetails
+                .AsNoTracking()
+                .Where(pd => pd.EmployeeRequest.EmployeeId == request.EmployeeId
+                            && pd.PermissionDate >= startOfMonth
+                            && pd.PermissionDate <= endOfMonth
+                            && (pd.EmployeeRequest.Status == EmployeeRequestStatus.Pending
+                                || pd.EmployeeRequest.Status == EmployeeRequestStatus.ManagerApproved
+                                || pd.EmployeeRequest.Status == EmployeeRequestStatus.Approved
+                                || pd.EmployeeRequest.Status == EmployeeRequestStatus.Completed))
+                .SumAsync(pd => pd.TotalHours, cancellationToken);
+
+            var remainingGlobalHours = globalLimit.Value - totalUsedHoursAllTypes;
+
+            if (request.TotalHours > remainingGlobalHours)
+            {
+                return Error.Validation(
+                    description: $"Permission request exceeds total monthly limit. You have {remainingGlobalHours:F2} hours remaining for ALL permission types this month (Total limit: {globalLimit:F2} hours, Used: {totalUsedHoursAllTypes:F2} hours)."
+                );
+            }
+        }
+
+        // SECOND: Validate per-type monthly hours limit (if global check passed)
+        // Get employee-specific limit or fall back to permission type default
+        var employeeLimit = await _context.EmployeePermissionLimits
+            .AsNoTracking()
+            .Where(epl => epl.EmployeeId == request.EmployeeId 
+                       && epl.PermissionTypeId == request.PermissionTypeId)
+            .Select(epl => epl.MaxHoursPerMonth)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var maxHoursPerMonth = employeeLimit ?? permissionType.DefaultMonthlyHours;
+
+        if (maxHoursPerMonth.HasValue)
+        {
+            var currentMonthHours = await _context.PermissionRequestDetails
+                .AsNoTracking()
+                .Where(pd => pd.PermissionTypeId == request.PermissionTypeId
+                            && pd.EmployeeRequest.EmployeeId == request.EmployeeId
+                            && pd.PermissionDate >= startOfMonth
+                            && pd.PermissionDate <= endOfMonth
+                            && (pd.EmployeeRequest.Status == EmployeeRequestStatus.Pending
+                                || pd.EmployeeRequest.Status == EmployeeRequestStatus.ManagerApproved
+                                || pd.EmployeeRequest.Status == EmployeeRequestStatus.Approved
+                                || pd.EmployeeRequest.Status == EmployeeRequestStatus.Completed))
+                .SumAsync(pd => pd.TotalHours, cancellationToken);
+
+            var remainingHours = maxHoursPerMonth.Value - currentMonthHours;
+
+            if (request.TotalHours > remainingHours)
+            {
+                return Error.Validation(
+                    description: $"Permission request exceeds monthly limit. You have {remainingHours:F2} hours remaining for this month (Limit: {maxHoursPerMonth:F2} hours)."
+                );
+            }
+        }
+
         // Upload attachment to S3 if provided
         string? attachmentUrl = null;
         if (request.Attachment != null && request.Attachment.Length > 0)

@@ -119,6 +119,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<EmployeeLeaveTransaction> EmployeeLeaveTransactions => Set<EmployeeLeaveTransaction>();
     public DbSet<EmployeeVacationLimit> EmployeeVacationLimits => Set<EmployeeVacationLimit>();
     public DbSet<EmployeePermissionLimit> EmployeePermissionLimits => Set<EmployeePermissionLimit>();
+    public DbSet<EmployeeGlobalPermissionLimit> EmployeeGlobalPermissionLimits => Set<EmployeeGlobalPermissionLimit>();
     
     // Request Details
     public DbSet<VacationRequestDetail> VacationRequestDetails => Set<VacationRequestDetail>();

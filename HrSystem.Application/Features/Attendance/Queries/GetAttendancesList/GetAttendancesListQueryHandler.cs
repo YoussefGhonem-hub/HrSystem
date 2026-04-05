@@ -3,6 +3,7 @@ using HrSystem.Application.Common.Extensions;
 using HrSystem.Application.Common.PaginatedList;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,9 +38,31 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
             .ApplyBranchScope()
             .AsQueryable();
 
+        // For regular employee users: if no employeeId is specified, automatically filter by current employee
+        // HR users (HR, HRManager, HRSpecialist) and Managers can see all employees
+        var employeeIdFilter = request.EmployeeId;
+        if (!employeeIdFilter.HasValue && CurrentUser.EmployeeId.HasValue)
+        {
+            // Check if user has HR or management roles
+            var isHrUser = CurrentUser.Roles.Any(r => 
+                r.Equals("HR", StringComparison.OrdinalIgnoreCase) ||
+                r.Equals("HRManager", StringComparison.OrdinalIgnoreCase) ||
+                r.Equals("HR Manager", StringComparison.OrdinalIgnoreCase) ||
+                r.Equals("HRSpecialist", StringComparison.OrdinalIgnoreCase) ||
+                r.Equals("HR Specialist", StringComparison.OrdinalIgnoreCase) ||
+                r.Equals("DepartmentManager", StringComparison.OrdinalIgnoreCase) ||
+                r.Equals("Department Manager", StringComparison.OrdinalIgnoreCase));
+
+            // Only filter by employee ID for regular employees (not HR/managers)
+            if (!isHrUser && !CurrentUser.IsSuperAdmin && !CurrentUser.IsOrganizationAdmin)
+            {
+                employeeIdFilter = CurrentUser.EmployeeId.Value;
+            }
+        }
+
         // Apply filters
         query = query.ApplyFilters(
-            request.EmployeeId,
+            employeeIdFilter,
             request.FromDate,
             request.ToDate,
             request.StatusId,

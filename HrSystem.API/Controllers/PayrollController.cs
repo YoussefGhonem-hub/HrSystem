@@ -2,6 +2,7 @@
 using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Application.Features.Payroll.Commands.CreateBankExportProfile;
 using HrSystem.Application.Features.Payroll.Commands.DeleteBankExportProfile;
+using HrSystem.Application.Features.Payroll.Commands.DeletePayslips;
 using HrSystem.Application.Features.Payroll.Commands.GeneratePayslips;
 using HrSystem.Application.Features.Payroll.Commands.MarkPayslipsAsPaid;
 using HrSystem.Application.Features.Payroll.Commands.UpdateBankExportProfile;
@@ -10,6 +11,7 @@ using HrSystem.Application.Features.Payroll.Queries.GetMyLoans;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslips;
 using HrSystem.Application.Features.Payroll.Queries.GetMyPayslipDetails;
 using HrSystem.Application.Features.Payroll.Queries.GetPayslipDetails;
+using HrSystem.Application.Features.Payroll.Queries.GeneratePayslipPdf;
 using HrSystem.Application.Features.Payroll.Queries.GetMySalarySummary;
 using HrSystem.Application.Features.Payroll.Queries.GetMyNetSalaryStatus;
 using HrSystem.Application.Features.Payroll.Queries.GetMySalaryBreakdown;
@@ -41,10 +43,29 @@ public class PayrollController : APIBaseController
     /// <summary>
     /// Generate payslips for a given month/year. Includes overtime from approved requests and loan deductions.
     /// Optionally pass employeeId to generate for a single employee.
+    /// Only HR Managers and Admins can generate payslips.
     /// </summary>
     [HttpPost("generate-payslips")]
+    [Authorize(Roles = "HRManager,OrganizationAdmin,SuperAdmin")]
     public async Task<IActionResult> GeneratePayslips([FromBody] GeneratePayslipsCommand command)
     {
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Delete payslips for a given month/year. Optionally pass employeeId to delete for a single employee.
+    /// Only HR Managers and Admins can delete payslips.
+    /// </summary>
+    [HttpDelete("delete-payslips")]
+    [Authorize(Roles = "HRManager,OrganizationAdmin,SuperAdmin")]
+    public async Task<IActionResult> DeletePayslips([FromQuery] int month, [FromQuery] int year, [FromQuery] Guid? employeeId = null)
+    {
+        var command = new DeletePayslipsCommand(month, year, employeeId);
         var result = await _mediator.Send(command);
 
         return result.Match(
@@ -387,6 +408,20 @@ public class PayrollController : APIBaseController
 
         return result.Match(
             response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Generate and download PDF for a specific payslip
+    /// </summary>
+    [HttpGet("payslips/{payslipId:guid}/pdf")]
+    public async Task<IActionResult> GeneratePayslipPdf(Guid payslipId)
+    {
+        var result = await _mediator.Send(new GeneratePayslipPdfQuery(payslipId));
+
+        return result.Match(
+            pdfBytes => File(pdfBytes, "application/pdf", $"Payslip_{payslipId}.pdf"),
             errors => Problem(errors)
         );
     }

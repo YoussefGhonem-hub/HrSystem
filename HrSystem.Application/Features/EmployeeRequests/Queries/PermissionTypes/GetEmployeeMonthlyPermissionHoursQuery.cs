@@ -64,6 +64,16 @@ public class GetEmployeeMonthlyPermissionHoursQueryHandler
         var startOfMonth = new DateTime(request.Year, request.Month, 1);
         var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
 
+        // Get employee-specific limit or fall back to permission type default
+        var employeeLimit = await _context.EmployeePermissionLimits
+            .AsNoTracking()
+            .Where(epl => epl.EmployeeId == request.EmployeeId 
+                       && epl.PermissionTypeId == request.PermissionTypeId)
+            .Select(epl => epl.MaxHoursPerMonth)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var maxHours = employeeLimit ?? permissionType.DefaultMonthlyHours;
+
         // Get approved hours for the month
         var approvedHours = await _context.PermissionRequestDetails
             .AsNoTracking()
@@ -91,7 +101,7 @@ public class GetEmployeeMonthlyPermissionHoursQueryHandler
             PermissionTypeName = permissionType.NameEn,
             Year = request.Year,
             Month = request.Month,
-            MaxHoursPerMonth = null,
+            MaxHoursPerMonth = maxHours,
             ApprovedHours = approvedHours,
             PendingHours = pendingHours
         };

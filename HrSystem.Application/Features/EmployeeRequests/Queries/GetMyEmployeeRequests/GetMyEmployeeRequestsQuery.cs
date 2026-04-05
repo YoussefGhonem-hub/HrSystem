@@ -28,6 +28,8 @@ public class GetMyEmployeeRequestsQueryHandler
         var query = _context.EmployeeRequests
             .AsNoTracking()
             .Include(r => r.RequestTypeRef)
+            .Include(r => r.Employee)
+                .ThenInclude(e => e!.DirectManager)
             .Include(r => r.OvertimeDetail).ThenInclude(o => o!.OvertimeType)
             .Where(r => r.EmployeeId == request.EmployeeId);
 
@@ -59,6 +61,13 @@ public class GetMyEmployeeRequestsQueryHandler
             RejectionReason = r.RejectionReason,
             ApprovedBy = r.ApprovedBy,
             ApprovedDate = r.ApprovedDate,
+            PendingAt = r.Status == EmployeeRequestStatus.Pending
+                ? (r.Employee != null && r.Employee.DirectManager != null 
+                    ? r.Employee.DirectManager.FullNameEn 
+                    : "HR Department")
+                : r.Status == EmployeeRequestStatus.ManagerApproved
+                    ? "HR Department"
+                    : null,
             OvertimeDetail = r.OvertimeDetail != null
                 ? new OvertimeDetailDto
                 {

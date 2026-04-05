@@ -48,13 +48,20 @@ internal static class EmployeeRequestLimitResponseBuilder
             now,
             cancellationToken);
 
+        var globalPermissionLimit = await BuildGlobalPermissionLimitDtoAsync(
+            context,
+            employeeId,
+            now,
+            cancellationToken);
+
         return new EmployeeRequestLimitsDto
         {
             EmployeeId = employeeId,
             EmployeeCode = employeeCode,
             EmployeeName = employeeName,
             VacationLimits = vacationLimits,
-            PermissionLimits = permissionLimits
+            PermissionLimits = permissionLimits,
+            GlobalPermissionLimit = globalPermissionLimit
         };
     }
 
@@ -132,52 +139,119 @@ internal static class EmployeeRequestLimitResponseBuilder
         DateTime now,
         CancellationToken cancellationToken)
     {
-        if (permissionLimits.Count == 0)
+        var startOfMonth = new DateTime(now.Year, now.Month, 1);
+        var endOfMonth = startOfMonth.AddMonths(1);
+        var approvedStatuses = new[] { EmployeeRequestStatus.Approved, EmployeeRequestStatus.Completed };
+
+        // Get all permission types (both with and without employee-specific limits)
+        var allPermissionTypes = await context.PermissionTypes
+            .AsNoTracking()
+            .Where(p => !p.IsDeleted)
+            .OrderBy(p => p.SortOrder)
+            .ThenBy(p => p.NameEn)
+            .Select(p => new { 
+                p.Id, 
+                p.NameEn, 
+                p.NameAr, 
+                p.DefaultMonthlyHours,
+                p.SortOrder 
+            })
+            .ToListAsync(cancellationToken);
+
+        if (allPermissionTypes.Count == 0)
         {
             return Array.Empty<EmployeePermissionLimitDto>();
         }
 
-        var startOfMonth = new DateTime(now.Year, now.Month, 1);
-        var endOfMonth = startOfMonth.AddMonths(1);
-        var approvedStatuses = new[] { EmployeeRequestStatus.Approved, EmployeeRequestStatus.Completed };
+        var permissionTypeIds = allPermissionTypes.Select(p => p.Id).ToList();
 
         var usageLookup = await context.PermissionRequestDetails
             .AsNoTracking()
             .Where(d => d.EmployeeRequest.EmployeeId == employeeId
                         && d.PermissionDate >= startOfMonth
                         && d.PermissionDate < endOfMonth
-                        && approvedStatuses.Contains(d.EmployeeRequest.Status))
+                        && approvedStatuses.Contains(d.EmployeeRequest.Status)
+                        && permissionTypeIds.Contains(d.PermissionTypeId))
             .GroupBy(d => d.PermissionTypeId)
             .Select(g => new PermissionUsageProjection(g.Key, g.Sum(x => x.TotalHours)))
             .ToDictionaryAsync(x => x.PermissionTypeId, cancellationToken);
 
-        var permissionDtos = permissionLimits
-            .Select(limit =>
+        var employeeLimitsLookup = permissionLimits.ToDictionary(l => l.PermissionTypeId);
+
+        var permissionDtos = allPermissionTypes
+            .Select(permType =>
             {
-                var usedHours = usageLookup.TryGetValue(limit.PermissionTypeId, out var usage)
+                var usedHours = usageLookup.TryGetValue(permType.Id, out var usage)
                     ? usage.TotalHours
                     : 0m;
 
-                var remaining = limit.MaxHoursPerMonth.HasValue
-                    ? Math.Max(0, limit.MaxHoursPerMonth.Value - usedHours)
+                // Check employee-specific limit first, then fall back to type default
+                var employeeLimit = employeeLimitsLookup.TryGetValue(permType.Id, out var empLimit) ? empLimit : null;
+                var maxHours = employeeLimit?.MaxHoursPerMonth ?? permType.DefaultMonthlyHours;
+                var notes = employeeLimit?.Notes;
+
+                var remaining = maxHours.HasValue
+                    ? Math.Max(0, maxHours.Value - usedHours)
                     : (decimal?)null;
 
                 return new EmployeePermissionLimitDto
                 {
-                    PermissionTypeId = limit.PermissionTypeId,
-                    PermissionTypeName = limit.PermissionType.NameEn,
-                    PermissionTypeNameAr = limit.PermissionType.NameAr,
-                    MaxHoursPerMonth = limit.MaxHoursPerMonth,
+                    PermissionTypeId = permType.Id,
+                    PermissionTypeName = permType.NameEn,
+                    PermissionTypeNameAr = permType.NameAr,
+                    MaxHoursPerMonth = maxHours,
                     Year = startOfMonth.Year,
                     Month = startOfMonth.Month,
                     UsedHours = usedHours,
                     RemainingHours = remaining,
-                    Notes = limit.Notes
+                    Notes = notes
                 };
             })
             .ToList();
 
         return permissionDtos;
+    }
+
+    private static async Task<GlobalPermissionLimitDto?> BuildGlobalPermissionLimitDtoAsync(
+        ApplicationDbContext context,
+        Guid employeeId,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var globalLimit = await context.EmployeeGlobalPermissionLimits
+            .AsNoTracking()
+            .Where(gl => gl.EmployeeId == employeeId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (globalLimit == null || !globalLimit.TotalMonthlyHours.HasValue)
+        {
+            return null;
+        }
+
+        var startOfMonth = new DateTime(now.Year, now.Month, 1);
+        var endOfMonth = startOfMonth.AddMonths(1);
+        var approvedStatuses = new[] { EmployeeRequestStatus.Approved, EmployeeRequestStatus.Completed };
+
+        // Calculate total hours used across ALL permission types this month
+        var usedHours = await context.PermissionRequestDetails
+            .AsNoTracking()
+            .Where(d => d.EmployeeRequest.EmployeeId == employeeId
+                        && d.PermissionDate >= startOfMonth
+                        && d.PermissionDate < endOfMonth
+                        && approvedStatuses.Contains(d.EmployeeRequest.Status))
+            .SumAsync(d => d.TotalHours, cancellationToken);
+
+        var remaining = Math.Max(0, globalLimit.TotalMonthlyHours.Value - usedHours);
+
+        return new GlobalPermissionLimitDto
+        {
+            TotalMonthlyHours = globalLimit.TotalMonthlyHours,
+            Year = startOfMonth.Year,
+            Month = startOfMonth.Month,
+            UsedHours = usedHours,
+            RemainingHours = remaining,
+            Notes = globalLimit.Notes
+        };
     }
 
     private sealed record VacationBalanceProjection(

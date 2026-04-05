@@ -10,7 +10,9 @@ public class UpsertEmployeeRequestLimitsCommandValidator : AbstractValidator<Ups
         RuleFor(x => x.EmployeeId).NotEmpty();
 
         RuleFor(x => x)
-            .Must(cmd => (cmd.VacationLimits?.Count > 0) || (cmd.PermissionLimits?.Count > 0))
+            .Must(cmd => (cmd.VacationLimits?.Count > 0) || 
+                         (cmd.PermissionLimits?.Count > 0) || 
+                         (cmd.GlobalPermissionLimit?.TotalMonthlyHours.HasValue ?? false))
             .WithMessage("At least one limit payload is required.");
 
         When(x => x.VacationLimits != null, () =>

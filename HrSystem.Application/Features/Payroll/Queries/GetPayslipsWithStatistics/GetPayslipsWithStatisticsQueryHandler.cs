@@ -152,6 +152,7 @@ public class GetPayslipsWithStatisticsQueryHandler : IRequestHandler<GetPayslips
         var sentPayslips = payslips.Count(p => p.IsPaid);
         var pendingPayslips = payslips.Count(p => !p.IsPaid);
 
+        var totalNetSalary = payslips.Sum(p => p.NetSalary);
         var averageSalary = payslips.Any() ? payslips.Average(p => p.NetSalary) : 0;
         var medianSalary = CalculateMedian(payslips.Select(p => p.NetSalary).ToList());
 
@@ -165,6 +166,7 @@ public class GetPayslipsWithStatisticsQueryHandler : IRequestHandler<GetPayslips
             TotalPayslips = totalPayslips,
             SentPayslips = sentPayslips,
             PendingPayslips = pendingPayslips,
+            TotalNetSalary = Math.Round(totalNetSalary, 2),
             AverageNetSalary = Math.Round(averageSalary, 2),
             MedianSalary = Math.Round(medianSalary, 2),
             TotalDeductions = Math.Round(totalDeductions, 2),

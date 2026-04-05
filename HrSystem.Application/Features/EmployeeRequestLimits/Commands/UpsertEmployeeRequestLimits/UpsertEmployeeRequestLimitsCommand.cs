@@ -15,7 +15,8 @@ namespace HrSystem.Application.Features.EmployeeRequestLimits.Commands.UpsertEmp
 public record UpsertEmployeeRequestLimitsCommand(
     Guid EmployeeId,
     IReadOnlyCollection<VacationLimitPayload>? VacationLimits,
-    IReadOnlyCollection<PermissionLimitPayload>? PermissionLimits
+    IReadOnlyCollection<PermissionLimitPayload>? PermissionLimits,
+    GlobalPermissionLimitPayload? GlobalPermissionLimit
 ) : IRequest<ErrorOr<GenericResponse<EmployeeRequestLimitsDto>>>;
 
 public record VacationLimitPayload(
@@ -27,6 +28,11 @@ public record VacationLimitPayload(
 public record PermissionLimitPayload(
     Guid PermissionTypeId,
     decimal? MaxHoursPerMonth,
+    string? Notes
+);
+
+public record GlobalPermissionLimitPayload(
+    decimal? TotalMonthlyHours,
     string? Notes
 );
 
@@ -45,7 +51,8 @@ public class UpsertEmployeeRequestLimitsCommandHandler
         CancellationToken cancellationToken)
     {
         if ((request.VacationLimits is null || request.VacationLimits.Count == 0) &&
-            (request.PermissionLimits is null || request.PermissionLimits.Count == 0))
+            (request.PermissionLimits is null || request.PermissionLimits.Count == 0) &&
+            (request.GlobalPermissionLimit is null || !request.GlobalPermissionLimit.TotalMonthlyHours.HasValue))
         {
             return Error.Validation(description: "At least one limit payload is required.");
         }
@@ -102,6 +109,7 @@ public class UpsertEmployeeRequestLimitsCommandHandler
 
         await UpsertVacationLimitsAsync(vacationPayloads, employee, cancellationToken);
         await UpsertPermissionLimitsAsync(permissionPayloads, employee, cancellationToken);
+        await UpsertGlobalPermissionLimitAsync(request.GlobalPermissionLimit, employee, cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -232,6 +240,54 @@ public class UpsertEmployeeRequestLimitsCommandHandler
                 {
                     existing.BranchId = employee.BranchId;
                 }
+            }
+        }
+    }
+
+    private async Task UpsertGlobalPermissionLimitAsync(
+        GlobalPermissionLimitPayload? payload,
+        EmployeeSummary employee,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _context.EmployeeGlobalPermissionLimits
+            .Where(gl => gl.EmployeeId == employee.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (payload == null || !payload.TotalMonthlyHours.HasValue)
+        {
+            // Remove global limit if payload is null or hours not specified
+            if (existing != null)
+            {
+                _context.EmployeeGlobalPermissionLimits.Remove(existing);
+            }
+            return;
+        }
+
+        var notes = payload.Notes?.Trim();
+
+        if (existing == null)
+        {
+            // Create new global limit
+            existing = new EmployeeGlobalPermissionLimit
+            {
+                EmployeeId = employee.Id,
+                TotalMonthlyHours = payload.TotalMonthlyHours,
+                Notes = notes,
+                TenantId = employee.TenantId,
+                BranchId = employee.BranchId
+            };
+
+            await _context.EmployeeGlobalPermissionLimits.AddAsync(existing, cancellationToken);
+        }
+        else
+        {
+            // Update existing global limit
+            existing.TotalMonthlyHours = payload.TotalMonthlyHours;
+            existing.Notes = notes;
+
+            if (!existing.BranchId.HasValue)
+            {
+                existing.BranchId = employee.BranchId;
             }
         }
     }

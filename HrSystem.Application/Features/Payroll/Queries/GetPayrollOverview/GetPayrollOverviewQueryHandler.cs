@@ -47,6 +47,8 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         var query = _context.Payslips
             .Include(p => p.Employee)
                 .ThenInclude(e => e.Department)
+            .Include(p => p.Employee)
+                .ThenInclude(e => e.Branch)
             .Include(p => p.PayrollCycle)
             .Where(p => p.PayrollCycle.Month == request.Month && p.PayrollCycle.Year == request.Year)
             .AsQueryable();
@@ -65,47 +67,46 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
 
         if (request.BranchId.HasValue)
         {
-            query = query.Where(p => p.Employee.Branch!.Id == request.BranchId.Value);
+            query = query.Where(p => p.Employee.BranchId == request.BranchId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
             var searchTerm = request.SearchTerm.ToLower();
             query = query.Where(p =>
+                p.Employee.EmployeeCode.ToLower().Contains(searchTerm) ||
+                p.Employee.FirstNameEn.ToLower().Contains(searchTerm) ||
+                p.Employee.LastNameEn.ToLower().Contains(searchTerm) ||
+                p.Employee.FirstNameAr.Contains(searchTerm) ||
+                p.Employee.LastNameAr.Contains(searchTerm) ||
                 p.Employee.Department.NameEn.ToLower().Contains(searchTerm) ||
                 p.Employee.Department.NameAr.Contains(searchTerm));
         }
 
-        // Group by department
-        var departmentGroupQuery = query
-            .GroupBy(p => new
+        // Select individual employee payroll data
+        var employeeDataQuery = query
+            .Select(p => new PayrollOverviewDto
             {
-                DepartmentId = p.Employee.DepartmentId,
-                DepartmentName = p.Employee.Department.NameEn,
-                Month = p.PayrollCycle.Month,
-                Year = p.PayrollCycle.Year
-            })
-            .Select(g => new PayrollOverviewDto
-            {
-                DepartmentId = g.Key.DepartmentId ?? Guid.Empty,
-                DepartmentName = g.Key.DepartmentName ?? "No Department",
-                EmployeeCount = g.Count(),
-                GrossSalary = g.Sum(p => p.GrossSalary),
-                TotalDeductions = g.Sum(p => p.TotalDeductions),
-                NetSalary = g.Sum(p => p.NetSalary),
-                Status = g.Any(p => !p.IsPaid) ? "Pending" : "Processed",
-                Month = g.Key.Month,
-                Year = g.Key.Year
+                EmployeeId = p.EmployeeId,
+                EmployeeCode = p.Employee.EmployeeCode,
+                EmployeeName = p.Employee.FullNameEn,
+                DepartmentName = p.Employee.Department != null ? p.Employee.Department.NameEn : "No Department",
+                BranchName = p.Employee.Branch != null ? p.Employee.Branch.NameEn : "No Branch",
+                GrossSalary = p.GrossSalary,
+                TotalDeductions = p.TotalDeductions,
+                NetSalary = p.NetSalary,
+                Status = p.IsPaid ? "Paid" : "Pending",
+                PaymentDate = p.PaidDate
             });
 
         // Apply sorting
-        departmentGroupQuery = ApplySorting(departmentGroupQuery, request.SortBy, request.SortDescending);
+        employeeDataQuery = ApplySorting(employeeDataQuery, request.SortBy, request.SortDescending);
 
         // Get total count
-        var totalCount = await departmentGroupQuery.CountAsync(cancellationToken);
+        var totalCount = await employeeDataQuery.CountAsync(cancellationToken);
 
         // Apply pagination
-        var items = await departmentGroupQuery
+        var items = await employeeDataQuery
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
@@ -222,12 +223,15 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
     {
         return sortBy?.ToLower() switch
         {
+            "employeecode" => descending ? query.OrderByDescending(x => x.EmployeeCode) : query.OrderBy(x => x.EmployeeCode),
+            "employeename" => descending ? query.OrderByDescending(x => x.EmployeeName) : query.OrderBy(x => x.EmployeeName),
             "departmentname" => descending ? query.OrderByDescending(x => x.DepartmentName) : query.OrderBy(x => x.DepartmentName),
-            "employeecount" => descending ? query.OrderByDescending(x => x.EmployeeCount) : query.OrderBy(x => x.EmployeeCount),
+            "branchname" => descending ? query.OrderByDescending(x => x.BranchName) : query.OrderBy(x => x.BranchName),
             "grosssalary" => descending ? query.OrderByDescending(x => x.GrossSalary) : query.OrderBy(x => x.GrossSalary),
+            "totaldeductions" => descending ? query.OrderByDescending(x => x.TotalDeductions) : query.OrderBy(x => x.TotalDeductions),
             "netsalary" => descending ? query.OrderByDescending(x => x.NetSalary) : query.OrderBy(x => x.NetSalary),
             "status" => descending ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
-            _ => query.OrderBy(x => x.DepartmentName)
+            _ => query.OrderBy(x => x.EmployeeCode)
         };
     }
 }
