@@ -92,6 +92,18 @@ public class GetMyDashboardRequestsQueryHandler
 
         var isManager = roles.Any(r => r == RoleNames.DepartmentManager);
 
+        // Check if user is actually a direct manager (has subordinates) even without DepartmentManager role
+        if (!isManager && employeeId.HasValue)
+        {
+            var hasDirectReports = await _context.Employees
+                .AnyAsync(e => e.DirectManagerId == employeeId.Value, cancellationToken);
+            
+            if (hasDirectReports)
+            {
+                isManager = true;
+            }
+        }
+
         string effectiveRole = isHR
             ? "HR"
             : isManager
@@ -126,6 +138,32 @@ public class GetMyDashboardRequestsQueryHandler
 
         if (isHR)
         {
+            // Debug: Log the query parameters for HR
+            Console.WriteLine($"[DEBUG HR] EmployeeId: {employeeId.Value}, BranchId: {branchId}");
+            
+            // Check direct reports count
+            var directReportsCount = await _context.Employees
+                .Where(e => e.DirectManagerId == employeeId.Value)
+                .CountAsync(cancellationToken);
+            Console.WriteLine($"[DEBUG HR] Direct reports count: {directReportsCount}");
+            
+            // Check pending requests with this user as DirectManager
+            var pendingWithManager = await _context.EmployeeRequests
+                .Include(r => r.Employee)
+                .Where(r => 
+                    r.Status == EmployeeRequestStatus.Pending && 
+                    r.Employee.DirectManagerId == employeeId.Value)
+                .CountAsync(cancellationToken);
+            Console.WriteLine($"[DEBUG HR] Pending requests with DirectManagerId={employeeId.Value}: {pendingWithManager}");
+            
+            // Check ManagerApproved requests in branch
+            var managerApprovedCount = await _context.EmployeeRequests
+                .Where(r => 
+                    r.Status == EmployeeRequestStatus.ManagerApproved &&
+                    (!branchId.HasValue || r.BranchId == branchId))
+                .CountAsync(cancellationToken);
+            Console.WriteLine($"[DEBUG HR] ManagerApproved requests in branch: {managerApprovedCount}");
+
             // HR sees:
             //  1) ManagerApproved requests in their branch (ready for HR approval)
             //  2) Pending requests from employees with no DirectManager (skip manager step)
@@ -143,6 +181,8 @@ public class GetMyDashboardRequestsQueryHandler
                 request);
 
             pendingApprovalTotalCount = await pendingQuery.CountAsync(cancellationToken);
+            Console.WriteLine($"[DEBUG HR] Final filtered count: {pendingApprovalTotalCount}");
+            
             pendingApproval = await PaginateAndProject(
                 pendingQuery,
                 request.PendingApprovalPageNumber,
@@ -151,6 +191,26 @@ public class GetMyDashboardRequestsQueryHandler
         }
         else if (isManager)
         {
+            // Debug: Log the query parameters
+            Console.WriteLine($"[DEBUG] Manager query - EmployeeId: {employeeId.Value}");
+            
+            // First check if there are ANY pending requests with this manager
+            var debugCount = await _context.EmployeeRequests
+                .Include(r => r.Employee)
+                .Where(r => r.Employee.DirectManagerId == employeeId.Value)
+                .CountAsync(cancellationToken);
+            
+            Console.WriteLine($"[DEBUG] Total requests with DirectManagerId={employeeId.Value}: {debugCount}");
+            
+            var pendingDebugCount = await _context.EmployeeRequests
+                .Include(r => r.Employee)
+                .Where(r => 
+                    r.Status == EmployeeRequestStatus.Pending &&
+                    r.Employee.DirectManagerId == employeeId.Value)
+                .CountAsync(cancellationToken);
+                
+            Console.WriteLine($"[DEBUG] Pending requests with DirectManagerId={employeeId.Value}: {pendingDebugCount}");
+
             var pendingQuery = ApplySorting(
                 ApplyFilters(
                     BaseQuery()
@@ -162,6 +222,8 @@ public class GetMyDashboardRequestsQueryHandler
                 request);
 
             pendingApprovalTotalCount = await pendingQuery.CountAsync(cancellationToken);
+            Console.WriteLine($"[DEBUG] Final filtered count: {pendingApprovalTotalCount}");
+            
             pendingApproval = await PaginateAndProject(
                 pendingQuery,
                 request.PendingApprovalPageNumber,

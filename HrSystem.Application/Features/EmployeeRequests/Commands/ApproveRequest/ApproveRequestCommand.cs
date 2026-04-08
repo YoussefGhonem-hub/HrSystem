@@ -65,9 +65,18 @@ public class ApproveRequestCommandHandler
 
         ApprovalLevel level;
 
+        // Check if the approver is the employee's direct manager
+        bool isDirectManager = currentEmployeeId.HasValue
+            && employeeRequest.Employee.DirectManagerId == currentEmployeeId.Value;
+
         if (employeeRequest.Status == EmployeeRequestStatus.Pending && isHR && employeeRequest.Employee.DirectManagerId == null)
         {
             // Employee has no direct manager → HR handles full approval directly
+            level = ApprovalLevel.HR;
+        }
+        else if (employeeRequest.Status == EmployeeRequestStatus.Pending && isDirectManager && isHR)
+        {
+            // Direct manager is also an HR member → single approval covers both levels
             level = ApprovalLevel.HR;
         }
         else if (employeeRequest.Status == EmployeeRequestStatus.Pending && (isManager || isHR))
@@ -100,7 +109,7 @@ public class ApproveRequestCommandHandler
         }
         else
         {
-            return await HandleHRApproval(employeeRequest, requestTypeCode, request, currentUserId, currentEmployeeId, cancellationToken);
+            return await HandleHRApproval(employeeRequest, requestTypeCode, request, currentUserId, currentEmployeeId, isDirectManager, cancellationToken);
         }
     }
 
@@ -155,8 +164,27 @@ public class ApproveRequestCommandHandler
         ApproveRequestCommand request,
         Guid? currentUserId,
         Guid? currentEmployeeId,
+        bool isDirectManager,
         CancellationToken cancellationToken)
     {
+        // When the direct manager is also HR, fill in manager approval fields too
+        if (isDirectManager && employeeRequest.Status == EmployeeRequestStatus.Pending)
+        {
+            employeeRequest.ManagerComments = request.Comments;
+
+            if (requestTypeCode == "Vacation" && employeeRequest.VacationDetail != null)
+            {
+                employeeRequest.VacationDetail.ManagerApprovalDate = DateTime.UtcNow;
+                employeeRequest.VacationDetail.ManagerComments = request.Comments;
+            }
+            else if (requestTypeCode == "Permission" && employeeRequest.PermissionDetail != null)
+            {
+                employeeRequest.PermissionDetail.ManagerApprovalDate = DateTime.UtcNow;
+                employeeRequest.PermissionDetail.ManagerComments = request.Comments;
+                employeeRequest.PermissionDetail.ManagerId = currentEmployeeId;
+            }
+        }
+
         if (request.IsApproved)
         {
             // Vacation-specific: deduct leave balance
@@ -179,6 +207,12 @@ public class ApproveRequestCommandHandler
         }
         else
         {
+            // Restore leave balance if vacation was previously approved
+            if (requestTypeCode == "Vacation" && employeeRequest.VacationDetail != null)
+            {
+                await TryRestoreLeaveBalanceAsync(employeeRequest, cancellationToken);
+            }
+
             employeeRequest.Status = EmployeeRequestStatus.Rejected;
             employeeRequest.RejectionReason = request.Comments;
             employeeRequest.ProcessedBy = currentUserId;
@@ -246,6 +280,59 @@ public class ApproveRequestCommandHandler
 
         await _context.EmployeeLeaveTransactions.AddAsync(transaction, cancellationToken);
         return null;
+    }
+
+    private async Task TryRestoreLeaveBalanceAsync(EmployeeRequest employeeRequest, CancellationToken cancellationToken)
+    {
+        if (!employeeRequest.StartDate.HasValue || !employeeRequest.EndDate.HasValue)
+            return;
+
+        var approvalYear = employeeRequest.StartDate.Value.Year;
+        var vacationDetail = employeeRequest.VacationDetail!;
+
+        // Check if leave was actually deducted for this request
+        var deductionTransaction = await _context.EmployeeLeaveTransactions
+            .FirstOrDefaultAsync(t =>
+                t.EmployeeId == employeeRequest.EmployeeId &&
+                t.ReferenceId == employeeRequest.Id &&
+                t.ReferenceType == "VacationRequest" &&
+                t.TransactionType == LeaveTransactionType.Deduction,
+                cancellationToken);
+
+        if (deductionTransaction == null)
+            return; // No deduction was made, nothing to restore
+
+        var leaveBalance = await _context.EmployeeLeaveBalances
+            .FirstOrDefaultAsync(b =>
+                b.EmployeeId == employeeRequest.EmployeeId &&
+                b.VacationTypeId == vacationDetail.VacationTypeId &&
+                b.Year == approvalYear,
+                cancellationToken);
+
+        if (leaveBalance == null)
+            return;
+
+        var daysToRestore = vacationDetail.TotalDays;
+        leaveBalance.UsedDays -= daysToRestore;
+        if (leaveBalance.UsedDays < 0) leaveBalance.UsedDays = 0;
+
+        var creditTransaction = new EmployeeLeaveTransaction
+        {
+            EmployeeLeaveBalanceId = leaveBalance.Id,
+            EmployeeId = leaveBalance.EmployeeId,
+            VacationTypeId = leaveBalance.VacationTypeId,
+            Year = leaveBalance.Year,
+            TransactionType = LeaveTransactionType.Credit,
+            DaysChanged = daysToRestore,
+            BalanceAfter = leaveBalance.CalculateAvailableDays(),
+            ReferenceType = "VacationRequest",
+            ReferenceId = employeeRequest.Id,
+            Notes = $"Balance restored - request rejected: {employeeRequest.Title}",
+            TenantId = leaveBalance.TenantId,
+            BranchId = leaveBalance.BranchId
+        };
+
+        await _context.EmployeeLeaveTransactions.AddAsync(creditTransaction, cancellationToken);
     }
 
     private static EmployeeRequestDto MapToDto(EmployeeRequest r) => new()

@@ -287,39 +287,42 @@ public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateO
 
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-        await _context.Organizations.AddAsync(organization, cancellationToken);
-        await _context.Branches.AddRangeAsync(branches, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        var createUserResult = await _userManager.CreateAsync(user, request.AdminUser.Password);
-        if (!createUserResult.Succeeded)
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            return Error.Validation("User.CreateFailed", string.Join("; ", createUserResult.Errors.Select(e => e.Description)));
-        }
+            await _context.Organizations.AddAsync(organization, cancellationToken);
+            await _context.Branches.AddRangeAsync(branches, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
 
-        var roleResult = await _userManager.AddToRoleAsync(user, RoleNames.OrganizationAdmin);
-        if (!roleResult.Succeeded)
-        {
-            return Error.Validation("User.RoleAssignFailed", string.Join("; ", roleResult.Errors.Select(e => e.Description)));
-        }
+            var createUserResult = await _userManager.CreateAsync(user, request.AdminUser.Password);
+            if (!createUserResult.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", createUserResult.Errors.Select(e => e.Description)));
+            }
 
-        var createHrManagerResult = await _userManager.CreateAsync(hrManagerUser, request.HrManagerUser.Password);
-        if (!createHrManagerResult.Succeeded)
-        {
-            return Error.Validation("User.CreateFailed", string.Join("; ", createHrManagerResult.Errors.Select(e => e.Description)));
-        }
+            var roleResult = await _userManager.AddToRoleAsync(user, RoleNames.OrganizationAdmin);
+            if (!roleResult.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", roleResult.Errors.Select(e => e.Description)));
+            }
 
-        var hrManagerRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.HRManager);
-        if (!hrManagerRoleResult.Succeeded)
-        {
-            return Error.Validation("User.RoleAssignFailed", string.Join("; ", hrManagerRoleResult.Errors.Select(e => e.Description)));
-        }
+            var createHrManagerResult = await _userManager.CreateAsync(hrManagerUser, request.HrManagerUser.Password);
+            if (!createHrManagerResult.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", createHrManagerResult.Errors.Select(e => e.Description)));
+            }
 
-        var employeeRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.Employee);
-        if (!employeeRoleResult.Succeeded)
-        {
-            return Error.Validation("User.RoleAssignFailed", string.Join("; ", employeeRoleResult.Errors.Select(e => e.Description)));
-        }
+            var hrManagerRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.HRManager);
+            if (!hrManagerRoleResult.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", hrManagerRoleResult.Errors.Select(e => e.Description)));
+            }
+
+            var employeeRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.Employee);
+            if (!employeeRoleResult.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", employeeRoleResult.Errors.Select(e => e.Description)));
+            }
 
         // ── Create Employee records for OrgAdmin and HRManager ──
         var headquarterBranch = branches.OrderByDescending(b => b.IsHeadquarter).ThenBy(b => b.NameEn).First();
@@ -459,11 +462,12 @@ public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateO
             }
         });
 
-        await _context.UserBranchRoles.AddRangeAsync(branchRoles, cancellationToken);
-        await _context.UserBranchRoles.AddRangeAsync(hrManagerBranchRoles, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+            await _context.UserBranchRoles.AddRangeAsync(branchRoles, cancellationToken);
+            await _context.UserBranchRoles.AddRangeAsync(hrManagerBranchRoles, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
 
-        await tx.CommitAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        });
 
         var dto = new OrganizationOnboardingDto
         {

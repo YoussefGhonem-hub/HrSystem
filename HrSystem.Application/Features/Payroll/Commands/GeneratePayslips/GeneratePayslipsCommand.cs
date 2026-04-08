@@ -54,9 +54,13 @@ public class GeneratePayslipsCommandHandler
         var periodStart = new DateTime(request.Year, request.Month, 1);
         var periodEnd = periodStart.AddMonths(1).AddDays(-1);
 
-        // Get or create payroll cycle
+        var currentTenantId = CurrentUser.OrganizationId ?? Guid.Empty;
+
+        // Get or create payroll cycle (bypass global filters but still scope by tenant)
         var cycle = await _context.PayrollCycles
-            .FirstOrDefaultAsync(c => c.Month == request.Month && c.Year == request.Year, cancellationToken);
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.Month == request.Month && c.Year == request.Year
+                && c.TenantId == currentTenantId, cancellationToken);
 
         if (cycle == null)
         {
@@ -70,6 +74,20 @@ public class GeneratePayslipsCommandHandler
                 StatusId = PayrollStatusIds.Draft
             };
             _context.PayrollCycles.Add(cycle);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        else if (cycle.IsDeleted)
+        {
+            // Reactivate a previously soft-deleted cycle
+            cycle.IsDeleted = false;
+            cycle.DeletedDate = null;
+            cycle.DeletedBy = null;
+            cycle.StatusId = PayrollStatusIds.Draft;
+            cycle.TotalGrossSalary = 0;
+            cycle.TotalNetSalary = 0;
+            cycle.TotalDeductions = 0;
+            cycle.TotalTax = 0;
+            cycle.TotalInsurance = 0;
             await _context.SaveChangesAsync(cancellationToken);
         }
 
@@ -94,11 +112,22 @@ public class GeneratePayslipsCommandHandler
 
         var employees = await employeesQuery.ToListAsync(cancellationToken);
 
-        // Get existing payslips for this cycle to avoid duplicates
-        var existingPayslipEmployeeIds = await _context.Payslips
-            .Where(p => p.PayrollCycleId == cycle.Id && !p.IsDeleted)
-            .Select(p => p.EmployeeId)
+        // Get the max existing payslip counter for this month/year (including soft-deleted records
+        // and records from other cycles) to avoid PayslipNumber unique constraint violations
+        var payslipPrefix = $"PS-{request.Year}{request.Month:D2}-";
+        var existingPayslipNumbers = await _context.Payslips
+            .IgnoreQueryFilters()
+            .Where(p => p.PayslipNumber.StartsWith(payslipPrefix))
+            .Select(p => p.PayslipNumber)
             .ToListAsync(cancellationToken);
+
+        int payslipCounter = 0;
+        foreach (var num in existingPayslipNumbers)
+        {
+            var parts = num.Split('-');
+            if (parts.Length >= 3 && int.TryParse(parts.Last(), out var seq) && seq > payslipCounter)
+                payslipCounter = seq;
+        }
 
         // Get approved overtime requests for the period
         var approvedOvertimeRequests = await _context.EmployeeRequests
@@ -141,8 +170,6 @@ public class GeneratePayslipsCommandHandler
             CycleName = cycle.CycleName,
             TotalEmployees = employees.Count
         };
-
-        int payslipCounter = 0;
 
         foreach (var employee in employees)
         {
@@ -304,19 +331,23 @@ public class GeneratePayslipsCommandHandler
                 existingPayslip.GeneratedDate = DateTime.UtcNow;
 
                 // Remove old allowances/deductions and add new ones
-                _context.PayslipAllowances.RemoveRange(existingPayslip.PayslipAllowances);
-                _context.PayslipDeductions.RemoveRange(existingPayslip.PayslipDeductions);
+                var oldAllowances = existingPayslip.PayslipAllowances.ToList();
+                var oldDeductions = existingPayslip.PayslipDeductions.ToList();
+                _context.PayslipAllowances.RemoveRange(oldAllowances);
+                _context.PayslipDeductions.RemoveRange(oldDeductions);
+                existingPayslip.PayslipAllowances.Clear();
+                existingPayslip.PayslipDeductions.Clear();
 
                 foreach (var pa in payslipAllowances)
                 {
                     pa.PayslipId = existingPayslip.Id;
-                    existingPayslip.PayslipAllowances.Add(pa);
+                    _context.PayslipAllowances.Add(pa);
                 }
 
                 foreach (var pd in payslipDeductions)
                 {
                     pd.PayslipId = existingPayslip.Id;
-                    existingPayslip.PayslipDeductions.Add(pd);
+                    _context.PayslipDeductions.Add(pd);
                 }
 
                 result.PayslipsGenerated++;
@@ -375,11 +406,21 @@ public class GeneratePayslipsCommandHandler
             result.TotalLoanDeductions += totalLoanDeduction;
         }
 
-        // Update cycle totals
-        cycle.TotalGrossSalary += result.TotalGrossSalary;
-        cycle.TotalNetSalary += result.TotalNetSalary;
-        cycle.TotalDeductions += result.TotalDeductions;
-        cycle.TotalTax += result.TotalDeductions; // includes all deductions
+        // Update cycle totals (reset when updating to avoid accumulation)
+        if (request.UpdateExisting)
+        {
+            cycle.TotalGrossSalary = result.TotalGrossSalary;
+            cycle.TotalNetSalary = result.TotalNetSalary;
+            cycle.TotalDeductions = result.TotalDeductions;
+            cycle.TotalTax = result.TotalDeductions;
+        }
+        else
+        {
+            cycle.TotalGrossSalary += result.TotalGrossSalary;
+            cycle.TotalNetSalary += result.TotalNetSalary;
+            cycle.TotalDeductions += result.TotalDeductions;
+            cycle.TotalTax += result.TotalDeductions;
+        }
         cycle.StatusId = PayrollStatusIds.Pending;
 
         await _context.SaveChangesAsync(cancellationToken);

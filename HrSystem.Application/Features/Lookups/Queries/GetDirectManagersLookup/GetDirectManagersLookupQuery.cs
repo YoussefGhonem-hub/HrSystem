@@ -3,6 +3,8 @@ using HrSystem.Application.Common.Extensions;
 using HrSystem.Application.Features.Lookups.Queries.GetEmployeesLookup;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,8 +25,21 @@ public class GetDirectManagersLookupQueryHandler : IRequestHandler<GetDirectMana
         GetDirectManagersLookupQuery request,
         CancellationToken cancellationToken)
     {
-        var directManagers = await _context.Employees
+        // Apply tenant filtering (organization scope)
+        var query = _context.Employees
             .WhereNotDeleted()
+            .Where(e => e.TenantId == CurrentUser.OrganizationId);
+
+        // Apply branch filtering for HR managers (SuperAdmin and OrgAdmin see all)
+        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
+            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
+        
+        if (!isSuperOrOrgAdmin && CurrentUser.BranchId.HasValue)
+        {
+            query = query.Where(e => e.BranchId == CurrentUser.BranchId.Value);
+        }
+
+        var directManagers = await query
             .OrderBy(e => e.FirstNameEn)
             .ThenBy(e => e.LastNameEn)
             .Select(e => new EmployeeLookupDto

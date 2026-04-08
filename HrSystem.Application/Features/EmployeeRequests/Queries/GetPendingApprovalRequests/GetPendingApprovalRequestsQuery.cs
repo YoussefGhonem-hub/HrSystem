@@ -48,6 +48,18 @@ public class GetPendingApprovalRequestsQueryHandler
 
         var isManager = roles.Any(r => r == RoleNames.DepartmentManager);
 
+        // Check if user is actually a direct manager (has subordinates) even without DepartmentManager role
+        if (!isManager && employeeId.HasValue)
+        {
+            var hasDirectReports = await _context.Employees
+                .AnyAsync(e => e.DirectManagerId == employeeId.Value, cancellationToken);
+            
+            if (hasDirectReports)
+            {
+                isManager = true;
+            }
+        }
+
         if (!isHR && !isManager)
             return Error.Forbidden(description: "You do not have permission to approve requests.");
 

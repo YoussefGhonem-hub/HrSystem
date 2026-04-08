@@ -206,6 +206,7 @@ public class GetPayslipsWithStatisticsQueryHandler : IRequestHandler<GetPayslips
             "grosssalary" => descending ? query.OrderByDescending(x => x.GrossSalary) : query.OrderBy(x => x.GrossSalary),
             "netsalary" => descending ? query.OrderByDescending(x => x.NetSalary) : query.OrderBy(x => x.NetSalary),
             "status" => descending ? query.OrderByDescending(x => x.IsPaid) : query.OrderBy(x => x.IsPaid),
+            "generateddate" => descending ? query.OrderByDescending(x => x.GeneratedDate) : query.OrderBy(x => x.GeneratedDate),
             _ => query.OrderBy(x => x.Employee.EmployeeCode)
         };
     }

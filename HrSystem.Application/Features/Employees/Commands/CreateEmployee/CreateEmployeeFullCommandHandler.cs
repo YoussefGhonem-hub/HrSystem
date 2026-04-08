@@ -42,48 +42,53 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
         CreateEmployeeFullCommand request,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-        var employee = await CreateEmployeeAsync(request.PersonalInfo, request.JobInfo, cancellationToken);
-
-        await ConfigureAttendanceProfileAsync(employee, request.Attendance, request.JobInfo.HiringDate, cancellationToken);
-
-        var assetsResult = await AssignEmployeeAssetsAsync(employee, request.Assets, cancellationToken);
-        if (assetsResult.IsError)
+        Employee employee = null!;
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            await transaction.RollbackAsync(cancellationToken);
-            return assetsResult.Errors;
-        }
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-        var documentsResult = await UploadEmployeeDocumentsAsync(employee, request.Documents, cancellationToken);
-        if (documentsResult.IsError)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            return documentsResult.Errors;
-        }
+            employee = await CreateEmployeeAsync(request.PersonalInfo, request.JobInfo, cancellationToken);
 
-        var payrollResult = await ConfigureEmployeePayrollAsync(employee, request.Payroll, cancellationToken);
-        if (payrollResult.IsError)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            return payrollResult.Errors;
-        }
+            await ConfigureAttendanceProfileAsync(employee, request.Attendance, request.JobInfo.HiringDate, cancellationToken);
 
-        // Create leave balances using form data or defaults
-        await CreateLeaveBalancesAsync(employee, request.Leaves, cancellationToken);
-
-        // Create user account and assign role if RoleId provided
-        if (request.JobInfo.RoleId.HasValue && request.JobInfo.RoleId.Value != Guid.Empty)
-        {
-            var userResult = await CreateUserAccountAsync(employee, request.PersonalInfo, request.JobInfo, cancellationToken);
-            if (userResult.IsError)
+            var assetsResult = await AssignEmployeeAssetsAsync(employee, request.Assets, cancellationToken);
+            if (assetsResult.IsError)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                return userResult.Errors;
+                throw new InvalidOperationException(string.Join("; ", assetsResult.Errors.Select(e => e.Description)));
             }
-        }
 
-        await transaction.CommitAsync(cancellationToken);
+            var documentsResult = await UploadEmployeeDocumentsAsync(employee, request.Documents, cancellationToken);
+            if (documentsResult.IsError)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw new InvalidOperationException(string.Join("; ", documentsResult.Errors.Select(e => e.Description)));
+            }
+
+            var payrollResult = await ConfigureEmployeePayrollAsync(employee, request.Payroll, cancellationToken);
+            if (payrollResult.IsError)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw new InvalidOperationException(string.Join("; ", payrollResult.Errors.Select(e => e.Description)));
+            }
+
+            // Create leave balances using form data or defaults
+            await CreateLeaveBalancesAsync(employee, request.Leaves, cancellationToken);
+
+            // Create user account and assign role if RoleId provided
+            if (request.JobInfo.RoleId.HasValue && request.JobInfo.RoleId.Value != Guid.Empty)
+            {
+                var userResult = await CreateUserAccountAsync(employee, request.PersonalInfo, request.JobInfo, cancellationToken);
+                if (userResult.IsError)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw new InvalidOperationException(string.Join("; ", userResult.Errors.Select(e => e.Description)));
+                }
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        });
 
         var dto = await EmployeeCommandHelper.BuildEmployeeDtoAsync(_context, employee.Id, cancellationToken);
 

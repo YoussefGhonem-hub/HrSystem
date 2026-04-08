@@ -128,47 +128,51 @@ public class CreateUserWithBranchRolesCommandHandler : IRequestHandler<CreateUse
             CreatedDate = DateTimeOffset.UtcNow
         };
 
-        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-        var createResult = await _userManager.CreateAsync(user, request.Password);
-        if (!createResult.Succeeded)
-        {
-            return Error.Validation("User.CreateFailed", string.Join("; ", createResult.Errors.Select(e => e.Description)));
-        }
-
-        foreach (var roleName in resolvedRoleNames)
-        {
-            var roleResult = await _userManager.AddToRoleAsync(user, roleName);
-            if (!roleResult.Succeeded)
-            {
-                return Error.Validation("User.RoleAssignFailed", string.Join("; ", roleResult.Errors.Select(e => e.Description)));
-            }
-        }
-
         var userBranchRoles = new List<UserBranchRole>();
-        foreach (var assignment in request.BranchRoles)
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            foreach (var roleId in assignment.RoleIds.Distinct())
+            await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            var createResult = await _userManager.CreateAsync(user, request.Password);
+            if (!createResult.Succeeded)
             {
-                var roleEntity = await _roleManager.FindByIdAsync(roleId.ToString());
-                if (roleEntity == null)
-                {
-                    return Error.NotFound("Role.NotFound", $"Role not found for ID: {roleId}");
-                }
-
-                userBranchRoles.Add(new UserBranchRole
-                {
-                    UserId = user.Id,
-                    BranchId = assignment.BranchId,
-                    RoleName = roleEntity.Name!
-                });
+                throw new InvalidOperationException(string.Join("; ", createResult.Errors.Select(e => e.Description)));
             }
-        }
 
-        await _context.UserBranchRoles.AddRangeAsync(userBranchRoles, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+            foreach (var roleName in resolvedRoleNames)
+            {
+                var roleResult = await _userManager.AddToRoleAsync(user, roleName);
+                if (!roleResult.Succeeded)
+                {
+                    throw new InvalidOperationException(string.Join("; ", roleResult.Errors.Select(e => e.Description)));
+                }
+            }
 
-        await tx.CommitAsync(cancellationToken);
+            foreach (var assignment in request.BranchRoles)
+            {
+                foreach (var roleId in assignment.RoleIds.Distinct())
+                {
+                    var roleEntity = await _roleManager.FindByIdAsync(roleId.ToString());
+                    if (roleEntity == null)
+                    {
+                        throw new InvalidOperationException($"Role not found for ID: {roleId}");
+                    }
+
+                    userBranchRoles.Add(new UserBranchRole
+                    {
+                        UserId = user.Id,
+                        BranchId = assignment.BranchId,
+                        RoleName = roleEntity.Name!
+                    });
+                }
+            }
+
+            await _context.UserBranchRoles.AddRangeAsync(userBranchRoles, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await tx.CommitAsync(cancellationToken);
+        });
 
         var dto = new UserWithBranchRolesDto
         {

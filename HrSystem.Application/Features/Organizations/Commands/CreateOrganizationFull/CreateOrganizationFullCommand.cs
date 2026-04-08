@@ -645,104 +645,108 @@ public class CreateOrganizationFullCommandHandler
         // 3. Persist in Transaction
         // ─────────────────────────────────────────────────────────────────
 
-        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            // Save organization
-            await _context.Organizations.AddAsync(organization, cancellationToken);
-            
-            // Save branches
-            await _context.Branches.AddRangeAsync(branches, cancellationToken);
+            await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            // Save work schedules
-            await _context.BranchWorkSchedules.AddRangeAsync(allWorkSchedules, cancellationToken);
-            
-            // Save holidays
-            await _context.BranchHolidays.AddRangeAsync(allHolidays, cancellationToken);
-            
-            // Save departments
-            if (departments.Count > 0)
-                await _context.Departments.AddRangeAsync(departments, cancellationToken);
-            
-            // Save job titles
-            if (jobTitles.Count > 0)
-                await _context.JobTitles.AddRangeAsync(jobTitles, cancellationToken);
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // Create user with Identity
-            var createAdminResult = await _userManager.CreateAsync(adminUser, request.AdminUser.Password);
-            if (!createAdminResult.Succeeded)
+            try
             {
-                return Error.Validation("User.CreateFailed", 
-                    string.Join("; ", createAdminResult.Errors.Select(e => e.Description)));
-            }
+                // Save organization
+                await _context.Organizations.AddAsync(organization, cancellationToken);
+                
+                // Save branches
+                await _context.Branches.AddRangeAsync(branches, cancellationToken);
 
-            var createHrManagerResult = await _userManager.CreateAsync(hrManagerUser, request.HrManagerUser.Password);
-            if (!createHrManagerResult.Succeeded)
-            {
-                return Error.Validation("User.CreateFailed",
-                    string.Join("; ", createHrManagerResult.Errors.Select(e => e.Description)));
-            }
+                // Save work schedules
+                await _context.BranchWorkSchedules.AddRangeAsync(allWorkSchedules, cancellationToken);
+                
+                // Save holidays
+                await _context.BranchHolidays.AddRangeAsync(allHolidays, cancellationToken);
+                
+                // Save departments
+                if (departments.Count > 0)
+                    await _context.Departments.AddRangeAsync(departments, cancellationToken);
+                
+                // Save job titles
+                if (jobTitles.Count > 0)
+                    await _context.JobTitles.AddRangeAsync(jobTitles, cancellationToken);
 
-            // Assign roles
-            var adminRoleResult = await _userManager.AddToRoleAsync(adminUser, RoleNames.OrganizationAdmin);
-            if (!adminRoleResult.Succeeded)
-            {
-                return Error.Validation("User.RoleAssignFailed",
-                    string.Join("; ", adminRoleResult.Errors.Select(e => e.Description)));
-            }
+                await _context.SaveChangesAsync(cancellationToken);
 
-            var hrManagerRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.HRManager);
-            if (!hrManagerRoleResult.Succeeded)
-            {
-                return Error.Validation("User.RoleAssignFailed",
-                    string.Join("; ", hrManagerRoleResult.Errors.Select(e => e.Description)));
-            }
-
-            var employeeRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.Employee);
-            if (!employeeRoleResult.Succeeded)
-            {
-                return Error.Validation("User.RoleAssignFailed",
-                    string.Join("; ", employeeRoleResult.Errors.Select(e => e.Description)));
-            }
-
-            // Create UserBranchRole for all branches
-            var adminBranchRoles = branches.Select(branch => new UserBranchRole
-            {
-                UserId = adminUser.Id,
-                BranchId = branch.Id,
-                RoleName = RoleNames.OrganizationAdmin
-            });
-
-            var hrManagerBranchRoles = branches.SelectMany(branch => new[]
-            {
-                new UserBranchRole
+                // Create user with Identity
+                var createAdminResult = await _userManager.CreateAsync(adminUser, request.AdminUser.Password);
+                if (!createAdminResult.Succeeded)
                 {
-                    UserId = hrManagerUser.Id,
-                    BranchId = branch.Id,
-                    RoleName = RoleNames.HRManager
-                },
-                new UserBranchRole
-                {
-                    UserId = hrManagerUser.Id,
-                    BranchId = branch.Id,
-                    RoleName = RoleNames.Employee
+                    throw new InvalidOperationException(
+                        string.Join("; ", createAdminResult.Errors.Select(e => e.Description)));
                 }
-            });
 
-            await _context.UserBranchRoles.AddRangeAsync(adminBranchRoles, cancellationToken);
-            await _context.UserBranchRoles.AddRangeAsync(hrManagerBranchRoles, cancellationToken);
-            
-            await _context.SaveChangesAsync(cancellationToken);
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch (Exception)
-        {
-            await tx.RollbackAsync(cancellationToken);
-            throw;
-        }
+                var createHrManagerResult = await _userManager.CreateAsync(hrManagerUser, request.HrManagerUser.Password);
+                if (!createHrManagerResult.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        string.Join("; ", createHrManagerResult.Errors.Select(e => e.Description)));
+                }
+
+                // Assign roles
+                var adminRoleResult = await _userManager.AddToRoleAsync(adminUser, RoleNames.OrganizationAdmin);
+                if (!adminRoleResult.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        string.Join("; ", adminRoleResult.Errors.Select(e => e.Description)));
+                }
+
+                var hrManagerRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.HRManager);
+                if (!hrManagerRoleResult.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        string.Join("; ", hrManagerRoleResult.Errors.Select(e => e.Description)));
+                }
+
+                var employeeRoleResult = await _userManager.AddToRoleAsync(hrManagerUser, RoleNames.Employee);
+                if (!employeeRoleResult.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        string.Join("; ", employeeRoleResult.Errors.Select(e => e.Description)));
+                }
+
+                // Create UserBranchRole for all branches
+                var adminBranchRoles = branches.Select(branch => new UserBranchRole
+                {
+                    UserId = adminUser.Id,
+                    BranchId = branch.Id,
+                    RoleName = RoleNames.OrganizationAdmin
+                });
+
+                var hrManagerBranchRoles = branches.SelectMany(branch => new[]
+                {
+                    new UserBranchRole
+                    {
+                        UserId = hrManagerUser.Id,
+                        BranchId = branch.Id,
+                        RoleName = RoleNames.HRManager
+                    },
+                    new UserBranchRole
+                    {
+                        UserId = hrManagerUser.Id,
+                        BranchId = branch.Id,
+                        RoleName = RoleNames.Employee
+                    }
+                });
+
+                await _context.UserBranchRoles.AddRangeAsync(adminBranchRoles, cancellationToken);
+                await _context.UserBranchRoles.AddRangeAsync(hrManagerBranchRoles, cancellationToken);
+                
+                await _context.SaveChangesAsync(cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch (Exception)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
 
         // ─────────────────────────────────────────────────────────────────
         // 4. Build Response DTO

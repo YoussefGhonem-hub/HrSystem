@@ -17,6 +17,6 @@ public class PayrollCycleConfiguration : IEntityTypeConfiguration<PayrollCycle>
         builder.Property(pc => pc.TotalTax).HasColumnType("decimal(18,2)");
         builder.Property(pc => pc.TotalInsurance).HasColumnType("decimal(18,2)");
 
-        builder.HasIndex(pc => new { pc.Month, pc.Year }).IsUnique();
+        builder.HasIndex(pc => new { pc.TenantId, pc.Month, pc.Year }).IsUnique();
     }
 }

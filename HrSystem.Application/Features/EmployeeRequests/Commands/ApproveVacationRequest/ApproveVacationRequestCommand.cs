@@ -95,7 +95,9 @@ public class ApproveVacationRequestCommandHandler
             }
             else
             {
-                // Rejected by HR
+                // Rejected by HR - restore leave balance if previously deducted
+                await TryRestoreLeaveBalanceAsync(employeeRequest, cancellationToken);
+
                 employeeRequest.Status = EmployeeRequestStatus.Rejected;
                 employeeRequest.VacationDetail.RejectionReason = request.Comments;
                 employeeRequest.RejectionReason = request.Comments;
@@ -199,5 +201,58 @@ public class ApproveVacationRequestCommandHandler
         await _context.EmployeeLeaveTransactions.AddAsync(transaction, cancellationToken);
 
         return null;
+    }
+
+    private async Task TryRestoreLeaveBalanceAsync(EmployeeRequest employeeRequest, CancellationToken cancellationToken)
+    {
+        if (!employeeRequest.StartDate.HasValue || !employeeRequest.EndDate.HasValue)
+            return;
+
+        var approvalYear = employeeRequest.StartDate.Value.Year;
+        var vacationDetail = employeeRequest.VacationDetail!;
+
+        // Check if leave was actually deducted for this request
+        var deductionTransaction = await _context.EmployeeLeaveTransactions
+            .FirstOrDefaultAsync(t =>
+                t.EmployeeId == employeeRequest.EmployeeId &&
+                t.ReferenceId == employeeRequest.Id &&
+                t.ReferenceType == "VacationRequest" &&
+                t.TransactionType == LeaveTransactionType.Deduction,
+                cancellationToken);
+
+        if (deductionTransaction == null)
+            return; // No deduction was made, nothing to restore
+
+        var leaveBalance = await _context.EmployeeLeaveBalances
+            .FirstOrDefaultAsync(b =>
+                b.EmployeeId == employeeRequest.EmployeeId &&
+                b.VacationTypeId == vacationDetail.VacationTypeId &&
+                b.Year == approvalYear,
+                cancellationToken);
+
+        if (leaveBalance == null)
+            return;
+
+        var daysToRestore = vacationDetail.TotalDays;
+        leaveBalance.UsedDays -= daysToRestore;
+        if (leaveBalance.UsedDays < 0) leaveBalance.UsedDays = 0;
+
+        var creditTransaction = new EmployeeLeaveTransaction
+        {
+            EmployeeLeaveBalanceId = leaveBalance.Id,
+            EmployeeId = leaveBalance.EmployeeId,
+            VacationTypeId = leaveBalance.VacationTypeId,
+            Year = leaveBalance.Year,
+            TransactionType = LeaveTransactionType.Credit,
+            DaysChanged = daysToRestore,
+            BalanceAfter = leaveBalance.CalculateAvailableDays(),
+            ReferenceType = "VacationRequest",
+            ReferenceId = employeeRequest.Id,
+            Notes = $"Balance restored - request rejected: {employeeRequest.Title}",
+            TenantId = leaveBalance.TenantId,
+            BranchId = leaveBalance.BranchId
+        };
+
+        await _context.EmployeeLeaveTransactions.AddAsync(creditTransaction, cancellationToken);
     }
 }
