@@ -94,6 +94,15 @@ public class CreateOvertimeRequestCommandHandler
         if (overtimeType == null)
             return Error.Validation(description: "Invalid overtime type.");
 
+        // Get employee's salary to use their configured overtime multiplier
+        var currentSalary = await _context.Salaries
+            .AsNoTracking()
+            .Where(s => s.EmployeeId == request.EmployeeId && s.IsCurrent && !s.IsDeleted)
+            .OrderByDescending(s => s.EffectiveDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var multiplier = currentSalary?.OvertimeMultiplier ?? overtimeType.DefaultMultiplier;
+
         // Upload attachment to S3 if provided
         string? attachmentUrl = null;
         if (request.Attachment != null && request.Attachment.Length > 0)
@@ -123,7 +132,7 @@ public class CreateOvertimeRequestCommandHandler
             OvertimeTypeId = request.OvertimeTypeId,
             OvertimeDate = request.OvertimeDate,
             PlannedHours = request.PlannedHours,
-            Multiplier = overtimeType.DefaultMultiplier,
+            Multiplier = multiplier,
             ProjectCode = request.ProjectCode,
             TaskDescription = request.TaskDescription
         };

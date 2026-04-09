@@ -17,5 +17,6 @@ public record ConfigureEmployeePayrollCommand(
     PayrollBankInfoPayload? BankInfo,
     List<PayrollAllowancePayload>? Allowances,
     List<PayrollDeductionPayload>? Deductions,
-    string? Notes
+    string? Notes,
+    decimal? OvertimeMultiplier = null
 ) : IRequest<ErrorOr<GenericResponse<EmployeePayrollConfigurationDto>>>;

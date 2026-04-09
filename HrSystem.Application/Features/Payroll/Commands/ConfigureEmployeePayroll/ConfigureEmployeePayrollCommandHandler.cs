@@ -112,6 +112,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             salary.BankAccountNumber = request.BankInfo?.AccountNumber;
             salary.BankIban = request.BankInfo?.Iban;
             salary.BankSwiftCode = request.BankInfo?.SwiftCode;
+            salary.OvertimeMultiplier = request.OvertimeMultiplier ?? 1.5m;
             salary.TenantId = tenantId;
             salary.BranchId = branchId;
             salary.MarkAsModified(currentUserId);
@@ -144,6 +145,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
                 BankAccountNumber = request.BankInfo?.AccountNumber,
                 BankIban = request.BankInfo?.Iban,
                 BankSwiftCode = request.BankInfo?.SwiftCode,
+                OvertimeMultiplier = request.OvertimeMultiplier ?? 1.5m,
                 TenantId = tenantId,
                 BranchId = branchId
             };
@@ -179,6 +181,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             SocialInsuranceEmployerRate = salary.SocialInsuranceEmployerRate,
             PaymentMethod = salary.PaymentMethod,
             Notes = salary.Notes,
+            OvertimeMultiplier = salary.OvertimeMultiplier,
             BankInfo = new PayrollBankInfoDto
             {
                 BankName = salary.BankName,

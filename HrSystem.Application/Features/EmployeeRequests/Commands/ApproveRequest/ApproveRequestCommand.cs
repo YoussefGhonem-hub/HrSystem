@@ -2,6 +2,7 @@ using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveVacationRequest;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Leave;
+using HrSystem.Domain.Entities.Payroll;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
@@ -21,9 +22,13 @@ namespace HrSystem.Application.Features.EmployeeRequests.Commands.ApproveRequest
 public record ApproveRequestCommand(
     Guid RequestId,
     bool IsApproved,
-    string? Comments
+    string? Comments,
+    // Loan-specific fields (used when HR approves a Personal/Loan request)
+    decimal? LoanAmount = null,
+    int? LoanInstallmentMonths = null,
+    decimal? LoanMonthlyDeduction = null,
+    DateTime? LoanStartDate = null
 ) : IRequest<ErrorOr<GenericResponse<EmployeeRequestDto>>>;
-
 public class ApproveRequestCommandHandler
     : IRequestHandler<ApproveRequestCommand, ErrorOr<GenericResponse<EmployeeRequestDto>>>
 {
@@ -77,6 +82,11 @@ public class ApproveRequestCommandHandler
         else if (employeeRequest.Status == EmployeeRequestStatus.Pending && isDirectManager && isHR)
         {
             // Direct manager is also an HR member → single approval covers both levels
+            level = ApprovalLevel.HR;
+        }
+        else if (employeeRequest.Status == EmployeeRequestStatus.Pending && isHR && !RequiresManagerApproval(employeeRequest))
+        {
+            // Request type does not require manager approval (e.g. Personal/Loan) → HR handles directly
             level = ApprovalLevel.HR;
         }
         else if (employeeRequest.Status == EmployeeRequestStatus.Pending && (isManager || isHR))
@@ -197,6 +207,14 @@ public class ApproveRequestCommandHandler
                 var deductionError = await TryDeductLeaveBalanceAsync(employeeRequest, cancellationToken);
                 if (deductionError is Error error)
                     return error;
+            }
+
+            // Personal/Loan-specific: create a Loan record on HR approval
+            if (requestTypeCode == "Personal" && employeeRequest.PersonalDetail != null)
+            {
+                var loanError = await TryCreateLoanAsync(employeeRequest, request, cancellationToken);
+                if (loanError is Error loanErr)
+                    return loanErr;
             }
 
             employeeRequest.Status = EmployeeRequestStatus.Approved;
@@ -448,4 +466,65 @@ public class ApproveRequestCommandHandler
             ResponseDate = r.FeedbackDetail.ResponseDate
         } : null
     };
+
+    /// <summary>
+    /// Checks whether the request's sub-type requires manager approval.
+    /// Returns false for Personal types with RequiresManagerApproval = false (e.g. Loan).
+    /// </summary>
+    private static bool RequiresManagerApproval(EmployeeRequest employeeRequest)
+    {
+        if (employeeRequest.PersonalDetail?.PersonalType != null)
+            return employeeRequest.PersonalDetail.PersonalType.RequiresManagerApproval;
+
+        // Default: all other request types require manager approval
+        return true;
+    }
+
+    /// <summary>
+    /// Creates a Loan record when HR approves a Personal request whose PersonalType name
+    /// contains "Loan". Only creates the loan if HR provides the loan details.
+    /// </summary>
+    private async Task<Error?> TryCreateLoanAsync(
+        EmployeeRequest employeeRequest,
+        ApproveRequestCommand request,
+        CancellationToken cancellationToken)
+    {
+        var personalTypeName = employeeRequest.PersonalDetail?.PersonalType?.NameEn ?? "";
+        if (!personalTypeName.Contains("Loan", StringComparison.OrdinalIgnoreCase))
+            return null; // Not a loan request, skip
+
+        // Loan details are optional — HR may approve without creating a loan
+        if (!request.LoanAmount.HasValue || !request.LoanInstallmentMonths.HasValue)
+            return null;
+
+        var loanAmount = request.LoanAmount.Value;
+        var installmentMonths = request.LoanInstallmentMonths.Value;
+        var monthlyDeduction = request.LoanMonthlyDeduction
+            ?? Math.Round(loanAmount / installmentMonths, 2);
+        var startDate = request.LoanStartDate ?? DateTime.UtcNow;
+
+        if (loanAmount <= 0)
+            return Error.Validation(description: "Loan amount must be greater than zero.");
+        if (installmentMonths <= 0)
+            return Error.Validation(description: "Installment months must be greater than zero.");
+
+        var loan = new Loan
+        {
+            EmployeeId = employeeRequest.EmployeeId,
+            LoanName = employeeRequest.Title,
+            TotalAmount = loanAmount,
+            RemainingAmount = loanAmount,
+            MonthlyDeduction = monthlyDeduction,
+            InstallmentMonths = installmentMonths,
+            StartDate = startDate,
+            EndDate = startDate.AddMonths(installmentMonths),
+            IsActive = true,
+            Notes = $"Auto-created from request: {employeeRequest.Title}",
+            TenantId = employeeRequest.TenantId,
+            BranchId = employeeRequest.BranchId
+        };
+
+        await _context.Loans.AddAsync(loan, cancellationToken);
+        return null;
+    }
 }

@@ -1,5 +1,6 @@
 using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
+using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
@@ -41,6 +42,46 @@ public class GetRequestByIdQueryHandler
 
         if (entity == null)
             return Error.NotFound(description: "Request not found.");
+
+        // Calculate overtime amount & payslip inclusion if this is an overtime request
+        decimal? estimatedOvertimeAmount = null;
+        bool isIncludedInPayslip = false;
+        string? payslipPeriod = null;
+
+        if (entity.OvertimeDetail != null)
+        {
+            var currentSalary = await _context.Salaries
+                .AsNoTracking()
+                .Where(s => s.EmployeeId == entity.EmployeeId && s.IsCurrent && !s.IsDeleted)
+                .OrderByDescending(s => s.EffectiveDate)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (currentSalary != null)
+            {
+                decimal hourlyRate = currentSalary.BasicSalary / 240m;
+                var hours = entity.OvertimeDetail.ActualHours ?? entity.OvertimeDetail.PlannedHours;
+                estimatedOvertimeAmount = Math.Round((decimal)hours.TotalHours * hourlyRate * entity.OvertimeDetail.Multiplier, 2);
+            }
+
+            var overtimeMonth = entity.OvertimeDetail.OvertimeDate.Month;
+            var overtimeYear = entity.OvertimeDetail.OvertimeDate.Year;
+
+            var payslip = await _context.Payslips
+                .AsNoTracking()
+                .Include(p => p.PayrollCycle)
+                .Where(p => p.EmployeeId == entity.EmployeeId
+                    && p.PayrollCycle.Month == overtimeMonth
+                    && p.PayrollCycle.Year == overtimeYear
+                    && !p.IsDeleted
+                    && p.OvertimeAmount > 0)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (payslip != null)
+            {
+                isIncludedInPayslip = true;
+                payslipPeriod = new DateTime(overtimeYear, overtimeMonth, 1).ToString("MMMM yyyy");
+            }
+        }
 
         var dto = new EmployeeRequestDto
         {
@@ -121,7 +162,10 @@ public class GetRequestByIdQueryHandler
                 TaskDescription = entity.OvertimeDetail.TaskDescription,
                 ApprovedBy = entity.OvertimeDetail.ApprovedBy,
                 ApprovedDate = entity.OvertimeDetail.ApprovedDate,
-                ApprovalNotes = entity.OvertimeDetail.ApprovalNotes
+                ApprovalNotes = entity.OvertimeDetail.ApprovalNotes,
+                EstimatedOvertimeAmount = estimatedOvertimeAmount,
+                IsIncludedInPayslip = isIncludedInPayslip,
+                PayslipPeriod = payslipPeriod
             } : null,
             MiscellaneousDetail = entity.MiscellaneousDetail != null ? new MiscellaneousDetailDto
             {

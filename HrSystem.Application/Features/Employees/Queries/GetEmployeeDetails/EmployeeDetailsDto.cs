@@ -69,6 +69,7 @@ public class EmployeePayrollDetailsDto
     public List<PayrollAllowancePayload> Allowances { get; set; } = new();
     public List<PayrollDeductionPayload> Deductions { get; set; } = new();
     public string? Notes { get; set; }
+    public decimal OvertimeMultiplier { get; set; }
     public List<EmployeePayslipHistoryItemDto> PayrollHistory { get; set; } = new();
 }
 

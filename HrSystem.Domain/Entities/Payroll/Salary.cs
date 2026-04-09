@@ -28,6 +28,12 @@ public class Salary : BaseAuditableEntity
     public string? BankIban { get; set; }
     public string? BankSwiftCode { get; set; }
 
+    /// <summary>
+    /// Employee-specific overtime multiplier (e.g. 1.5, 2.0, 3.0).
+    /// Overrides the OvertimeType default when calculating overtime pay.
+    /// </summary>
+    public decimal OvertimeMultiplier { get; set; } = 1.5m;
+
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;
     public virtual ICollection<SalaryAllowance> Allowances { get; set; } = new List<SalaryAllowance>();

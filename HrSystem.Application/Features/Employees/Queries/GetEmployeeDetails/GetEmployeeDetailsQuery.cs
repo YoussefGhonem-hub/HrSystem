@@ -225,6 +225,7 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 salary.BankIban,
                 salary.BankSwiftCode),
             Notes = salary.Notes,
+            OvertimeMultiplier = salary.OvertimeMultiplier,
             Allowances = salary.Allowances
                 .Select(a => new PayrollAllowancePayload { NameAr = a.NameAr, NameEn = a.NameEn, Description = a.Description, IsTaxable = a.IsTaxable, IsSubjectToInsurance = a.IsSubjectToInsurance, Amount = a.Amount, IsPercentage = a.IsPercentage, PercentageValue = a.PercentageValue })
                 .ToList(),

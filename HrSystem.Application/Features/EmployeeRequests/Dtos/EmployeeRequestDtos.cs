@@ -170,6 +170,21 @@ public record OvertimeDetailDto
     public Guid? ApprovedBy { get; init; }
     public DateTime? ApprovedDate { get; init; }
     public string? ApprovalNotes { get; init; }
+
+    /// <summary>
+    /// Estimated overtime pay: (PlannedHours or ActualHours) × (BasicSalary / 240) × Multiplier
+    /// </summary>
+    public decimal? EstimatedOvertimeAmount { get; init; }
+
+    /// <summary>
+    /// Whether this overtime has been included in a generated payslip.
+    /// </summary>
+    public bool IsIncludedInPayslip { get; init; }
+
+    /// <summary>
+    /// The payslip month/year label if included (e.g. "April 2026").
+    /// </summary>
+    public string? PayslipPeriod { get; init; }
 }
 
 public record TrainingDetailDto

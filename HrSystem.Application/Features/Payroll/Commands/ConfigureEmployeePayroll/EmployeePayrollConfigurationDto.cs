@@ -15,6 +15,7 @@ public class EmployeePayrollConfigurationDto
     public string? PaymentMethod { get; set; }
     public PayrollBankInfoDto? BankInfo { get; set; }
     public string? Notes { get; set; }
+    public decimal OvertimeMultiplier { get; set; }
     public List<PayrollAllowanceDto> Allowances { get; set; } = new();
     public List<PayrollDeductionDto> Deductions { get; set; } = new();
 }

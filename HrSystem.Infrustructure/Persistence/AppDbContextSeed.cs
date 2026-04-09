@@ -3817,7 +3817,8 @@ public static class AppDbContextSeed
             {
                 new() { NameEn = "Family Emergency", NameAr = "طارئ عائلي", Description = "Urgent personal/family situations.", RequiresManagerApproval = true, SortOrder = 1, CreatedDate = now },
                 new() { NameEn = "Medical Appointment", NameAr = "موعد طبي", Description = "Personal medical appointments.", RequiresManagerApproval = true, SortOrder = 2, CreatedDate = now },
-                new() { NameEn = "Personal Matter", NameAr = "أمور شخصية", Description = "General personal matters requiring time off.", RequiresManagerApproval = true, SortOrder = 3, CreatedDate = now }
+                new() { NameEn = "Personal Matter", NameAr = "أمور شخصية", Description = "General personal matters requiring time off.", RequiresManagerApproval = true, SortOrder = 3, CreatedDate = now },
+                new() { NameEn = "Loan", NameAr = "سلفة", Description = "Employee loan request. Routed directly to HR.", RequiresManagerApproval = false, SortOrder = 4, CreatedDate = now }
             };
             await context.PersonalTypes.AddRangeAsync(personalTypes);
             Console.WriteLine($"Seeded {personalTypes.Count} personal types");
