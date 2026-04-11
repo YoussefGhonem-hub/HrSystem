@@ -105,10 +105,12 @@ public record EmployeeRequestDto
 {
     public Guid Id { get; init; }
     public Guid RequestTypeId { get; init; }
+    public string RequestTypeCode { get; init; } = string.Empty;
     public string RequestTypeName { get; init; } = string.Empty;
     public EmployeeRequestStatus Status { get; init; }
     public Guid EmployeeId { get; init; }
     public string? EmployeeName { get; init; }
+    public string? EmployeeCode { get; init; }
     public Guid? BranchId { get; init; }
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }

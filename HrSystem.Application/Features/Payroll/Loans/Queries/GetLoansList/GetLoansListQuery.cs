@@ -81,6 +81,9 @@ public class GetLoansListQueryHandler : IRequestHandler<GetLoansListQuery, Error
             RemainingAmount = l.RemainingAmount,
             MonthlyDeduction = l.MonthlyDeduction,
             InstallmentMonths = l.InstallmentMonths,
+            StartDate = l.StartDate,
+            // Compute EndDate from StartDate + InstallmentMonths when not explicitly stored
+            EndDate = l.EndDate ?? l.StartDate.AddMonths(l.InstallmentMonths),
             IsActive = l.IsActive
         });
 

@@ -92,10 +92,12 @@ public class GetRequestDetailQueryHandler
         {
             Id = r.Id,
             RequestTypeId = r.RequestTypeId,
-            RequestTypeName = r.RequestTypeRef?.Code ?? "",
+            RequestTypeCode = r.RequestTypeRef?.Code ?? "",
+            RequestTypeName = r.RequestTypeRef?.NameEn ?? "",
             Status = r.Status,
             EmployeeId = r.EmployeeId,
             EmployeeName = r.Employee?.FullNameEn,
+            EmployeeCode = r.Employee?.EmployeeCode,
             BranchId = r.Employee?.BranchId,
             Title = r.Title,
             Description = r.Description,

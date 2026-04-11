@@ -147,10 +147,13 @@ public class GeneratePayslipsCommandHandler
                 g => g.Key,
                 g => g.Select(r => r.OvertimeDetail!).ToList());
 
-        // Get active loans
+        // Get active loans whose StartDate falls within or before this payroll period.
+        // Use < periodStart.AddMonths(1) (i.e. < first day of next month) to be time-of-day safe
+        // and to ensure a loan approved on the last day of this month is still included.
+        var nextPeriodStart = periodStart.AddMonths(1);
         var activeLoans = await _context.Loans
             .Where(l => !l.IsDeleted && l.IsActive
-                        && l.StartDate <= periodEnd
+                        && l.StartDate < nextPeriodStart
                         && l.RemainingAmount > 0)
             .ToListAsync(cancellationToken);
 
@@ -283,6 +286,26 @@ public class GeneratePayslipsCommandHandler
             }
 
             // 4. Loan Deductions
+            //
+            // When regenerating an existing payslip (UpdateExisting = true), the loan
+            // RemainingAmount was already reduced during the previous generation of THIS
+            // same month. We must restore those amounts first so the recalculation starts
+            // from the correct pre-deduction balance for this payroll period.
+            if (existingPayslip != null && loansByEmployee.TryGetValue(employee.Id, out var loansToRestore))
+            {
+                foreach (var oldDed in existingPayslip.PayslipDeductions.Where(d => d.LoanId.HasValue))
+                {
+                    var matchedLoan = loansToRestore.FirstOrDefault(l => l.Id == oldDed.LoanId!.Value);
+                    if (matchedLoan != null)
+                    {
+                        matchedLoan.RemainingAmount += oldDed.Amount;
+                        // Reactivate if it was closed due to full repayment in the last generation
+                        if (matchedLoan.RemainingAmount > 0 && !matchedLoan.IsActive)
+                            matchedLoan.IsActive = true;
+                    }
+                }
+            }
+
             decimal totalLoanDeduction = 0m;
             if (loansByEmployee.TryGetValue(employee.Id, out var employeeLoans))
             {
@@ -297,7 +320,8 @@ public class GeneratePayslipsCommandHandler
                         {
                             DeductionNameAr = $"قسط قرض: {loan.LoanName}",
                             DeductionNameEn = $"Loan: {loan.LoanName}",
-                            Amount = deductionAmount
+                            Amount = deductionAmount,
+                            LoanId = loan.Id   // link for future restoration on regeneration
                         });
 
                         // Update loan remaining amount

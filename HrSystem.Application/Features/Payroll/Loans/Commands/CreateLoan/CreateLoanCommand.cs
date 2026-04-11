@@ -63,7 +63,8 @@ public class CreateLoanCommandHandler : IRequestHandler<CreateLoanCommand, Error
             EndDate = request.EndDate,
             IsActive = request.IsActive,
             Notes = request.Notes,
-            TenantId = Guid.Empty
+            TenantId = Guid.Empty, // auto-corrected to CurrentUser.OrganizationId by SaveChangesAsync
+            BranchId = employee.BranchId // inherit branch from the employee
         };
 
         _context.Loans.Add(loan);
@@ -86,7 +87,7 @@ public class CreateLoanCommandHandler : IRequestHandler<CreateLoanCommand, Error
             MonthlyDeduction = created.MonthlyDeduction,
             InstallmentMonths = created.InstallmentMonths,
             StartDate = created.StartDate,
-            EndDate = created.EndDate,
+            EndDate = created.EndDate ?? created.StartDate.AddMonths(created.InstallmentMonths),
             IsActive = created.IsActive,
             Notes = created.Notes
         };

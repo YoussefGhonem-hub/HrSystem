@@ -92,7 +92,7 @@ public class UpdateLoanCommandHandler : IRequestHandler<UpdateLoanCommand, Error
             MonthlyDeduction = updated.MonthlyDeduction,
             InstallmentMonths = updated.InstallmentMonths,
             StartDate = updated.StartDate,
-            EndDate = updated.EndDate,
+            EndDate = updated.EndDate ?? updated.StartDate.AddMonths(updated.InstallmentMonths),
             IsActive = updated.IsActive,
             Notes = updated.Notes
         };

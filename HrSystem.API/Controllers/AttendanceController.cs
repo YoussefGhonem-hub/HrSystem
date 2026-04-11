@@ -240,7 +240,7 @@ public class AttendanceController : APIBaseController
     /// Request only needs EmployeeId, PunchType, and EventDateTime.
     /// </summary>
     [HttpPost("quick-check")]
-    [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.HRSpecialist)]
+    [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.HRSpecialist + "," + RoleNames.OrganizationAdmin)]
     public async Task<IActionResult> QuickCheckInOut([FromBody] QuickCheckInOutCommand command)
     {
         var result = await _mediator.Send(command);

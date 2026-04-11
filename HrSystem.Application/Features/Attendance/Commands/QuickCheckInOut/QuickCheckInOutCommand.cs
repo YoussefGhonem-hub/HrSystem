@@ -32,7 +32,8 @@ public class QuickCheckInOutCommandHandler
         CancellationToken cancellationToken)
     {
         var isHr = CurrentUser.Roles?.Contains(RoleNames.HRManager) == true ||
-                   CurrentUser.Roles?.Contains(RoleNames.HRSpecialist) == true;
+                   CurrentUser.Roles?.Contains(RoleNames.HRSpecialist) == true ||
+                   CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
 
         if (!isHr)
             return Error.Forbidden("Attendance.Forbidden", "Only HR Manager and HR Specialist can use quick check-in/out.");

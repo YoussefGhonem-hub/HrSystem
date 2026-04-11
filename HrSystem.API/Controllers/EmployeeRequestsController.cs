@@ -163,7 +163,14 @@ public class EmployeeRequestsController : APIBaseController
         Guid requestId,
         [FromBody] ApprovalDto approval)
     {
-        var command = new ApproveRequestCommand(requestId, approval.IsApproved, approval.Comments);
+        var command = new ApproveRequestCommand(
+            requestId,
+            approval.IsApproved,
+            approval.Comments,
+            approval.LoanAmount,
+            approval.LoanInstallmentMonths,
+            approval.LoanMonthlyDeduction,
+            approval.LoanStartDate);
         var result = await _mediator.Send(command);
         return result.Match(Ok, Problem);
     }
@@ -1579,6 +1586,11 @@ public class EmployeeRequestsController : APIBaseController
     {
         public bool IsApproved { get; init; }
         public string? Comments { get; init; }
+        // Loan-specific fields (used when HR approves a Personal/Loan request)
+        public decimal? LoanAmount { get; init; }
+        public int? LoanInstallmentMonths { get; init; }
+        public decimal? LoanMonthlyDeduction { get; init; }
+        public DateTime? LoanStartDate { get; init; }
     }
 
     public record SubmitEmployeeRequestDto

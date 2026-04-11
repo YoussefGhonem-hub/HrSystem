@@ -87,10 +87,12 @@ public class GetRequestByIdQueryHandler
         {
             Id = entity.Id,
             RequestTypeId = entity.RequestTypeId,
-            RequestTypeName = entity.RequestTypeRef?.Code ?? "",
+            RequestTypeCode = entity.RequestTypeRef?.Code ?? "",
+            RequestTypeName = entity.RequestTypeRef?.NameEn ?? "",
             Status = entity.Status,
             EmployeeId = entity.EmployeeId,
             EmployeeName = entity.Employee?.FullNameEn,
+            EmployeeCode = entity.Employee?.EmployeeCode,
             BranchId = entity.BranchId,
             Title = entity.Title,
             Description = entity.Description,

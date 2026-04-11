@@ -4,6 +4,7 @@ using HrSystem.Application.Features.Payroll.Loans.Commands.DeleteLoan;
 using HrSystem.Application.Features.Payroll.Loans.Commands.UpdateLoan;
 using HrSystem.Application.Features.Payroll.Loans.Queries.GetLoanById;
 using HrSystem.Application.Features.Payroll.Loans.Queries.GetLoansList;
+using HrSystem.Application.Features.Payroll.Loans.Queries.GetPendingDisbursements;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -105,6 +106,21 @@ public class LoansController : APIBaseController
     public async Task<IActionResult> DeleteLoan(Guid id)
     {
         var result = await _mediator.Send(new DeleteLoanCommand(id));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Returns active loans whose deductions haven't started yet for the given payroll period.
+    /// Used by the Generate Payslips dialog to warn HR about new loans.
+    /// </summary>
+    [HttpGet("pending-disbursements")]
+    public async Task<IActionResult> GetPendingDisbursements([FromQuery] int month, [FromQuery] int year)
+    {
+        var result = await _mediator.Send(new GetPendingDisbursementsQuery(month, year));
 
         return result.Match(
             response => Ok(response),

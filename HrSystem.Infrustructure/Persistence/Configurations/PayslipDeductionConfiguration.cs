@@ -21,9 +21,20 @@ public class PayslipDeductionConfiguration : IEntityTypeConfiguration<PayslipDed
         builder.Property(x => x.Amount)
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(x => x.LoanId)
+            .IsRequired(false);
+
         builder.HasOne(x => x.Payslip)
             .WithMany(p => p.PayslipDeductions)
             .HasForeignKey(x => x.PayslipId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Optional: link to the Loan that generated this deduction line.
+        // SetNull on delete so payslip history is not lost if a loan is removed.
+        builder.HasOne(x => x.Loan)
+            .WithMany()
+            .HasForeignKey(x => x.LoanId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

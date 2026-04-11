@@ -12,5 +12,7 @@ public class LoanListDto
     public decimal RemainingAmount { get; set; }
     public decimal MonthlyDeduction { get; set; }
     public int InstallmentMonths { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
     public bool IsActive { get; set; }
 }
