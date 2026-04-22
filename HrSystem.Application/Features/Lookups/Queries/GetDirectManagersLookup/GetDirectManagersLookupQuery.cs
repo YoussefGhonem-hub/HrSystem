@@ -3,7 +3,6 @@ using HrSystem.Application.Common.Extensions;
 using HrSystem.Application.Features.Lookups.Queries.GetEmployeesLookup;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -25,19 +24,19 @@ public class GetDirectManagersLookupQueryHandler : IRequestHandler<GetDirectMana
         GetDirectManagersLookupQuery request,
         CancellationToken cancellationToken)
     {
-        // Apply tenant filtering (organization scope)
+        // Start with base query — all non-deleted employees in the same organization
         var query = _context.Employees
-            .WhereNotDeleted()
-            .Where(e => e.TenantId == CurrentUser.OrganizationId);
+            .Include(e => e.Department)
+            .WhereNotDeleted();
 
-        // Apply branch filtering for HR managers (SuperAdmin and OrgAdmin see all)
-        var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
-            || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
-        
-        if (!isSuperOrOrgAdmin && CurrentUser.BranchId.HasValue)
+        // Apply tenant filtering (organization scope) if OrganizationId is set
+        if (CurrentUser.OrganizationId.HasValue)
         {
-            query = query.Where(e => e.BranchId == CurrentUser.BranchId.Value);
+            query = query.Where(e => e.TenantId == CurrentUser.OrganizationId.Value);
         }
+
+        // NOTE: Branch filtering is intentionally NOT applied here.
+        // A direct manager can belong to any branch within the same organization.
 
         var directManagers = await query
             .OrderBy(e => e.FirstNameEn)
