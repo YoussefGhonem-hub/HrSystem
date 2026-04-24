@@ -23,6 +23,7 @@ using HrSystem.Application.Features.Payroll.Queries.GetMyPaymentDetails;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollOverview;
 using HrSystem.Application.Features.Payroll.Queries.GetPayslipsWithStatistics;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollHistory;
+using HrSystem.Application.Features.Payroll.Queries.GetEmployeePaymentDetails;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -100,6 +101,25 @@ public class PayrollController : APIBaseController
     public async Task<IActionResult> GetMyPaymentDetails([FromQuery] int? year = null, [FromQuery] int? month = null)
     {
         var result = await _mediator.Send(new GetMyPaymentDetailsQuery(year, month));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get transfer/payment details for a specific employee.
+    /// HR/Admin roles only.
+    /// </summary>
+    [HttpGet("employees/{employeeId:guid}/transfer-method")]
+    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin,SuperAdmin")]
+    public async Task<IActionResult> GetEmployeeTransferMethod(
+        Guid employeeId,
+        [FromQuery] int? year = null,
+        [FromQuery] int? month = null)
+    {
+        var result = await _mediator.Send(new GetEmployeePaymentDetailsQuery(employeeId, year, month));
 
         return result.Match(
             response => Ok(response),
