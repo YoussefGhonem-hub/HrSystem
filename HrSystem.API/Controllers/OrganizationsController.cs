@@ -11,6 +11,7 @@ using HrSystem.Application.Features.Organizations.Queries.GetOrganizationFullDet
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationsList;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HrSystem.API.Controllers;
 
 [Route("api/[controller]")]
-[Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager)]
+[Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.HRManager + "," + RoleNames.OrganizationAdmin)]
 public class OrganizationsController : APIBaseController
 {
     private readonly ISender _mediator;
@@ -84,6 +85,12 @@ public class OrganizationsController : APIBaseController
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetOrganizationById(Guid id)
     {
+        var accessCheck = EnsureOrganizationAccess(id);
+        if (accessCheck is not null)
+        {
+            return accessCheck;
+        }
+
         var result = await _mediator.Send(new GetOrganizationDetailsQuery(id));
 
         return result.Match(
@@ -98,6 +105,12 @@ public class OrganizationsController : APIBaseController
     [HttpGet("{id:guid}/full")]
     public async Task<IActionResult> GetOrganizationFullDetails(Guid id)
     {
+        var accessCheck = EnsureOrganizationAccess(id);
+        if (accessCheck is not null)
+        {
+            return accessCheck;
+        }
+
         var result = await _mediator.Send(new GetOrganizationFullDetailsQuery(id));
 
         return result.Match(
@@ -116,6 +129,12 @@ public class OrganizationsController : APIBaseController
     [HttpPut("{id:guid}/company-info")]
     public async Task<IActionResult> UpdateCompanyInfo(Guid id, [FromBody] UpdateCompanyInfoRequest request)
     {
+        var accessCheck = EnsureOrganizationAccess(id);
+        if (accessCheck is not null)
+        {
+            return accessCheck;
+        }
+
         var command = new UpdateOrganizationCompanyInfoCommand(
             OrganizationId: id,
             NameAr: request.NameAr,
@@ -158,6 +177,12 @@ public class OrganizationsController : APIBaseController
     [HttpPut("{id:guid}/branches")]
     public async Task<IActionResult> UpdateBranches(Guid id, [FromBody] UpdateBranchesRequest request)
     {
+        var accessCheck = EnsureOrganizationAccess(id);
+        if (accessCheck is not null)
+        {
+            return accessCheck;
+        }
+
         var command = new UpdateOrganizationBranchesCommand(id, request.Branches);
 
         var result = await _mediator.Send(command);
@@ -178,6 +203,12 @@ public class OrganizationsController : APIBaseController
     [HttpPut("{id:guid}/structure")]
     public async Task<IActionResult> UpdateStructure(Guid id, [FromBody] UpdateStructureRequest request)
     {
+        var accessCheck = EnsureOrganizationAccess(id);
+        if (accessCheck is not null)
+        {
+            return accessCheck;
+        }
+
         var command = new UpdateOrganizationStructureCommand(id, request.Departments, request.JobTitles);
 
         var result = await _mediator.Send(command);
@@ -201,6 +232,12 @@ public class OrganizationsController : APIBaseController
         Guid branchId,
         [FromBody] UpdateWorkSchedulesRequest request)
     {
+        var accessCheck = EnsureOrganizationAccess(organizationId);
+        if (accessCheck is not null)
+        {
+            return accessCheck;
+        }
+
         var command = new UpdateBranchWorkScheduleCommand(organizationId, branchId, request.Schedules);
 
         var result = await _mediator.Send(command);
@@ -224,6 +261,12 @@ public class OrganizationsController : APIBaseController
         Guid branchId, 
         [FromBody] UpdateHolidaysRequest request)
     {
+        var accessCheck = EnsureOrganizationAccess(organizationId);
+        if (accessCheck is not null)
+        {
+            return accessCheck;
+        }
+
         var command = new UpdateBranchHolidaysCommand(organizationId, branchId, request.Holidays);
 
         var result = await _mediator.Send(command);
@@ -235,6 +278,36 @@ public class OrganizationsController : APIBaseController
     }
 
     #endregion
+
+    private IActionResult? EnsureOrganizationAccess(Guid requestedOrganizationId)
+    {
+        if (User.IsInRole(RoleNames.SuperAdmin))
+        {
+            return null;
+        }
+
+        var isAllowedScopedRole =
+            User.IsInRole(RoleNames.HRManager) ||
+            User.IsInRole(RoleNames.OrganizationAdmin);
+
+        if (!isAllowedScopedRole)
+        {
+            return Forbid();
+        }
+
+        var currentOrganizationId = CurrentUser.OrganizationId;
+        if (!currentOrganizationId.HasValue || currentOrganizationId.Value == Guid.Empty)
+        {
+            return Forbid();
+        }
+
+        if (currentOrganizationId.Value != requestedOrganizationId)
+        {
+            return Forbid();
+        }
+
+        return null;
+    }
 }
 
 #region Request DTOs
