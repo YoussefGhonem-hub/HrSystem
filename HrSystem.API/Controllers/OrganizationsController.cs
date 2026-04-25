@@ -7,6 +7,7 @@ using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationBra
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationCompanyInfo;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationStructure;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationDetails;
+using HrSystem.Application.Features.Organizations.Queries.GetOrganizationAdminDashboard;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationFullDetails;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationsList;
 using HrSystem.Domain.Entities.Organization;
@@ -92,6 +93,37 @@ public class OrganizationsController : APIBaseController
         }
 
         var result = await _mediator.Send(new GetOrganizationDetailsQuery(id));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get organization-admin dashboard data for the current organization.
+    /// </summary>
+    [HttpGet("dashboard/org-admin")]
+    [Authorize(Roles = RoleNames.OrganizationAdmin)]
+    public async Task<IActionResult> GetOrganizationAdminDashboard(
+        [FromQuery] DateTime? date = null,
+        [FromQuery] int employeePageNumber = 1,
+        [FromQuery] int employeePageSize = 20,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] int recentAttendanceCount = 50,
+        [FromQuery] int recentLeaveHistoryCount = 20,
+        [FromQuery] int recentLeaveRequestsCount = 20)
+    {
+        var query = new GetOrganizationAdminDashboardQuery(
+            date,
+            employeePageNumber,
+            employeePageSize,
+            searchTerm,
+            recentAttendanceCount,
+            recentLeaveHistoryCount,
+            recentLeaveRequestsCount);
+
+        var result = await _mediator.Send(query);
 
         return result.Match(
             response => Ok(response),

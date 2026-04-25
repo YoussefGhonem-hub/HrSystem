@@ -122,14 +122,18 @@ public class UpdateOrganizationStructureCommandHandler
         var newDepartments = new List<Department>();
         var newJobTitles = new List<JobTitle>();
 
-        // Process Departments
-        if (request.Departments?.Count > 0)
+        // Process Departments (PUT semantics: when provided, payload is the full desired state)
+        if (request.Departments is not null)
         {
             var existingDepts = await _context.Departments
                 .Where(d => d.OrganizationId == request.OrganizationId && !d.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             int deptAdded = 0, deptUpdated = 0, deptDeleted = 0;
+            var incomingDepartmentIds = request.Departments
+                .Where(d => d.Id.HasValue)
+                .Select(d => d.Id!.Value)
+                .ToHashSet();
 
             foreach (var input in request.Departments)
             {
@@ -209,17 +213,35 @@ public class UpdateOrganizationStructureCommandHandler
                 }
             }
 
+            // Implicit delete: any existing department not included in payload is considered removed.
+            var implicitDeletedDepartments = existingDepts
+                .Where(d => !incomingDepartmentIds.Contains(d.Id))
+                .ToList();
+
+            foreach (var dept in implicitDeletedDepartments)
+            {
+                dept.IsDeleted = true;
+                dept.DeletedDate = DateTimeOffset.UtcNow;
+                dept.DeletedBy = CurrentUser.Id;
+                dept.IsActive = false;
+                deptDeleted++;
+            }
+
             stats = stats with { DepartmentsAdded = deptAdded, DepartmentsUpdated = deptUpdated, DepartmentsDeleted = deptDeleted };
         }
 
-        // Process Job Titles
-        if (request.JobTitles?.Count > 0)
+        // Process Job Titles (PUT semantics: when provided, payload is the full desired state)
+        if (request.JobTitles is not null)
         {
             var existingTitles = await _context.JobTitles
                 .Where(j => j.OrganizationId == request.OrganizationId && !j.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             int titleAdded = 0, titleUpdated = 0, titleDeleted = 0;
+            var incomingJobTitleIds = request.JobTitles
+                .Where(j => j.Id.HasValue)
+                .Select(j => j.Id!.Value)
+                .ToHashSet();
 
             foreach (var input in request.JobTitles)
             {
@@ -301,6 +323,20 @@ public class UpdateOrganizationStructureCommandHandler
                         titleDeleted++;
                         break;
                 }
+            }
+
+            // Implicit delete: any existing job title not included in payload is considered removed.
+            var implicitDeletedJobTitles = existingTitles
+                .Where(j => !incomingJobTitleIds.Contains(j.Id))
+                .ToList();
+
+            foreach (var jobTitle in implicitDeletedJobTitles)
+            {
+                jobTitle.IsDeleted = true;
+                jobTitle.DeletedDate = DateTimeOffset.UtcNow;
+                jobTitle.DeletedBy = CurrentUser.Id;
+                jobTitle.IsActive = false;
+                titleDeleted++;
             }
 
             stats = stats with { JobTitlesAdded = titleAdded, JobTitlesUpdated = titleUpdated, JobTitlesDeleted = titleDeleted };
