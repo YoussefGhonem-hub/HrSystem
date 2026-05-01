@@ -50,6 +50,8 @@ public class GetMyEmployeeRequestsQueryHandler
             RequestTypeName = r.RequestTypeRef?.Code ?? "",
             Status = r.Status,
             EmployeeId = r.EmployeeId,
+            EmployeeName = r.Employee?.FullNameEn,
+            EmployeeCode = r.Employee?.EmployeeCode,
             BranchId = r.BranchId,
             Title = r.Title,
             Description = r.Description,
