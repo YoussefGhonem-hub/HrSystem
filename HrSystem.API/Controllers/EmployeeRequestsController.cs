@@ -1428,6 +1428,16 @@ public class EmployeeRequestsController : APIBaseController
         if (!employeeId.HasValue)
             return BadRequest("Employee context is required.");
 
+        // Employees may only submit requests for themselves
+        if (CurrentUser.Roles.Contains(RoleNames.Employee)
+            && !CurrentUser.Roles.Any(r => r == RoleNames.HRManager || r == RoleNames.HRSpecialist
+                                        || r == RoleNames.OrganizationAdmin || r == RoleNames.SuperAdmin
+                                        || r == RoleNames.DepartmentManager))
+        {
+            if (employeeId != CurrentUser.EmployeeId)
+                return Forbid();
+        }
+
         var command = new CreateOvertimeRequestCommand(
             employeeId.Value,
             request.Title,

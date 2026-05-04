@@ -1,4 +1,5 @@
 ﻿using HrSystem.API.Controllers.Shared;
+using HrSystem.Shared.Constants;
 using HrSystem.Application.Features.Employees.Commands.AssignDirectManager;
 using HrSystem.Application.Features.Employees.Commands.AddEmployeeSalary;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
@@ -107,6 +108,7 @@ public class EmployeesController : APIBaseController
     /// <summary>
     /// Create a new employee with full details
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
     [HttpPost("full")]
     public async Task<IActionResult> CreateEmployee([FromForm] CreateEmployeeFullCommand command)
     {
@@ -138,6 +140,7 @@ public class EmployeesController : APIBaseController
     /// <summary>
     /// Get full employee details (personal info, job info, latest payroll summary, recent attendance, documents, assets)
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist},{RoleNames.DepartmentManager}")]
     [HttpGet("{id:guid}/details")]
     public async Task<IActionResult> GetEmployeeDetails(Guid id, [FromQuery] int attendanceRecentCount = 30)
     {
@@ -368,6 +371,7 @@ public class EmployeesController : APIBaseController
     /// <summary>
     /// Update personal information for an existing employee
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
     [HttpPut("{employeeId:guid}/personal-info")]
     public async Task<IActionResult> UpdateEmployeePersonalInfo(Guid employeeId, [FromBody] UpdateEmployeePersonalInfoCommand command)
     {
@@ -387,6 +391,7 @@ public class EmployeesController : APIBaseController
     /// <summary>
     /// Update job information for an existing employee
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
     [HttpPut("{employeeId:guid}/job-info")]
     public async Task<IActionResult> UpdateEmployeeJobInfo(Guid employeeId, [FromBody] UpdateEmployeeJobInfoCommand command)
     {
@@ -457,6 +462,7 @@ public class EmployeesController : APIBaseController
     /// <summary>
     /// Delete an employee (soft delete)
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager}")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteEmployee(Guid id)
     {

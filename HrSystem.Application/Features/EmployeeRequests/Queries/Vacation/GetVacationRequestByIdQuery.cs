@@ -3,6 +3,8 @@ using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,6 +37,14 @@ public class GetVacationRequestByIdQueryHandler : IRequestHandler<GetVacationReq
 
         if (entity == null)
             return Error.NotFound("Vacation.NotFound", "Vacation request not found");
+
+        // Employees may only read their own vacation requests
+        var isPrivileged = CurrentUser.IsSuperAdmin
+            || CurrentUser.IsOrganizationAdmin
+            || CurrentUser.Roles.Any(r => r == RoleNames.HRManager || r == RoleNames.HRSpecialist || r == RoleNames.DepartmentManager);
+
+        if (!isPrivileged && entity.EmployeeId != CurrentUser.EmployeeId)
+            return Error.Forbidden("Vacation.Forbidden", "You do not have access to this vacation request.");
 
         var dto = new EmployeeRequestDto
         {

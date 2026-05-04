@@ -1,4 +1,5 @@
 ﻿using HrSystem.API.Controllers.Shared;
+using HrSystem.Shared.Constants;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.CreateEmployeeAsset;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.DeleteEmployeeAsset;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.UpdateEmployeeAsset;
@@ -25,6 +26,7 @@ public class EmployeeAssetsController : APIBaseController
     /// <summary>
     /// Get a paginated list of employee assets with filters and sorting
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist},{RoleNames.DepartmentManager}")]
     [HttpGet]
     public async Task<IActionResult> GetEmployeeAssets(
         [FromQuery] Guid? employeeId = null,
@@ -106,6 +108,7 @@ public class EmployeeAssetsController : APIBaseController
     /// <summary>
     /// Create a new employee asset assignment
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
     [HttpPost]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> CreateEmployeeAsset([FromForm] CreateEmployeeAssetCommand command)
@@ -121,6 +124,7 @@ public class EmployeeAssetsController : APIBaseController
     /// <summary>
     /// Update an existing employee asset assignment
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
     [HttpPut("{id:guid}")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UpdateEmployeeAsset(Guid id, [FromForm] UpdateEmployeeAssetCommand command)
@@ -141,6 +145,7 @@ public class EmployeeAssetsController : APIBaseController
     /// <summary>
     /// Delete an employee asset assignment (soft delete)
     /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteEmployeeAsset(Guid id)
     {
