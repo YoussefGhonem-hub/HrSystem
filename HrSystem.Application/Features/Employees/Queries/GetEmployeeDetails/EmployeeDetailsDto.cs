@@ -59,6 +59,8 @@ public class EmployeeJobInfoDetailsDto
 public class EmployeePayrollDetailsDto
 {
     public decimal BasicSalary { get; set; }
+    public decimal GrossSalary { get; set; }
+    public decimal NetSalary { get; set; }
     public DateTime? EffectiveDate { get; set; }
     public string? Currency { get; set; }
     public bool IncludeSocialInsurance { get; set; }
@@ -122,6 +124,7 @@ public class EmployeeAssetDetailsDto
     public string? ReturnNotes { get; set; }
     public string? Condition { get; set; }
     public decimal? Value { get; set; }
+    public string? ImageUrl { get; set; }
 }
 
 public class EmployeePayslipHistoryItemDto

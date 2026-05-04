@@ -14,6 +14,7 @@ public class EmployeeAssetConfiguration : IEntityTypeConfiguration<EmployeeAsset
         builder.Property(ea => ea.AssetName).IsRequired().HasMaxLength(200);
         builder.Property(ea => ea.Condition).HasMaxLength(50);
         builder.Property(ea => ea.Value).HasColumnType("decimal(18,2)");
+        builder.Property(ea => ea.ImageUrl).HasMaxLength(500);
 
         builder.HasOne(ea => ea.Employee)
             .WithMany(e => e.Assets)

@@ -351,6 +351,16 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
                 continue;
             }
 
+            string? imageKey = null;
+            if (asset.Image != null && asset.Image.Length > 0)
+            {
+                var stored = await _storageService.Upload(asset.Image, cancellationToken);
+                if (stored != null && !string.IsNullOrWhiteSpace(stored.Key))
+                {
+                    imageKey = stored.Key;
+                }
+            }
+
             assetEntities.Add(new EmployeeAsset
             {
                 EmployeeId = employee.Id,
@@ -366,6 +376,7 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
                 ReturnNotes = asset.ReturnNotes,
                 Condition = asset.Condition,
                 Value = asset.Value,
+                ImageUrl = imageKey,
                 TenantId = employee.TenantId
             });
         }

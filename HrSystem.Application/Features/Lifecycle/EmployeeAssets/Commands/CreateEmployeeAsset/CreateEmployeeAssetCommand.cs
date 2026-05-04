@@ -3,7 +3,9 @@ using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Queries.GetEmployee
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.CreateEmployeeAsset;
 
@@ -16,19 +18,36 @@ public record CreateEmployeeAssetCommand(
     string? Description,
     DateTime AssignedDate,
     decimal? Value,
-    string Condition
+    string Condition,
+    IFormFile? Image
 ) : IRequest<ErrorOr<GenericResponse<EmployeeAssetDto>>>;
 
 public class CreateEmployeeAssetCommandHandler : IRequestHandler<CreateEmployeeAssetCommand, ErrorOr<GenericResponse<EmployeeAssetDto>>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public CreateEmployeeAssetCommandHandler(ApplicationDbContext context) => _context = context;
+    public CreateEmployeeAssetCommandHandler(ApplicationDbContext context, IStorageService storageService)
+    {
+        _context = context;
+        _storageService = storageService;
+    }
 
     public async Task<ErrorOr<GenericResponse<EmployeeAssetDto>>> Handle(
         CreateEmployeeAssetCommand request,
         CancellationToken cancellationToken)
     {
+        string? imageKey = null;
+        if (request.Image != null && request.Image.Length > 0)
+        {
+            var stored = await _storageService.Upload(request.Image, cancellationToken);
+            if (stored == null || string.IsNullOrWhiteSpace(stored.Key))
+            {
+                return Error.Failure("EmployeeAsset.ImageUploadFailed", "Failed to upload asset image");
+            }
+            imageKey = stored.Key;
+        }
+
         var asset = new Domain.Entities.Lifecycle.EmployeeAsset
         {
             EmployeeId = request.EmployeeId,
@@ -41,6 +60,7 @@ public class CreateEmployeeAssetCommandHandler : IRequestHandler<CreateEmployeeA
             Value = request.Value,
             Condition = request.Condition,
             IsReturned = false,
+            ImageUrl = imageKey,
             TenantId = Guid.Empty
         };
 
@@ -50,6 +70,10 @@ public class CreateEmployeeAssetCommandHandler : IRequestHandler<CreateEmployeeA
         var createdAsset = await _context.EmployeeAssets
             .Include(a => a.Employee)
             .FirstAsync(a => a.Id == asset.Id, cancellationToken);
+
+        var resolvedImageUrl = !string.IsNullOrWhiteSpace(createdAsset.ImageUrl)
+            ? await _storageService.DownloadFileUrl(createdAsset.ImageUrl, cancellationToken)
+            : null;
 
         var dto = new EmployeeAssetDto
         {
@@ -65,7 +89,8 @@ public class CreateEmployeeAssetCommandHandler : IRequestHandler<CreateEmployeeA
             ReturnDate = createdAsset.ReturnDate,
             IsReturned = createdAsset.IsReturned,
             Value = createdAsset.Value,
-            Condition = createdAsset.Condition
+            Condition = createdAsset.Condition,
+            ImageUrl = resolvedImageUrl
         };
 
         return new GenericResponse<EmployeeAssetDto>

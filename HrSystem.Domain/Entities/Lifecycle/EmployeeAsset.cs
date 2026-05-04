@@ -24,6 +24,7 @@ public class EmployeeAsset : BaseAuditableEntity
     public string Condition { get; set; } = "Good"; // Good, Fair, Poor, Damaged
     public string? ReturnNotes { get; set; }
     public decimal? Value { get; set; }
+    public string? ImageUrl { get; set; }
 
     // Navigation Properties
     public virtual Employee.Employee Employee { get; set; } = null!;

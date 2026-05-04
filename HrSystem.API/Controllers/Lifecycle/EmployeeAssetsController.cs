@@ -107,7 +107,8 @@ public class EmployeeAssetsController : APIBaseController
     /// Create a new employee asset assignment
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> CreateEmployeeAsset([FromBody] CreateEmployeeAssetCommand command)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> CreateEmployeeAsset([FromForm] CreateEmployeeAssetCommand command)
     {
         var result = await _mediator.Send(command);
 
@@ -121,7 +122,8 @@ public class EmployeeAssetsController : APIBaseController
     /// Update an existing employee asset assignment
     /// </summary>
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> UpdateEmployeeAsset(Guid id, [FromBody] UpdateEmployeeAssetCommand command)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UpdateEmployeeAsset(Guid id, [FromForm] UpdateEmployeeAssetCommand command)
     {
         if (id != command.Id)
         {

@@ -209,9 +209,26 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             return null;
         }
 
+        var activeAllowances = salary.Allowances.Where(a => !a.IsDeleted).ToList();
+        var activeDeductions = salary.Deductions.Where(d => !d.IsDeleted).ToList();
+
+        var grossSalary = salary.BasicSalary + activeAllowances.Sum(a =>
+            a.IsPercentage ? salary.BasicSalary * (a.PercentageValue ?? 0m) / 100m : a.Amount);
+
+        var deductionTotal = activeDeductions.Sum(d =>
+            d.IsPercentage ? grossSalary * (d.PercentageValue ?? 0m) / 100m : d.Amount);
+
+        var socialInsuranceContribution = salary.IsSocialInsuranceEnabled && salary.SocialInsuranceEmployeeRate.HasValue
+            ? salary.BasicSalary * salary.SocialInsuranceEmployeeRate.Value / 100m
+            : 0m;
+
+        var netSalary = grossSalary - deductionTotal - socialInsuranceContribution;
+
         var dto = new EmployeePayrollDetailsDto
         {
             BasicSalary = salary.BasicSalary,
+            GrossSalary = grossSalary,
+            NetSalary = netSalary,
             EffectiveDate = salary.EffectiveDate,
             Currency = salary.Currency,
             IncludeSocialInsurance = salary.IsSocialInsuranceEnabled,
@@ -226,10 +243,10 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 salary.BankSwiftCode),
             Notes = salary.Notes,
             OvertimeMultiplier = salary.OvertimeMultiplier,
-            Allowances = salary.Allowances
+            Allowances = activeAllowances
                 .Select(a => new PayrollAllowancePayload { NameAr = a.NameAr, NameEn = a.NameEn, Description = a.Description, IsTaxable = a.IsTaxable, IsSubjectToInsurance = a.IsSubjectToInsurance, Amount = a.Amount, IsPercentage = a.IsPercentage, PercentageValue = a.PercentageValue })
                 .ToList(),
-            Deductions = salary.Deductions
+            Deductions = activeDeductions
                 .Select(d => new PayrollDeductionPayload { NameAr = d.NameAr, NameEn = d.NameEn, Description = d.Description, IsRecurring = d.IsRecurring, Amount = d.Amount, IsPercentage = d.IsPercentage, PercentageValue = d.PercentageValue })
                 .ToList()
         };
@@ -536,10 +553,19 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
 
     private async Task<List<EmployeeAssetDetailsDto>> GetEmployeeAssetsAsync(Guid employeeId, CancellationToken cancellationToken)
     {
-        return await _context.EmployeeAssets
+        var assets = await _context.EmployeeAssets
             .Where(a => a.EmployeeId == employeeId)
             .OrderByDescending(a => a.AssignedDate)
-            .Select(a => new EmployeeAssetDetailsDto
+            .ToListAsync(cancellationToken);
+
+        var result = new List<EmployeeAssetDetailsDto>(assets.Count);
+        foreach (var a in assets)
+        {
+            var imageUrl = !string.IsNullOrWhiteSpace(a.ImageUrl)
+                ? await _storageService.DownloadFileUrl(a.ImageUrl, cancellationToken)
+                : null;
+
+            result.Add(new EmployeeAssetDetailsDto
             {
                 Id = a.Id,
                 AssetType = a.AssetType,
@@ -553,8 +579,10 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 IsReturned = a.IsReturned,
                 ReturnNotes = a.ReturnNotes,
                 Condition = a.Condition,
-                Value = a.Value
-            })
-            .ToListAsync(cancellationToken);
+                Value = a.Value,
+                ImageUrl = imageUrl
+            });
+        }
+        return result;
     }
 }

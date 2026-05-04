@@ -120,4 +120,5 @@ public class CreateEmployeeAssetPayload
     public string? ReturnNotes { get; set; }
     public decimal? Value { get; set; }
     public bool IsReturned { get; set; }
+    public IFormFile? Image { get; set; }
 }

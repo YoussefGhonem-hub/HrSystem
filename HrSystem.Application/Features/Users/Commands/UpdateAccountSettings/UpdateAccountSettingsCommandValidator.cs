@@ -12,7 +12,7 @@ public class UpdateAccountSettingsCommandValidator : AbstractValidator<UpdateAcc
         RuleFor(x => x.UserName)
             .MinimumLength(3).WithMessage("Username must be at least 3 characters")
             .MaximumLength(50).WithMessage("Username must not exceed 50 characters")
-            .Matches(@"^[a-zA-Z0-9._]+$").WithMessage("Username can only contain letters, numbers, dots, and underscores")
+            .Matches(@"^[a-zA-Z0-9.@_\-]+$").WithMessage("Username can only contain letters, numbers, dots, at-signs, hyphens, and underscores")
             .When(x => !string.IsNullOrWhiteSpace(x.UserName));
 
         RuleFor(x => x.WorkEmail)
@@ -21,8 +21,8 @@ public class UpdateAccountSettingsCommandValidator : AbstractValidator<UpdateAcc
             .When(x => !string.IsNullOrWhiteSpace(x.WorkEmail));
 
         RuleFor(x => x.AccountStatus)
-            .Must(status => status == null || 
-                           status.Equals("Active", StringComparison.OrdinalIgnoreCase) || 
+            .Must(status => status == null ||
+                           status.Equals("Active", StringComparison.OrdinalIgnoreCase) ||
                            status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
             .WithMessage("Account status must be 'Active' or 'Inactive'");
     }

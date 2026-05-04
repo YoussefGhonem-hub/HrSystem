@@ -4,14 +4,20 @@ using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.UpdateEmployeeAsset;
 
 public class UpdateEmployeeAssetCommandHandler : IRequestHandler<UpdateEmployeeAssetCommand, ErrorOr<GenericResponse<EmployeeAssetDto>>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public UpdateEmployeeAssetCommandHandler(ApplicationDbContext context) => _context = context;
+    public UpdateEmployeeAssetCommandHandler(ApplicationDbContext context, IStorageService storageService)
+    {
+        _context = context;
+        _storageService = storageService;
+    }
 
     public async Task<ErrorOr<GenericResponse<EmployeeAssetDto>>> Handle(
         UpdateEmployeeAssetCommand request,
@@ -23,6 +29,16 @@ public class UpdateEmployeeAssetCommandHandler : IRequestHandler<UpdateEmployeeA
         if (asset == null)
         {
             return Error.NotFound(description: "Employee asset not found");
+        }
+
+        if (request.Image != null && request.Image.Length > 0)
+        {
+            var stored = await _storageService.Upload(request.Image, cancellationToken);
+            if (stored == null || string.IsNullOrWhiteSpace(stored.Key))
+            {
+                return Error.Failure("EmployeeAsset.ImageUploadFailed", "Failed to upload asset image");
+            }
+            asset.ImageUrl = stored.Key;
         }
 
         asset.AssetType = request.AssetType;
@@ -43,6 +59,10 @@ public class UpdateEmployeeAssetCommandHandler : IRequestHandler<UpdateEmployeeA
             .Include(a => a.Employee)
             .FirstAsync(a => a.Id == asset.Id, cancellationToken);
 
+        var resolvedImageUrl = !string.IsNullOrWhiteSpace(updatedAsset.ImageUrl)
+            ? await _storageService.DownloadFileUrl(updatedAsset.ImageUrl, cancellationToken)
+            : null;
+
         var dto = new EmployeeAssetDto
         {
             Id = updatedAsset.Id,
@@ -58,7 +78,8 @@ public class UpdateEmployeeAssetCommandHandler : IRequestHandler<UpdateEmployeeA
             IsReturned = updatedAsset.IsReturned,
             Value = updatedAsset.Value,
             Condition = updatedAsset.Condition,
-            ReturnNotes = updatedAsset.ReturnNotes
+            ReturnNotes = updatedAsset.ReturnNotes,
+            ImageUrl = resolvedImageUrl
         };
 
         return new GenericResponse<EmployeeAssetDto>

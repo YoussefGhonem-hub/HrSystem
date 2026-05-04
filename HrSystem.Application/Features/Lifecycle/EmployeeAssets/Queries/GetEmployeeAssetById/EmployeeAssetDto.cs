@@ -16,4 +16,5 @@ public record EmployeeAssetDto
     public decimal? Value { get; init; }
     public string Condition { get; init; } = string.Empty;
     public string? ReturnNotes { get; init; }
+    public string? ImageUrl { get; init; }
 }

@@ -2,6 +2,7 @@ using ErrorOr;
 using HrSystem.Application.Features.Lifecycle.EmployeeAssets.Queries.GetEmployeeAssetById;
 using HrSystem.Shared.Common;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 
 namespace HrSystem.Application.Features.Lifecycle.EmployeeAssets.Commands.UpdateEmployeeAsset;
 
@@ -17,5 +18,6 @@ public record UpdateEmployeeAssetCommand(
     bool IsReturned,
     decimal? Value,
     string Condition,
-    string? ReturnNotes
+    string? ReturnNotes,
+    IFormFile? Image
 ) : IRequest<ErrorOr<GenericResponse<EmployeeAssetDto>>>;

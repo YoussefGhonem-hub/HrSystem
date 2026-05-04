@@ -156,16 +156,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
 
         SyncSalaryAllowances(salary, request.Allowances, tenantId, branchId, currentUserId);
         SyncSalaryDeductions(salary, request.Deductions, tenantId, branchId, currentUserId);
-        try
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-
-        }
-        catch (Exception ex)
-        {
-
-            throw;
-        }
+        await _context.SaveChangesAsync(cancellationToken);
 
         var response = new EmployeePayrollConfigurationDto
         {
@@ -235,7 +226,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
     {
         var desired = payloads ?? new List<PayrollAllowancePayload>();
         var existing = salary.Allowances.ToList();
-        
+
         // Group by normalized name to handle duplicates - take the last one
         var desiredLookup = desired
             .GroupBy(a => a.NameEn.Trim().ToLowerInvariant())
@@ -246,8 +237,8 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             var key = allowance.NameEn.Trim().ToLowerInvariant();
             if (!desiredLookup.TryGetValue(key, out var match))
             {
-                // Remove from collection instead of soft-delete to avoid concurrency issues
-                salary.Allowances.Remove(allowance);
+                // Soft-delete via DbSet only; do NOT remove from the collection navigation
+                // to avoid EF Core attempting to null-out the required SalaryId FK.
                 _context.SalaryAllowances.Remove(allowance);
                 continue;
             }
@@ -293,7 +284,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
     {
         var desired = payloads ?? new List<PayrollDeductionPayload>();
         var existing = salary.Deductions.ToList();
-        
+
         // Group by normalized name to handle duplicates - take the last one
         var desiredLookup = desired
             .GroupBy(d => d.NameEn.Trim().ToLowerInvariant())
@@ -304,8 +295,8 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             var key = deduction.NameEn.Trim().ToLowerInvariant();
             if (!desiredLookup.TryGetValue(key, out var match))
             {
-                // Remove from collection instead of soft-delete to avoid concurrency issues
-                salary.Deductions.Remove(deduction);
+                // Soft-delete via DbSet only; do NOT remove from the collection navigation
+                // to avoid EF Core attempting to null-out the required SalaryId FK.
                 _context.SalaryDeductions.Remove(deduction);
                 continue;
             }
