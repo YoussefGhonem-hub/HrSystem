@@ -18,6 +18,7 @@ using HrSystem.Application.Features.Performance.Queries.GetReviewStatuses;
 using HrSystem.Application.Features.Performance.Queries.GetReviewTypes;
 using HrSystem.Application.Features.Lookups.Queries.GetEmployeesLookup;
 using HrSystem.Application.Features.Lookups.Queries.GetDepartmentLookup;
+using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -309,6 +310,7 @@ public class LookupsController : APIBaseController
     /// Get all employees (non-paginated) for dropdowns
     /// </summary>
     [HttpGet("employees")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist + "," + RoleNames.DepartmentManager)]
     public async Task<IActionResult> GetEmployees()
     {
         var result = await _mediator.Send(new GetEmployeesLookupQuery());
@@ -319,6 +321,7 @@ public class LookupsController : APIBaseController
     /// Get all direct managers (non-paginated) for dropdowns
     /// </summary>
     [HttpGet("directmanagers")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist + "," + RoleNames.DepartmentManager)]
     public async Task<IActionResult> GetDirectManagers()
     {
         var result = await _mediator.Send(new GetDirectManagersLookupQuery());

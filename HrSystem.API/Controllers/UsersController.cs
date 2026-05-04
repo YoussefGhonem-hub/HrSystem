@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HrSystem.API.Controllers;
 
 [Route("api/[controller]")]
-[Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin)]
+[Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist)]
 public class UsersController : APIBaseController
 {
     private readonly ISender _mediator;

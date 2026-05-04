@@ -139,7 +139,7 @@ public class EmployeesController : APIBaseController
     /// Get full employee details (personal info, job info, latest payroll summary, recent attendance, documents, assets)
     /// </summary>
     [HttpGet("{id:guid}/details")]
-    public async Task<IActionResult> GetEmployeeDetails(Guid id, [FromQuery] int attendanceRecentCount = 10)
+    public async Task<IActionResult> GetEmployeeDetails(Guid id, [FromQuery] int attendanceRecentCount = 30)
     {
         var result = await _mediator.Send(new GetEmployeeDetailsQuery(id, attendanceRecentCount));
 

@@ -125,7 +125,7 @@ public class ImportAttendanceExcelCommandHandler
             var attendance = new AttendanceEntity
             {
                 EmployeeId = emp.Id,
-                Date = row.Date,
+                Date = row.Date.Date, // Store only date part; strip any time component from Excel parsing
                 CheckInTime = row.CheckInTime,
                 CheckOutTime = row.CheckOutTime,
                 StatusId = AttendanceStatusIds.Present,

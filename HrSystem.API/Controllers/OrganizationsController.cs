@@ -104,7 +104,7 @@ public class OrganizationsController : APIBaseController
     /// Get organization-admin dashboard data for the current organization.
     /// </summary>
     [HttpGet("dashboard/org-admin")]
-    [Authorize(Roles = RoleNames.OrganizationAdmin)]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin)]
     public async Task<IActionResult> GetOrganizationAdminDashboard(
         [FromQuery] DateTime? date = null,
         [FromQuery] int employeePageNumber = 1,
@@ -289,8 +289,8 @@ public class OrganizationsController : APIBaseController
     /// </summary>
     [HttpPut("{organizationId:guid}/branches/{branchId:guid}/holidays")]
     public async Task<IActionResult> UpdateBranchHolidays(
-        Guid organizationId, 
-        Guid branchId, 
+        Guid organizationId,
+        Guid branchId,
         [FromBody] UpdateHolidaysRequest request)
     {
         var accessCheck = EnsureOrganizationAccess(organizationId);

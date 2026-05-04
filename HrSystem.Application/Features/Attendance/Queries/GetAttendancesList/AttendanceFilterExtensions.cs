@@ -37,7 +37,8 @@ public static class AttendanceFilterExtensions
 
         if (toDate.HasValue)
         {
-            query = query.Where(a => a.Date <= toDate.Value.Date);
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            query = query.Where(a => a.Date < endOfDay);
         }
 
         if (statusId.HasValue)
