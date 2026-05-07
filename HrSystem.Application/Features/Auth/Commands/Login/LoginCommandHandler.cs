@@ -157,6 +157,19 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         }).ToListAsync(cancellationToken)
                     : null;
 
+                var attendanceCorrectionTypes = requestTypeCodes.Contains("AttendanceCorrection")
+                    ? await _context.AttendanceCorrectionTypes.IgnoreQueryFilters().AsNoTracking().Where(t => t.IsActive && !t.IsDeleted).OrderBy(t => t.SortOrder)
+                        .Select(t => new AttendanceCorrectionTypeDto
+                        {
+                            Id = t.Id,
+                            NameEn = t.NameEn,
+                            NameAr = t.NameAr,
+                            Description = t.Description,
+                            RequiresManagerApproval = t.RequiresManagerApproval,
+                            SortOrder = t.SortOrder
+                        }).ToListAsync(cancellationToken)
+                    : null;
+
                 branchRequestAccess = branchSettings
                     .Where(setting => setting.RequestTypeRef != null)
                     .Select(setting => new BranchRequestAvailabilityDto
@@ -174,7 +187,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                         TrainingTypes = setting.RequestTypeRef.Code == "Training" ? trainingTypes : null,
                         MiscellaneousTypes = setting.RequestTypeRef.Code == "Miscellaneous" ? miscellaneousTypes : null,
                         PersonalTypes = setting.RequestTypeRef.Code == "Personal" ? personalTypes : null,
-                        FeedbackTypes = setting.RequestTypeRef.Code == "Feedback" ? feedbackTypes : null
+                        FeedbackTypes = setting.RequestTypeRef.Code == "Feedback" ? feedbackTypes : null,
+                        AttendanceCorrectionTypes = setting.RequestTypeRef.Code == "AttendanceCorrection" ? attendanceCorrectionTypes : null
                     })
                     .ToList();
             }

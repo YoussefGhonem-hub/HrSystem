@@ -384,6 +384,69 @@ public class EmployeeRequestsController : APIBaseController
     }
 
     /// <summary>
+    /// Submits an attendance correction request.
+    /// RequestTypeCode is AttendanceCorrection and subtype is resolved from AttendanceCorrectionTypeId.
+    /// </summary>
+    [HttpPost("attendance-correction")]
+    public async Task<IActionResult> SubmitAttendanceCorrectionRequest([FromForm] SubmitAttendanceCorrectionRequestDto request)
+    {
+        var employeeId = request.EmployeeId ?? CurrentUser.EmployeeId;
+        if (!employeeId.HasValue)
+            return BadRequest("Employee context is required.");
+
+        if (request.AttendanceCorrectionTypeId == Guid.Empty)
+            return BadRequest("AttendanceCorrectionTypeId is required.");
+
+        if (request.AttendanceDate == default)
+            return BadRequest("AttendanceDate is required.");
+
+        if (!request.CorrectedTime.HasValue)
+            return BadRequest("CorrectedTime is required.");
+
+        var title = string.IsNullOrWhiteSpace(request.Title)
+            ? "Attendance Correction Request"
+            : request.Title.Trim();
+
+        var dateText = request.AttendanceDate.ToString("yyyy-MM-dd");
+        var timeText = request.CorrectedTime.Value.ToString(@"hh\:mm");
+        var descriptionParts = new List<string>
+        {
+            $"AttendanceCorrectionTypeId: {request.AttendanceCorrectionTypeId}",
+            $"AttendanceDate: {dateText}",
+            $"CorrectedTime: {timeText}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.Reason))
+            descriptionParts.Add($"Reason: {request.Reason.Trim()}");
+
+        if (!string.IsNullOrWhiteSpace(request.Description))
+            descriptionParts.Add($"Notes: {request.Description.Trim()}");
+
+        var command = new CreateEmployeeRequestCommand(
+            "AttendanceCorrection",
+            title,
+            string.Join(Environment.NewLine, descriptionParts),
+            request.AttendanceDate.Date,
+            request.AttendanceDate.Date,
+            request.Attachment,
+            employeeId.Value,
+            request.BranchId ?? CurrentUser.BranchId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            new CreateAttendanceCorrectionDetailModel(
+                request.AttendanceCorrectionTypeId,
+                request.AttendanceDate,
+                request.CorrectedTime.Value,
+                request.Reason));
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
     /// Gets the employee's monthly permission hours usage for a specific permission type.
     /// Useful for showing remaining hours before submitting a permission request.
     /// </summary>
@@ -1660,6 +1723,19 @@ public class EmployeeRequestsController : APIBaseController
         public decimal TotalHours { get; init; }
         public Guid PermissionTypeId { get; init; }
         public string Reason { get; init; } = string.Empty;
+        public IFormFile? Attachment { get; init; }
+        public Guid? EmployeeId { get; init; }
+        public Guid? BranchId { get; init; }
+    }
+
+    public record SubmitAttendanceCorrectionRequestDto
+    {
+        public string? Title { get; init; }
+        public string? Description { get; init; }
+        public Guid AttendanceCorrectionTypeId { get; init; }
+        public DateTime AttendanceDate { get; init; }
+        public TimeSpan? CorrectedTime { get; init; }
+        public string? Reason { get; init; }
         public IFormFile? Attachment { get; init; }
         public Guid? EmployeeId { get; init; }
         public Guid? BranchId { get; init; }

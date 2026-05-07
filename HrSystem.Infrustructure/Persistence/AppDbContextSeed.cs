@@ -3707,12 +3707,42 @@ public static class AppDbContextSeed
                 new() { Code = "Miscellaneous", NameEn = "Miscellaneous", NameAr = "متنوع", Description = "General purpose requests", IsActive = true, SortOrder = 4, CreatedDate = now, RequireAttachment = false },
                 new() { Code = "Personal", NameEn = "Personal", NameAr = "شخصي", Description = "Personal requests", IsActive = true, SortOrder = 5, CreatedDate = now, RequireAttachment = false },
                 new() { Code = "Feedback", NameEn = "Feedback", NameAr = "ملاحظات", Description = "Feedback submissions", IsActive = true, SortOrder = 6, CreatedDate = now, RequireAttachment = false },
-                new() { Code = "Permission", NameEn = "Permission", NameAr = "إذن", Description = "Short absence / permission requests", IsActive = true, SortOrder = 7, CreatedDate = now, RequireAttachment = false }
+                new() { Code = "Permission", NameEn = "Permission", NameAr = "إذن", Description = "Short absence / permission requests", IsActive = true, SortOrder = 7, CreatedDate = now, RequireAttachment = false },
+                new() { Code = "AttendanceCorrection", NameEn = "Attendance Correction", NameAr = "تصحيح الحضور", Description = "Attendance punch correction requests", IsActive = true, SortOrder = 8, CreatedDate = now, RequireAttachment = false }
             };
 
             await context.RequestTypes.AddRangeAsync(requestTypes);
             Console.WriteLine($"Seeded {requestTypes.Count} request types");
         }
+
+        // Ensure newly introduced request types exist in already-initialized databases.
+        var requiredRequestTypes = new[]
+        {
+            new { Code = "AttendanceCorrection", NameEn = "Attendance Correction", NameAr = "تصحيح الحضور", Description = "Attendance punch correction requests", SortOrder = 8 }
+        };
+
+        foreach (var required in requiredRequestTypes)
+        {
+            var exists = await context.RequestTypes.AnyAsync(rt => rt.Code == required.Code);
+            if (exists)
+            {
+                continue;
+            }
+
+            await context.RequestTypes.AddAsync(new RequestType
+            {
+                Code = required.Code,
+                NameEn = required.NameEn,
+                NameAr = required.NameAr,
+                Description = required.Description,
+                IsActive = true,
+                SortOrder = required.SortOrder,
+                CreatedDate = now,
+                RequireAttachment = false
+            });
+        }
+
+        await context.SaveChangesAsync();
 
         // Seed VacationTypes
         if (!await context.VacationTypes.AnyAsync())
@@ -3852,6 +3882,21 @@ public static class AppDbContextSeed
             Console.WriteLine($"Seeded {permissionTypes.Count} permission types");
         }
 
+        // Seed AttendanceCorrectionTypes
+        if (!await context.AttendanceCorrectionTypes.AnyAsync())
+        {
+            var attendanceCorrectionTypes = new List<AttendanceCorrectionType>
+            {
+                new() { NameEn = "Add Missing Check-in", NameAr = "إضافة تسجيل حضور مفقود", Description = "Add a missed check-in record for a past attendance day.", RequiresManagerApproval = true, SortOrder = 1, CreatedDate = now },
+                new() { NameEn = "Add Missing Check-out", NameAr = "إضافة تسجيل انصراف مفقود", Description = "Add a missed check-out record for a past attendance day.", RequiresManagerApproval = true, SortOrder = 2, CreatedDate = now },
+                new() { NameEn = "Update Wrong Check-in Time", NameAr = "تعديل وقت حضور غير صحيح", Description = "Correct an incorrect check-in time for a recorded day.", RequiresManagerApproval = true, SortOrder = 3, CreatedDate = now },
+                new() { NameEn = "Update Wrong Check-out Time", NameAr = "تعديل وقت انصراف غير صحيح", Description = "Correct an incorrect check-out time for a recorded day.", RequiresManagerApproval = true, SortOrder = 4, CreatedDate = now }
+            };
+
+            await context.AttendanceCorrectionTypes.AddRangeAsync(attendanceCorrectionTypes);
+            Console.WriteLine($"Seeded {attendanceCorrectionTypes.Count} attendance correction types");
+        }
+
         await context.SaveChangesAsync();
     }
 
@@ -3921,6 +3966,30 @@ public static class AppDbContextSeed
                     IsVisibleToEmployees = true,
                     AllowEmployeesToSubmit = true,
                     MaxOpenRequests = maxOpenRequests,
+                    TenantId = branch.TenantId,
+                    BranchId = branch.Id,
+                    CreatedDate = now
+                });
+            }
+        }
+
+        // AttendanceCorrection is not part of EmployeeRequestType enum but should still be available by default.
+        if (requestTypes.TryGetValue("AttendanceCorrection", out var attendanceCorrectionRequestTypeId))
+        {
+            foreach (var branch in branches)
+            {
+                var key = $"{branch.Id}-{attendanceCorrectionRequestTypeId}";
+                if (existingKeys.Contains(key))
+                {
+                    continue;
+                }
+
+                settings.Add(new BranchRequestSetting
+                {
+                    RequestTypeId = attendanceCorrectionRequestTypeId,
+                    IsVisibleToEmployees = true,
+                    AllowEmployeesToSubmit = true,
+                    MaxOpenRequests = null,
                     TenantId = branch.TenantId,
                     BranchId = branch.Id,
                     CreatedDate = now

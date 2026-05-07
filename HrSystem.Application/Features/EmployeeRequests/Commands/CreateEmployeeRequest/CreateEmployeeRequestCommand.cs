@@ -59,6 +59,13 @@ public record CreateFeedbackDetailModel(
     string? SuggestedImprovement,
     bool ResponseRequired
 );
+
+public record CreateAttendanceCorrectionDetailModel(
+    Guid AttendanceCorrectionTypeId,
+    DateTime AttendanceDate,
+    TimeSpan CorrectedTime,
+    string? Reason
+);
 #endregion
 
 public record CreateEmployeeRequestCommand(
@@ -75,7 +82,8 @@ public record CreateEmployeeRequestCommand(
     CreateTrainingDetailModel? TrainingDetail,
     CreateMiscellaneousDetailModel? MiscellaneousDetail,
     CreatePersonalDetailModel? PersonalDetail,
-    CreateFeedbackDetailModel? FeedbackDetail
+    CreateFeedbackDetailModel? FeedbackDetail,
+    CreateAttendanceCorrectionDetailModel? AttendanceCorrectionDetail = null
 ) : IRequest<ErrorOr<GenericResponse<EmployeeRequestDto>>>;
 
 public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmployeeRequestCommand, ErrorOr<GenericResponse<EmployeeRequestDto>>>
@@ -191,8 +199,21 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
             "Miscellaneous" => await ValidateMiscellaneousDetail(request.MiscellaneousDetail, ct),
             "Personal" => await ValidatePersonalDetail(request.PersonalDetail, ct),
             "Feedback" => await ValidateFeedbackDetail(request.FeedbackDetail, ct),
+            "AttendanceCorrection" => await ValidateAttendanceCorrectionDetail(request.AttendanceCorrectionDetail, ct),
             _ => Error.Validation(description: "Invalid request type.")
         };
+    }
+
+    private async Task<Error?> ValidateAttendanceCorrectionDetail(CreateAttendanceCorrectionDetailModel? detail, CancellationToken ct)
+    {
+        if (detail is null)
+            return Error.Validation(description: "Attendance correction detail is required for attendance correction requests.");
+
+        var typeExists = await _context.AttendanceCorrectionTypes.AnyAsync(t => t.Id == detail.AttendanceCorrectionTypeId && t.IsActive, ct);
+        if (!typeExists)
+            return Error.Validation(description: "Invalid attendance correction type selected.");
+
+        return null;
     }
 
     private async Task<Error?> ValidateVacationDetail(CreateVacationDetailModel? detail, CancellationToken ct)

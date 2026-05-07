@@ -208,6 +208,45 @@ public record MiscellaneousTypeDetailDto
 }
 #endregion
 
+#region AttendanceCorrectionType DTOs
+public record CreateAttendanceCorrectionTypeDto
+{
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
+}
+
+public record UpdateAttendanceCorrectionTypeDto
+{
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public bool RequiresManagerApproval { get; init; } = true;
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; } = true;
+    public int SortOrder { get; init; } = 1;
+}
+
+public record AttendanceCorrectionTypeDetailDto
+{
+    public Guid Id { get; init; }
+    public string NameAr { get; init; } = string.Empty;
+    public string NameEn { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public bool RequiresManagerApproval { get; init; }
+    public bool RequireAttachment { get; init; }
+    public bool IsActive { get; init; }
+    public int SortOrder { get; init; }
+    public DateTimeOffset CreatedDate { get; init; }
+    public DateTimeOffset? ModifiedDate { get; init; }
+}
+#endregion
+
 #region PersonalType DTOs
 public record CreatePersonalTypeDto
 {

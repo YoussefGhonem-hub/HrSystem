@@ -75,6 +75,16 @@ public record PermissionTypeDto
     public bool RequiresManagerApproval { get; init; }
     public int SortOrder { get; init; }
 }
+
+public record AttendanceCorrectionTypeDto
+{
+    public Guid Id { get; init; }
+    public string NameEn { get; init; } = string.Empty;
+    public string NameAr { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public bool RequiresManagerApproval { get; init; }
+    public int SortOrder { get; init; }
+}
 #endregion
 
 #region Branch Settings DTO
@@ -97,6 +107,7 @@ public record BranchRequestAvailabilityDto
     public IReadOnlyCollection<PersonalTypeDto>? PersonalTypes { get; init; }
     public IReadOnlyCollection<FeedbackTypeDto>? FeedbackTypes { get; init; }
     public IReadOnlyCollection<PermissionTypeDto>? PermissionTypes { get; init; }
+    public IReadOnlyCollection<AttendanceCorrectionTypeDto>? AttendanceCorrectionTypes { get; init; }
 }
 #endregion
 

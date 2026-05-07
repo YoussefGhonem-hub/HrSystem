@@ -115,6 +115,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<PersonalType> PersonalTypes => Set<PersonalType>();
     public DbSet<FeedbackType> FeedbackTypes => Set<FeedbackType>();
     public DbSet<PermissionType> PermissionTypes => Set<PermissionType>();
+    public DbSet<AttendanceCorrectionType> AttendanceCorrectionTypes => Set<AttendanceCorrectionType>();
     public DbSet<EmployeeLeaveBalance> EmployeeLeaveBalances => Set<EmployeeLeaveBalance>();
     public DbSet<EmployeeLeaveTransaction> EmployeeLeaveTransactions => Set<EmployeeLeaveTransaction>();
     public DbSet<EmployeeVacationLimit> EmployeeVacationLimits => Set<EmployeeVacationLimit>();

@@ -91,6 +91,19 @@ public class GetBranchRequestAvailabilityQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
+        var attendanceCorrectionTypes = requestTypeCodes.Contains("AttendanceCorrection")
+            ? await _context.AttendanceCorrectionTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
+                .Select(t => new AttendanceCorrectionTypeDto
+                {
+                    Id = t.Id,
+                    NameEn = t.NameEn,
+                    NameAr = t.NameAr,
+                    Description = t.Description,
+                    RequiresManagerApproval = t.RequiresManagerApproval,
+                    SortOrder = t.SortOrder
+                }).ToListAsync(cancellationToken)
+            : null;
+
         var result = settings.Select(s => new BranchRequestAvailabilityDto
         {
             RequestTypeId = s.RequestTypeId,
@@ -107,7 +120,8 @@ public class GetBranchRequestAvailabilityQueryHandler
             MiscellaneousTypes = s.RequestTypeRef?.Code == "Miscellaneous" ? miscellaneousTypes : null,
             PersonalTypes = s.RequestTypeRef?.Code == "Personal" ? personalTypes : null,
             FeedbackTypes = s.RequestTypeRef?.Code == "Feedback" ? feedbackTypes : null,
-            PermissionTypes = s.RequestTypeRef?.Code == "Permission" ? permissionTypes : null
+            PermissionTypes = s.RequestTypeRef?.Code == "Permission" ? permissionTypes : null,
+            AttendanceCorrectionTypes = s.RequestTypeRef?.Code == "AttendanceCorrection" ? attendanceCorrectionTypes : null
         }).ToList();
 
         return GenericResponse<List<BranchRequestAvailabilityDto>>.SuccessResult(result);

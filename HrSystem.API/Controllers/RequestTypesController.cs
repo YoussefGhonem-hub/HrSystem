@@ -1,5 +1,6 @@
 using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.EmployeeRequests.Commands.FeedbackTypes;
+using HrSystem.Application.Features.EmployeeRequests.Commands.AttendanceCorrectionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.MiscellaneousTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.OvertimeTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.PermissionTypes;
@@ -8,6 +9,7 @@ using HrSystem.Application.Features.EmployeeRequests.Commands.TrainingTypes;
 using HrSystem.Application.Features.EmployeeRequests.Commands.VacationTypes;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Application.Features.EmployeeRequests.Queries.FeedbackTypes;
+using HrSystem.Application.Features.EmployeeRequests.Queries.AttendanceCorrectionTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.MiscellaneousTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.OvertimeTypes;
 using HrSystem.Application.Features.EmployeeRequests.Queries.PermissionTypes;
@@ -505,6 +507,74 @@ public class RequestTypesController : APIBaseController
     public async Task<IActionResult> DeletePermissionType(Guid id)
     {
         var result = await _mediator.Send(new DeletePermissionTypeCommand(id));
+        return result.Match(Ok, Problem);
+    }
+    #endregion
+
+    #region AttendanceCorrectionType CRUD
+    /// <summary>
+    /// Get all attendance correction types
+    /// </summary>
+    [HttpGet("attendance-correction")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAttendanceCorrectionTypes([FromQuery] bool? isActive, [FromQuery] string? searchTerm)
+    {
+        var result = await _mediator.Send(new GetAttendanceCorrectionTypesQuery(isActive, searchTerm));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Get attendance correction type by ID
+    /// </summary>
+    [HttpGet("attendance-correction/{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAttendanceCorrectionTypeById(Guid id)
+    {
+        var result = await _mediator.Send(new GetAttendanceCorrectionTypeByIdQuery(id));
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Create a new attendance correction type
+    /// </summary>
+    [HttpPost("attendance-correction")]
+    public async Task<IActionResult> CreateAttendanceCorrectionType([FromBody] CreateAttendanceCorrectionTypeDto dto)
+    {
+        var command = new CreateAttendanceCorrectionTypeCommand(
+            dto.NameAr, dto.NameEn, dto.Description,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
+            dto.IsActive, dto.SortOrder);
+
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => CreatedAtAction(nameof(GetAttendanceCorrectionTypeById), new { id = response.Data!.Id }, response),
+            Problem);
+    }
+
+    /// <summary>
+    /// Update an existing attendance correction type
+    /// </summary>
+    [HttpPut("attendance-correction/{id:guid}")]
+    public async Task<IActionResult> UpdateAttendanceCorrectionType(Guid id, [FromBody] UpdateAttendanceCorrectionTypeDto dto)
+    {
+        if (id != dto.Id) return BadRequest("ID mismatch");
+
+        var command = new UpdateAttendanceCorrectionTypeCommand(
+            dto.Id, dto.NameAr, dto.NameEn, dto.Description,
+            dto.RequiresManagerApproval, dto.RequireAttachment,
+            dto.IsActive, dto.SortOrder);
+
+        var result = await _mediator.Send(command);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Delete (soft) an attendance correction type
+    /// </summary>
+    [HttpDelete("attendance-correction/{id:guid}")]
+    public async Task<IActionResult> DeleteAttendanceCorrectionType(Guid id)
+    {
+        var result = await _mediator.Send(new DeleteAttendanceCorrectionTypeCommand(id));
         return result.Match(Ok, Problem);
     }
     #endregion

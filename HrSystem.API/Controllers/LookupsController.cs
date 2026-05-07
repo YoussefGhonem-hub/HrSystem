@@ -122,6 +122,16 @@ public class LookupsController : APIBaseController
         return result.Match(Ok, Problem);
     }
 
+    /// <summary>
+    /// Get attendance correction request sub-types for dropdowns.
+    /// </summary>
+    [HttpGet("attendance-correction-types")]
+    public async Task<IActionResult> GetAttendanceCorrectionTypes([FromQuery] bool includeInactive = false)
+    {
+        var result = await _mediator.Send(new GetAttendanceCorrectionTypesLookupQuery(includeInactive));
+        return result.Match(Ok, Problem);
+    }
+
     #endregion
 
     #region Performance Module

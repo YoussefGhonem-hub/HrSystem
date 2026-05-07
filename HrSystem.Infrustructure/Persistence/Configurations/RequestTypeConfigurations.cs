@@ -116,3 +116,17 @@ public class FeedbackTypeConfiguration : IEntityTypeConfiguration<FeedbackType>
         builder.HasIndex(f => f.NameEn).IsUnique();
     }
 }
+
+public class AttendanceCorrectionTypeConfiguration : IEntityTypeConfiguration<AttendanceCorrectionType>
+{
+    public void Configure(EntityTypeBuilder<AttendanceCorrectionType> builder)
+    {
+        builder.ToTable("AttendanceCorrectionTypes", "Requests");
+
+        builder.Property(a => a.NameAr).IsRequired().HasMaxLength(200);
+        builder.Property(a => a.NameEn).IsRequired().HasMaxLength(200);
+        builder.Property(a => a.Description).HasMaxLength(500);
+
+        builder.HasIndex(a => a.NameEn).IsUnique();
+    }
+}

@@ -87,6 +87,19 @@ public class GetBranchAvailableRequestsQueryHandler
                 }).ToListAsync(cancellationToken)
             : null;
 
+        var attendanceCorrectionTypes = requestTypeCodes.Contains("AttendanceCorrection")
+            ? await _context.AttendanceCorrectionTypes.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.SortOrder)
+                .Select(t => new AttendanceCorrectionTypeDto
+                {
+                    Id = t.Id,
+                    NameEn = t.NameEn,
+                    NameAr = t.NameAr,
+                    Description = t.Description,
+                    RequiresManagerApproval = t.RequiresManagerApproval,
+                    SortOrder = t.SortOrder
+                }).ToListAsync(cancellationToken)
+            : null;
+
         var dtos = settings
             .Select(setting => new BranchRequestAvailabilityDto
             {
@@ -103,7 +116,8 @@ public class GetBranchAvailableRequestsQueryHandler
                 TrainingTypes = setting.RequestTypeRef?.Code == "Training" ? trainingTypes : null,
                 MiscellaneousTypes = setting.RequestTypeRef?.Code == "Miscellaneous" ? miscellaneousTypes : null,
                 PersonalTypes = setting.RequestTypeRef?.Code == "Personal" ? personalTypes : null,
-                FeedbackTypes = setting.RequestTypeRef?.Code == "Feedback" ? feedbackTypes : null
+                FeedbackTypes = setting.RequestTypeRef?.Code == "Feedback" ? feedbackTypes : null,
+                AttendanceCorrectionTypes = setting.RequestTypeRef?.Code == "AttendanceCorrection" ? attendanceCorrectionTypes : null
             })
             .OrderBy(dto => dto.RequestTypeCode)
             .ToList();

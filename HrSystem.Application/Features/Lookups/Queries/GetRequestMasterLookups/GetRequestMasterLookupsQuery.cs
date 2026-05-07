@@ -333,3 +333,43 @@ public class GetFeedbackTypesLookupQueryHandler : IRequestHandler<GetFeedbackTyp
 		return GenericResponse<List<FeedbackTypeDto>>.SuccessResult(feedbackTypes, "Feedback types retrieved successfully");
 	}
 }
+
+public record GetAttendanceCorrectionTypesLookupQuery(bool IncludeInactive = false) : IRequest<ErrorOr<GenericResponse<List<AttendanceCorrectionTypeDto>>>>;
+
+public class GetAttendanceCorrectionTypesLookupQueryHandler : IRequestHandler<GetAttendanceCorrectionTypesLookupQuery, ErrorOr<GenericResponse<List<AttendanceCorrectionTypeDto>>>>
+{
+	private readonly ApplicationDbContext _context;
+
+	public GetAttendanceCorrectionTypesLookupQueryHandler(ApplicationDbContext context)
+	{
+		_context = context;
+	}
+
+	public async Task<ErrorOr<GenericResponse<List<AttendanceCorrectionTypeDto>>>> Handle(
+		GetAttendanceCorrectionTypesLookupQuery request,
+		CancellationToken cancellationToken)
+	{
+		var query = _context.AttendanceCorrectionTypes.AsNoTracking();
+
+		if (!request.IncludeInactive)
+		{
+			query = query.Where(a => a.IsActive);
+		}
+
+		var types = await query
+			.OrderBy(a => a.SortOrder)
+			.ThenBy(a => a.NameEn)
+			.Select(a => new AttendanceCorrectionTypeDto
+			{
+				Id = a.Id,
+				NameAr = a.NameAr,
+				NameEn = a.NameEn,
+				Description = a.Description,
+				RequiresManagerApproval = a.RequiresManagerApproval,
+				SortOrder = a.SortOrder
+			})
+			.ToListAsync(cancellationToken);
+
+		return GenericResponse<List<AttendanceCorrectionTypeDto>>.SuccessResult(types, "Attendance correction types retrieved successfully");
+	}
+}
