@@ -191,6 +191,13 @@ public class GeneratePayslipsCommandHandler
                 continue;
             }
 
+            if (existingPayslip?.IsPaid == true)
+            {
+                result.PayslipsSkipped++;
+                result.Warnings.Add($"Payslip already paid for {employee.FullNameEn} ({employee.EmployeeCode}); skipping updates.");
+                continue;
+            }
+
             var currentSalary = employee.Salaries
                 .Where(s => s.IsCurrent && !s.IsDeleted)
                 .OrderByDescending(s => s.EffectiveDate)
@@ -286,26 +293,8 @@ public class GeneratePayslipsCommandHandler
             }
 
             // 4. Loan Deductions
-            //
-            // When regenerating an existing payslip (UpdateExisting = true), the loan
-            // RemainingAmount was already reduced during the previous generation of THIS
-            // same month. We must restore those amounts first so the recalculation starts
-            // from the correct pre-deduction balance for this payroll period.
-            if (existingPayslip != null && loansByEmployee.TryGetValue(employee.Id, out var loansToRestore))
-            {
-                foreach (var oldDed in existingPayslip.PayslipDeductions.Where(d => d.LoanId.HasValue))
-                {
-                    var matchedLoan = loansToRestore.FirstOrDefault(l => l.Id == oldDed.LoanId!.Value);
-                    if (matchedLoan != null)
-                    {
-                        matchedLoan.RemainingAmount += oldDed.Amount;
-                        // Reactivate if it was closed due to full repayment in the last generation
-                        if (matchedLoan.RemainingAmount > 0 && !matchedLoan.IsActive)
-                            matchedLoan.IsActive = true;
-                    }
-                }
-            }
-
+            // Deduction rows are attached during payslip generation, but loan balances are
+            // only reduced when HR marks the payslip as paid.
             decimal totalLoanDeduction = 0m;
             if (loansByEmployee.TryGetValue(employee.Id, out var employeeLoans))
             {
@@ -323,15 +312,6 @@ public class GeneratePayslipsCommandHandler
                             Amount = deductionAmount,
                             LoanId = loan.Id   // link for future restoration on regeneration
                         });
-
-                        // Update loan remaining amount
-                        loan.RemainingAmount -= deductionAmount;
-                        if (loan.RemainingAmount <= 0)
-                        {
-                            loan.RemainingAmount = 0;
-                            loan.IsActive = false;
-                            loan.EndDate = periodEnd;
-                        }
                     }
                 }
             }

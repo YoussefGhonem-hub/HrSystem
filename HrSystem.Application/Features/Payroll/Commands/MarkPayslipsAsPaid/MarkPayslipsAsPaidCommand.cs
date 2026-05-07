@@ -53,6 +53,7 @@ public class MarkPayslipsAsPaidCommandHandler
 
         var query = _context.Payslips
             .Include(p => p.Employee)
+            .Include(p => p.PayslipDeductions)
             .Where(p => !p.IsDeleted && p.PayrollCycleId == cycle.Id);
 
         if (branchId.HasValue)
@@ -69,6 +70,20 @@ public class MarkPayslipsAsPaidCommandHandler
             CycleName = cycle.CycleName
         };
 
+        var payslipsToMark = payslips.Where(p => !p.IsPaid).ToList();
+        var loanIds = payslipsToMark
+            .SelectMany(p => p.PayslipDeductions)
+            .Where(d => !d.IsDeleted && d.LoanId.HasValue)
+            .Select(d => d.LoanId!.Value)
+            .Distinct()
+            .ToList();
+
+        var loansById = loanIds.Count == 0
+            ? new Dictionary<Guid, Domain.Entities.Payroll.Loan>()
+            : await _context.Loans
+                .Where(l => loanIds.Contains(l.Id))
+                .ToDictionaryAsync(l => l.Id, cancellationToken);
+
         var now = DateTime.UtcNow;
         foreach (var payslip in payslips)
         {
@@ -80,6 +95,28 @@ public class MarkPayslipsAsPaidCommandHandler
 
             payslip.IsPaid = true;
             payslip.PaidDate = now;
+
+            foreach (var deduction in payslip.PayslipDeductions.Where(d => !d.IsDeleted && d.LoanId.HasValue))
+            {
+                if (!loansById.TryGetValue(deduction.LoanId!.Value, out var loan))
+                    continue;
+
+                if (loan.IsDeleted || loan.RemainingAmount <= 0)
+                    continue;
+
+                var paidInstallmentAmount = Math.Min(deduction.Amount, loan.RemainingAmount);
+                if (paidInstallmentAmount <= 0)
+                    continue;
+
+                loan.RemainingAmount -= paidInstallmentAmount;
+                if (loan.RemainingAmount <= 0)
+                {
+                    loan.RemainingAmount = 0;
+                    loan.IsActive = false;
+                    loan.EndDate = payslip.PaidDate ?? now;
+                }
+            }
+
             result.TotalMarked++;
             result.TotalAmountPaid += payslip.NetSalary;
         }

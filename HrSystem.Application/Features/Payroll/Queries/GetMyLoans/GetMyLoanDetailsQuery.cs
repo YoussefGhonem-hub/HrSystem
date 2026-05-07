@@ -57,7 +57,7 @@ public class GetMyLoanDetailsQueryHandler : IRequestHandler<GetMyLoanDetailsQuer
         // Retrieve the payroll months in which this loan was actually deducted.
         var paidPeriods = await (
             from pd in _context.PayslipDeductions.Where(pd => pd.LoanId == request.LoanId)
-            join p in _context.Payslips.Where(p => !p.IsDeleted) on pd.PayslipId equals p.Id
+            join p in _context.Payslips.Where(p => !p.IsDeleted && p.IsPaid) on pd.PayslipId equals p.Id
             join pc in _context.PayrollCycles on p.PayrollCycleId equals pc.Id
             select new PaidPaymentPeriodDto { Month = pc.Month, Year = pc.Year, Amount = pd.Amount }
         ).OrderBy(p => p.Year).ThenBy(p => p.Month)

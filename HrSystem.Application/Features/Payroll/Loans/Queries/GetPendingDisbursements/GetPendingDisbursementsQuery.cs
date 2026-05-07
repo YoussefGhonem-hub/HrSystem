@@ -61,10 +61,15 @@ public class GetPendingDisbursementsQueryHandler
             || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
         var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
 
-        // Collect loan IDs that already have at least one PayslipDeduction
-        var disbursedLoanIds = await _context.PayslipDeductions
-            .Where(pd => pd.LoanId.HasValue)
-            .Select(pd => pd.LoanId!.Value)
+        // Collect loan IDs that already have at least one deduction on a paid payslip.
+        // Unpaid payslips should not advance loan payment status.
+        var disbursedLoanIds = await (
+            from pd in _context.PayslipDeductions
+            where pd.LoanId.HasValue
+            join p in _context.Payslips.Where(p => !p.IsDeleted && p.IsPaid)
+                on pd.PayslipId equals p.Id
+            select pd.LoanId!.Value
+        )
             .Distinct()
             .ToListAsync(cancellationToken);
 
