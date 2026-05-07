@@ -233,7 +233,7 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
 
         if (attendance.CheckInTime.HasValue)
         {
-            var allowedCheckIn = schedule.StartTime + (schedule.GracePeriodLate ?? TimeSpan.Zero);
+            var allowedCheckIn = ResolveLateCutoff(schedule.StartTime, schedule.GracePeriodLate);
             if (attendance.CheckInTime.Value > allowedCheckIn)
             {
                 attendance.IsLate = true;
@@ -243,7 +243,7 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
 
         if (attendance.CheckOutTime.HasValue)
         {
-            var allowedCheckOut = schedule.EndTime - (schedule.GracePeriodEarlyLeave ?? TimeSpan.Zero);
+            var allowedCheckOut = ResolveEarlyLeaveCutoff(schedule.EndTime, schedule.GracePeriodEarlyLeave);
             if (attendance.CheckOutTime.Value < allowedCheckOut)
             {
                 attendance.IsEarlyLeave = true;
@@ -294,8 +294,37 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
         }
         else
         {
-            attendance.StatusId = AttendanceStatusIds.Present;
-            attendance.HalfDayRule = null;
+            var hasAnyPunch = attendance.CheckInTime.HasValue || attendance.CheckOutTime.HasValue;
+            attendance.StatusId = hasAnyPunch ? AttendanceStatusIds.Present : AttendanceStatusIds.Absent;
+            attendance.HalfDayRule = hasAnyPunch ? "INCOMPLETE" : "ABSENT";
         }
+    }
+
+    private static TimeSpan ResolveLateCutoff(TimeSpan shiftStartTime, TimeSpan? gracePeriodLate)
+    {
+        if (!gracePeriodLate.HasValue)
+        {
+            return shiftStartTime;
+        }
+
+        // Backward compatible: values like 00:15 are treated as offset from shift start.
+        // Values like 09:00 are treated as an absolute check-in cutoff time.
+        return gracePeriodLate.Value >= TimeSpan.FromHours(2)
+            ? gracePeriodLate.Value
+            : shiftStartTime + gracePeriodLate.Value;
+    }
+
+    private static TimeSpan ResolveEarlyLeaveCutoff(TimeSpan shiftEndTime, TimeSpan? gracePeriodEarlyLeave)
+    {
+        if (!gracePeriodEarlyLeave.HasValue)
+        {
+            return shiftEndTime;
+        }
+
+        // Backward compatible: values like 00:15 are treated as offset before shift end.
+        // Values like 13:00 are treated as an absolute minimum checkout time.
+        return gracePeriodEarlyLeave.Value >= TimeSpan.FromHours(2)
+            ? gracePeriodEarlyLeave.Value
+            : shiftEndTime - gracePeriodEarlyLeave.Value;
     }
 }

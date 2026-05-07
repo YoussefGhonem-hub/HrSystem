@@ -348,8 +348,8 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
                 CheckInTime = a.CheckInTime,
                 CheckOutTime = a.CheckOutTime,
                 StatusId = a.StatusId,
-                StatusNameEn = a.Status.NameEn,
-                StatusNameAr = a.Status.NameAr,
+                StatusNameEn = a.CheckInTime.HasValue != a.CheckOutTime.HasValue ? "Incomplete" : a.Status.NameEn,
+                StatusNameAr = a.CheckInTime.HasValue != a.CheckOutTime.HasValue ? "غير مكتمل" : a.Status.NameAr,
                 WorkedHours = a.WorkedHours,
                 OvertimeHours = a.OvertimeHours,
                 IsLate = a.IsLate

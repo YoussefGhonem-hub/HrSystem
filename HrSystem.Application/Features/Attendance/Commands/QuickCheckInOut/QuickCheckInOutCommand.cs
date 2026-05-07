@@ -209,7 +209,7 @@ public class QuickCheckInOutCommandHandler
 
         if (attendance.CheckInTime.HasValue)
         {
-            var allowedCheckIn = schedule.StartTime + (schedule.GracePeriodLate ?? TimeSpan.Zero);
+            var allowedCheckIn = ResolveLateCutoff(schedule.StartTime, schedule.GracePeriodLate);
             if (attendance.CheckInTime.Value > allowedCheckIn)
             {
                 attendance.IsLate = true;
@@ -219,7 +219,7 @@ public class QuickCheckInOutCommandHandler
 
         if (attendance.CheckOutTime.HasValue)
         {
-            var allowedCheckOut = schedule.EndTime - (schedule.GracePeriodEarlyLeave ?? TimeSpan.Zero);
+            var allowedCheckOut = ResolveEarlyLeaveCutoff(schedule.EndTime, schedule.GracePeriodEarlyLeave);
             if (attendance.CheckOutTime.Value < allowedCheckOut)
             {
                 attendance.IsEarlyLeave = true;
@@ -270,8 +270,33 @@ public class QuickCheckInOutCommandHandler
         }
         else
         {
-            attendance.StatusId = AttendanceStatusIds.Present;
-            attendance.HalfDayRule = null;
+            var hasAnyPunch = attendance.CheckInTime.HasValue || attendance.CheckOutTime.HasValue;
+            attendance.StatusId = hasAnyPunch ? AttendanceStatusIds.Present : AttendanceStatusIds.Absent;
+            attendance.HalfDayRule = hasAnyPunch ? "INCOMPLETE" : "ABSENT";
         }
+    }
+
+    private static TimeSpan ResolveLateCutoff(TimeSpan shiftStartTime, TimeSpan? gracePeriodLate)
+    {
+        if (!gracePeriodLate.HasValue)
+        {
+            return shiftStartTime;
+        }
+
+        return gracePeriodLate.Value >= TimeSpan.FromHours(2)
+            ? gracePeriodLate.Value
+            : shiftStartTime + gracePeriodLate.Value;
+    }
+
+    private static TimeSpan ResolveEarlyLeaveCutoff(TimeSpan shiftEndTime, TimeSpan? gracePeriodEarlyLeave)
+    {
+        if (!gracePeriodEarlyLeave.HasValue)
+        {
+            return shiftEndTime;
+        }
+
+        return gracePeriodEarlyLeave.Value >= TimeSpan.FromHours(2)
+            ? gracePeriodEarlyLeave.Value
+            : shiftEndTime - gracePeriodEarlyLeave.Value;
     }
 }
