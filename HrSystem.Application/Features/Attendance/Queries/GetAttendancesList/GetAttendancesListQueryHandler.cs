@@ -93,6 +93,7 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
             StatusNameEn = a.Status.NameEn,
             StatusNameAr = a.Status.NameAr,
             WorkedHours = a.WorkedHours,
+            HalfDayRule = a.HalfDayRule,
             IsLate = a.IsLate,
             IsEarlyLeave = a.IsEarlyLeave,
             IsOvertime = a.IsOvertime

@@ -37,7 +37,15 @@ public record WorkScheduleUpdateInput(
     bool? IsFriday,
     bool? IsSaturday,
     bool? IsDefault,
-    string? TimeZone
+    string? TimeZone,
+    decimal? ShiftTotalHours,
+    decimal? MinimumFullDayHours,
+    decimal? MinimumHalfDayHours,
+    decimal? AbsentThresholdHours,
+    bool? IsBreakTimeDeducted,
+    int? CheckInWindowMinutes,
+    bool? IsOvertimeEnabled,
+    decimal? OvertimeStartsAfterHours
 )
 {
     /// <summary>
@@ -106,6 +114,14 @@ public record WorkScheduleDto
     public bool IsDefault { get; init; }
     public bool IsActive { get; init; }
     public string TimeZone { get; init; } = string.Empty;
+    public decimal ShiftTotalHours { get; init; }
+    public decimal MinimumFullDayHours { get; init; }
+    public decimal MinimumHalfDayHours { get; init; }
+    public decimal AbsentThresholdHours { get; init; }
+    public bool IsBreakTimeDeducted { get; init; }
+    public int? CheckInWindowMinutes { get; init; }
+    public bool IsOvertimeEnabled { get; init; }
+    public decimal OvertimeStartsAfterHours { get; init; }
 }
 
 public class UpdateBranchWorkScheduleCommandHandler
@@ -173,6 +189,14 @@ public class UpdateBranchWorkScheduleCommandHandler
                         IsSaturday = input.IsSaturday ?? false,
                         IsDefault = input.IsDefault ?? false,
                         TimeZone = input.TimeZone ?? branch.TimeZone,
+                        ShiftTotalHours = input.ShiftTotalHours ?? 8.0m,
+                        MinimumFullDayHours = input.MinimumFullDayHours ?? 6.0m,
+                        MinimumHalfDayHours = input.MinimumHalfDayHours ?? 3.0m,
+                        AbsentThresholdHours = input.AbsentThresholdHours ?? 3.0m,
+                        IsBreakTimeDeducted = input.IsBreakTimeDeducted ?? false,
+                        CheckInWindowMinutes = input.CheckInWindowMinutes,
+                        IsOvertimeEnabled = input.IsOvertimeEnabled ?? true,
+                        OvertimeStartsAfterHours = input.OvertimeStartsAfterHours ?? 8.0m,
                         IsActive = true,
                         CreatedDate = DateTimeOffset.UtcNow,
                         CreatedBy = CurrentUser.Id
@@ -222,6 +246,14 @@ public class UpdateBranchWorkScheduleCommandHandler
                     if (input.IsFriday.HasValue) scheduleToUpdate.IsFriday = input.IsFriday.Value;
                     if (input.IsSaturday.HasValue) scheduleToUpdate.IsSaturday = input.IsSaturday.Value;
                     if (input.TimeZone != null) scheduleToUpdate.TimeZone = input.TimeZone;
+                    if (input.ShiftTotalHours.HasValue) scheduleToUpdate.ShiftTotalHours = input.ShiftTotalHours.Value;
+                    if (input.MinimumFullDayHours.HasValue) scheduleToUpdate.MinimumFullDayHours = input.MinimumFullDayHours.Value;
+                    if (input.MinimumHalfDayHours.HasValue) scheduleToUpdate.MinimumHalfDayHours = input.MinimumHalfDayHours.Value;
+                    if (input.AbsentThresholdHours.HasValue) scheduleToUpdate.AbsentThresholdHours = input.AbsentThresholdHours.Value;
+                    if (input.IsBreakTimeDeducted.HasValue) scheduleToUpdate.IsBreakTimeDeducted = input.IsBreakTimeDeducted.Value;
+                    if (input.CheckInWindowMinutes.HasValue) scheduleToUpdate.CheckInWindowMinutes = input.CheckInWindowMinutes.Value;
+                    if (input.IsOvertimeEnabled.HasValue) scheduleToUpdate.IsOvertimeEnabled = input.IsOvertimeEnabled.Value;
+                    if (input.OvertimeStartsAfterHours.HasValue) scheduleToUpdate.OvertimeStartsAfterHours = input.OvertimeStartsAfterHours.Value;
 
                     // Handle default flag
                     if (input.IsDefault.HasValue && input.IsDefault.Value)
@@ -300,7 +332,15 @@ public class UpdateBranchWorkScheduleCommandHandler
                 IsSaturday = s.IsSaturday,
                 IsDefault = s.IsDefault,
                 IsActive = s.IsActive,
-                TimeZone = s.TimeZone
+                TimeZone = s.TimeZone,
+                ShiftTotalHours = s.ShiftTotalHours,
+                MinimumFullDayHours = s.MinimumFullDayHours,
+                MinimumHalfDayHours = s.MinimumHalfDayHours,
+                AbsentThresholdHours = s.AbsentThresholdHours,
+                IsBreakTimeDeducted = s.IsBreakTimeDeducted,
+                CheckInWindowMinutes = s.CheckInWindowMinutes,
+                IsOvertimeEnabled = s.IsOvertimeEnabled,
+                OvertimeStartsAfterHours = s.OvertimeStartsAfterHours
             }).ToList()
         };
 

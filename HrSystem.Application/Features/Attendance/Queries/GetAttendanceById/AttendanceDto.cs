@@ -22,6 +22,7 @@ public record AttendanceDto
     public bool IsLate { get; init; }
     public bool IsEarlyLeave { get; init; }
     public bool IsOvertime { get; init; }
+    public string? HalfDayRule { get; init; }
     public string? Notes { get; init; }
     public string? ApprovedBy { get; init; }
     public DateTime? ApprovedDate { get; init; }

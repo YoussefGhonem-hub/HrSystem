@@ -164,6 +164,7 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
             IsLate = attendance.IsLate,
             IsEarlyLeave = attendance.IsEarlyLeave,
             IsOvertime = attendance.IsOvertime,
+            HalfDayRule = attendance.HalfDayRule,
             Notes = attendance.Notes,
             ApprovedBy = attendance.ApprovedBy,
             ApprovedDate = attendance.ApprovedDate
@@ -191,13 +192,12 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
         attendance.LateMinutes = null;
         attendance.IsEarlyLeave = false;
         attendance.EarlyLeaveMinutes = null;
+        attendance.IsOvertime = false;
+        attendance.OvertimeHours = null;
 
         if (!branchId.HasValue || branchId.Value == Guid.Empty)
         {
-            if (attendance.StatusId == AttendanceStatusIds.Late)
-            {
-                attendance.StatusId = AttendanceStatusIds.Present;
-            }
+            attendance.StatusId = AttendanceStatusIds.Present;
             return;
         }
 
@@ -210,11 +210,25 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
 
         if (schedule == null)
         {
-            if (attendance.StatusId == AttendanceStatusIds.Late)
-            {
-                attendance.StatusId = AttendanceStatusIds.Present;
-            }
+            attendance.StatusId = AttendanceStatusIds.Present;
             return;
+        }
+
+        var hasCompletePunch = attendance.CheckInTime.HasValue && attendance.CheckOutTime.HasValue;
+        var effectiveWorkedHours = attendance.WorkedHours ?? TimeSpan.Zero;
+
+        if (hasCompletePunch && schedule.IsBreakTimeDeducted && schedule.BreakDuration.HasValue)
+        {
+            var deducted = effectiveWorkedHours - schedule.BreakDuration.Value;
+            effectiveWorkedHours = deducted < TimeSpan.Zero ? TimeSpan.Zero : deducted;
+            attendance.WorkedHours = effectiveWorkedHours;
+        }
+
+        var checkInWindowClosed = false;
+        if (attendance.CheckInTime.HasValue && schedule.CheckInWindowMinutes.HasValue && schedule.CheckInWindowMinutes.Value > 0)
+        {
+            var checkInWindowEnd = schedule.StartTime.Add(TimeSpan.FromMinutes(schedule.CheckInWindowMinutes.Value));
+            checkInWindowClosed = attendance.CheckInTime.Value > checkInWindowEnd;
         }
 
         if (attendance.CheckInTime.HasValue)
@@ -224,11 +238,6 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
             {
                 attendance.IsLate = true;
                 attendance.LateMinutes = attendance.CheckInTime.Value - allowedCheckIn;
-                attendance.StatusId = AttendanceStatusIds.Late;
-            }
-            else if (attendance.StatusId == AttendanceStatusIds.Late)
-            {
-                attendance.StatusId = AttendanceStatusIds.Present;
             }
         }
 
@@ -240,6 +249,53 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
                 attendance.IsEarlyLeave = true;
                 attendance.EarlyLeaveMinutes = allowedCheckOut - attendance.CheckOutTime.Value;
             }
+        }
+
+        if (checkInWindowClosed)
+        {
+            attendance.StatusId = AttendanceStatusIds.Absent;
+            attendance.HalfDayRule = "ABSENT";
+            return;
+        }
+
+        if (hasCompletePunch)
+        {
+            var workedHours = (decimal)effectiveWorkedHours.TotalHours;
+            var minimumFullDayHours = schedule.MinimumFullDayHours;
+            var minimumHalfDayHours = schedule.MinimumHalfDayHours;
+            var absentThresholdHours = schedule.AbsentThresholdHours;
+
+            if (workedHours >= minimumFullDayHours)
+            {
+                attendance.StatusId = AttendanceStatusIds.Present;
+                attendance.HalfDayRule = "FULL_DAY";
+            }
+            else if (workedHours >= minimumHalfDayHours)
+            {
+                attendance.StatusId = AttendanceStatusIds.Present;
+                attendance.HalfDayRule = "HALF_DAY";
+            }
+            else if (workedHours < absentThresholdHours)
+            {
+                attendance.StatusId = AttendanceStatusIds.Absent;
+                attendance.HalfDayRule = "ABSENT";
+            }
+            else
+            {
+                attendance.StatusId = AttendanceStatusIds.Absent;
+                attendance.HalfDayRule = "ABSENT";
+            }
+
+            if (schedule.IsOvertimeEnabled && workedHours > schedule.OvertimeStartsAfterHours)
+            {
+                attendance.IsOvertime = true;
+                attendance.OvertimeHours = TimeSpan.FromHours((double)(workedHours - schedule.OvertimeStartsAfterHours));
+            }
+        }
+        else
+        {
+            attendance.StatusId = AttendanceStatusIds.Present;
+            attendance.HalfDayRule = null;
         }
     }
 }

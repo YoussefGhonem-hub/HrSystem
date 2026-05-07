@@ -81,6 +81,7 @@ public class CreateAttendanceCommandHandler : IRequestHandler<CreateAttendanceCo
             IsLate = createdAttendance.IsLate,
             IsEarlyLeave = createdAttendance.IsEarlyLeave,
             IsOvertime = createdAttendance.IsOvertime,
+            HalfDayRule = createdAttendance.HalfDayRule,
             Notes = createdAttendance.Notes,
             ApprovedBy = createdAttendance.ApprovedBy,
             ApprovedDate = createdAttendance.ApprovedDate

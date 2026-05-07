@@ -112,6 +112,35 @@ public class GeneratePayslipsCommandHandler
 
         var employees = await employeesQuery.ToListAsync(cancellationToken);
 
+        var employeeIds = employees.Select(e => e.Id).ToList();
+        var branchIds = employees
+            .Where(e => e.BranchId.HasValue && e.BranchId.Value != Guid.Empty)
+            .Select(e => e.BranchId!.Value)
+            .Distinct()
+            .ToList();
+
+        var branchPolicies = await _context.BranchWorkSchedules
+            .Where(s => branchIds.Contains(s.BranchId) && s.IsActive && !s.IsDeleted)
+            .OrderByDescending(s => s.IsDefault)
+            .ThenBy(s => s.StartTime)
+            .ToListAsync(cancellationToken);
+
+        var branchPolicyByBranchId = branchPolicies
+            .GroupBy(s => s.BranchId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var attendanceRecords = await _context.Attendances
+            .Where(a => !a.IsDeleted
+                && !a.IsConfigurationRecord
+                && employeeIds.Contains(a.EmployeeId)
+                && a.Date >= periodStart
+                && a.Date <= periodEnd)
+            .ToListAsync(cancellationToken);
+
+        var attendanceByEmployeeId = attendanceRecords
+            .GroupBy(a => a.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         // Get the max existing payslip counter for this month/year (including soft-deleted records
         // and records from other cycles) to avoid PayslipNumber unique constraint violations
         var payslipPrefix = $"PS-{request.Year}{request.Month:D2}-";
@@ -316,6 +345,52 @@ public class GeneratePayslipsCommandHandler
                 }
             }
 
+            // 5. Attendance-Based Deductions (minimum work hours policy)
+            decimal attendanceDeduction = 0m;
+            decimal fullDayAbsentDays = 0m;
+            decimal halfDayDays = 0m;
+
+            if (employee.BranchId.HasValue
+                && branchPolicyByBranchId.TryGetValue(employee.BranchId.Value, out var branchPolicy)
+                && attendanceByEmployeeId.TryGetValue(employee.Id, out var employeeAttendance))
+            {
+                foreach (var attendance in employeeAttendance)
+                {
+                    if (attendance.StatusId == AttendanceStatusIds.Absent)
+                    {
+                        fullDayAbsentDays += 1m;
+                        continue;
+                    }
+
+                    var workedHours = CalculateWorkedHoursForPolicy(attendance, branchPolicy);
+                    if (workedHours < branchPolicy.AbsentThresholdHours)
+                    {
+                        fullDayAbsentDays += 1m;
+                    }
+                    else if (workedHours >= branchPolicy.MinimumHalfDayHours && workedHours < branchPolicy.MinimumFullDayHours)
+                    {
+                        halfDayDays += 1m;
+                    }
+                }
+
+                if (fullDayAbsentDays > 0 || halfDayDays > 0)
+                {
+                    var dailySalary = Math.Round(currentSalary.BasicSalary / DateTime.DaysInMonth(request.Year, request.Month), 2);
+                    attendanceDeduction = Math.Round((fullDayAbsentDays * dailySalary) + (halfDayDays * dailySalary * 0.5m), 2);
+
+                    if (attendanceDeduction > 0)
+                    {
+                        totalDeductions += attendanceDeduction;
+                        payslipDeductions.Add(new PayslipDeduction
+                        {
+                            DeductionNameAr = "خصم حضور",
+                            DeductionNameEn = "Attendance Deduction",
+                            Amount = attendanceDeduction
+                        });
+                    }
+                }
+            }
+
             // --- Net Salary ---
             decimal netSalary = grossSalary - totalDeductions;
 
@@ -380,8 +455,8 @@ public class GeneratePayslipsCommandHandler
                     UnpaidLeaveDays = 0,
                     NetSalary = netSalary,
                     TotalWorkingDays = DateTime.DaysInMonth(request.Year, request.Month),
-                    ActualWorkingDays = DateTime.DaysInMonth(request.Year, request.Month),
-                    AbsentDays = 0,
+                    ActualWorkingDays = DateTime.DaysInMonth(request.Year, request.Month) - (int)Math.Ceiling(fullDayAbsentDays + halfDayDays),
+                    AbsentDays = (int)Math.Ceiling(fullDayAbsentDays),
                     GeneratedDate = DateTime.UtcNow,
                     TenantId = employee.TenantId,
                     BranchId = employee.BranchId
@@ -451,5 +526,30 @@ public class GeneratePayslipsCommandHandler
         }
 
         return totalTax;
+    }
+
+    private static decimal CalculateWorkedHoursForPolicy(
+        Domain.Entities.Attendance.Attendance attendance,
+        Domain.Entities.Organization.BranchWorkSchedule branchPolicy)
+    {
+        if (!attendance.CheckInTime.HasValue || !attendance.CheckOutTime.HasValue)
+            return 0m;
+
+        var worked = attendance.CheckOutTime.Value - attendance.CheckInTime.Value;
+        if (branchPolicy.IsBreakTimeDeducted && branchPolicy.BreakDuration.HasValue)
+        {
+            worked -= branchPolicy.BreakDuration.Value;
+            if (worked < TimeSpan.Zero)
+                worked = TimeSpan.Zero;
+        }
+
+        if (branchPolicy.CheckInWindowMinutes.HasValue && branchPolicy.CheckInWindowMinutes.Value > 0)
+        {
+            var checkInWindowEnd = branchPolicy.StartTime.Add(TimeSpan.FromMinutes(branchPolicy.CheckInWindowMinutes.Value));
+            if (attendance.CheckInTime.Value > checkInWindowEnd)
+                return 0m;
+        }
+
+        return (decimal)worked.TotalHours;
     }
 }

@@ -157,6 +157,14 @@ public record WorkScheduleDetailsDto
     public bool IsDefault { get; init; }
     public bool IsActive { get; init; }
     public string TimeZone { get; init; } = string.Empty;
+    public decimal ShiftTotalHours { get; init; }
+    public decimal MinimumFullDayHours { get; init; }
+    public decimal MinimumHalfDayHours { get; init; }
+    public decimal AbsentThresholdHours { get; init; }
+    public bool IsBreakTimeDeducted { get; init; }
+    public int? CheckInWindowMinutes { get; init; }
+    public bool IsOvertimeEnabled { get; init; }
+    public decimal OvertimeStartsAfterHours { get; init; }
 }
 
 public record HolidayDetailsDto
@@ -444,7 +452,15 @@ public class GetOrganizationFullDetailsQueryHandler
                         IsSaturday = s.IsSaturday,
                         IsDefault = s.IsDefault,
                         IsActive = s.IsActive,
-                        TimeZone = s.TimeZone
+                        TimeZone = s.TimeZone,
+                        ShiftTotalHours = s.ShiftTotalHours,
+                        MinimumFullDayHours = s.MinimumFullDayHours,
+                        MinimumHalfDayHours = s.MinimumHalfDayHours,
+                        AbsentThresholdHours = s.AbsentThresholdHours,
+                        IsBreakTimeDeducted = s.IsBreakTimeDeducted,
+                        CheckInWindowMinutes = s.CheckInWindowMinutes,
+                        IsOvertimeEnabled = s.IsOvertimeEnabled,
+                        OvertimeStartsAfterHours = s.OvertimeStartsAfterHours
                     }).ToList(),
                 Holidays = b.Holidays
                     .OrderBy(h => h.Date)

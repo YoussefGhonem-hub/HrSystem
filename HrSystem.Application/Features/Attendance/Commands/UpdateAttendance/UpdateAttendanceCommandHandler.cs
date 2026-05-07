@@ -80,6 +80,7 @@ public class UpdateAttendanceCommandHandler : IRequestHandler<UpdateAttendanceCo
             IsLate = updatedAttendance.IsLate,
             IsEarlyLeave = updatedAttendance.IsEarlyLeave,
             IsOvertime = updatedAttendance.IsOvertime,
+            HalfDayRule = updatedAttendance.HalfDayRule,
             Notes = updatedAttendance.Notes,
             ApprovedBy = updatedAttendance.ApprovedBy,
             ApprovedDate = updatedAttendance.ApprovedDate

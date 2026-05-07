@@ -48,6 +48,7 @@ public class GetAttendanceByIdQueryHandler : IRequestHandler<GetAttendanceByIdQu
             IsLate = attendance.IsLate,
             IsEarlyLeave = attendance.IsEarlyLeave,
             IsOvertime = attendance.IsOvertime,
+            HalfDayRule = attendance.HalfDayRule,
             Notes = attendance.Notes,
             ApprovedBy = attendance.ApprovedBy,
             ApprovedDate = attendance.ApprovedDate

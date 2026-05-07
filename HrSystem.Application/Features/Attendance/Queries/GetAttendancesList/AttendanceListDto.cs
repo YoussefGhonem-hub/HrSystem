@@ -13,6 +13,7 @@ public record AttendanceListDto
     public string? StatusNameEn { get; init; }
     public string? StatusNameAr { get; init; }
     public TimeSpan? WorkedHours { get; init; }
+    public string? HalfDayRule { get; init; }
     public bool IsLate { get; init; }
     public bool IsEarlyLeave { get; init; }
     public bool IsOvertime { get; init; }

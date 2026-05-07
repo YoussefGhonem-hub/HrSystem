@@ -20,6 +20,21 @@ public class BranchWorkScheduleConfiguration : IEntityTypeConfiguration<BranchWo
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(x => x.ShiftTotalHours)
+            .HasColumnType("decimal(5,2)");
+
+        builder.Property(x => x.MinimumFullDayHours)
+            .HasColumnType("decimal(5,2)");
+
+        builder.Property(x => x.MinimumHalfDayHours)
+            .HasColumnType("decimal(5,2)");
+
+        builder.Property(x => x.AbsentThresholdHours)
+            .HasColumnType("decimal(5,2)");
+
+        builder.Property(x => x.OvertimeStartsAfterHours)
+            .HasColumnType("decimal(5,2)");
+
         builder.HasOne(x => x.Branch)
             .WithMany(b => b.WorkSchedules)
             .HasForeignKey(x => x.BranchId)

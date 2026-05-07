@@ -125,7 +125,15 @@ public record BranchWorkScheduleInput(
     bool IsFriday,
     bool IsSaturday,
     bool IsDefault,
-    string? TimeZone
+    string? TimeZone,
+    decimal? ShiftTotalHours,
+    decimal? MinimumFullDayHours,
+    decimal? MinimumHalfDayHours,
+    decimal? AbsentThresholdHours,
+    bool? IsBreakTimeDeducted,
+    int? CheckInWindowMinutes,
+    bool? IsOvertimeEnabled,
+    decimal? OvertimeStartsAfterHours
 );
 
 /// <summary>
@@ -473,6 +481,14 @@ public class CreateOrganizationFullCommandHandler
                         IsSaturday = scheduleInput.IsSaturday,
                         IsDefault = scheduleInput.IsDefault,
                         TimeZone = scheduleInput.TimeZone ?? branch.TimeZone,
+                        ShiftTotalHours = scheduleInput.ShiftTotalHours ?? 8.0m,
+                        MinimumFullDayHours = scheduleInput.MinimumFullDayHours ?? 6.0m,
+                        MinimumHalfDayHours = scheduleInput.MinimumHalfDayHours ?? 3.0m,
+                        AbsentThresholdHours = scheduleInput.AbsentThresholdHours ?? 3.0m,
+                        IsBreakTimeDeducted = scheduleInput.IsBreakTimeDeducted ?? false,
+                        CheckInWindowMinutes = scheduleInput.CheckInWindowMinutes,
+                        IsOvertimeEnabled = scheduleInput.IsOvertimeEnabled ?? true,
+                        OvertimeStartsAfterHours = scheduleInput.OvertimeStartsAfterHours ?? 8.0m,
                         IsActive = true,
                         CreatedDate = DateTimeOffset.UtcNow
                     };
@@ -504,6 +520,14 @@ public class CreateOrganizationFullCommandHandler
                     IsSaturday = false,
                     IsDefault = true,
                     TimeZone = branch.TimeZone,
+                    ShiftTotalHours = 8.0m,
+                    MinimumFullDayHours = 6.0m,
+                    MinimumHalfDayHours = 3.0m,
+                    AbsentThresholdHours = 3.0m,
+                    IsBreakTimeDeducted = false,
+                    CheckInWindowMinutes = null,
+                    IsOvertimeEnabled = true,
+                    OvertimeStartsAfterHours = 8.0m,
                     IsActive = true,
                     CreatedDate = DateTimeOffset.UtcNow
                 };

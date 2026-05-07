@@ -20,6 +20,16 @@ public class BranchWorkSchedule : BaseAuditableEntity
     public TimeSpan? BreakDuration { get; set; } = new TimeSpan(1, 0, 0); // 1 hour
     public int WorkingHoursPerDay { get; set; } = 8;
     public int WorkingDaysPerWeek { get; set; } = 5;
+
+    // Minimum Work Hours Policy
+    public decimal ShiftTotalHours { get; set; } = 8.0m;
+    public decimal MinimumFullDayHours { get; set; } = 6.0m;
+    public decimal MinimumHalfDayHours { get; set; } = 3.0m;
+    public decimal AbsentThresholdHours { get; set; } = 3.0m;
+    public bool IsBreakTimeDeducted { get; set; } = false;
+    public int? CheckInWindowMinutes { get; set; }
+    public bool IsOvertimeEnabled { get; set; } = true;
+    public decimal OvertimeStartsAfterHours { get; set; } = 8.0m;
     
     // Grace Periods
     public TimeSpan? GracePeriodLate { get; set; } = new TimeSpan(0, 15, 0); // 15 minutes
