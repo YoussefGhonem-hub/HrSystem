@@ -18,7 +18,7 @@ public class UpdateAttendanceCommandHandler : IRequestHandler<UpdateAttendanceCo
         CancellationToken cancellationToken)
     {
         var attendance = await _context.Attendances
-            .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == request.Id && !a.IsConfigurationRecord, cancellationToken);
 
         if (attendance == null)
         {
@@ -56,7 +56,7 @@ public class UpdateAttendanceCommandHandler : IRequestHandler<UpdateAttendanceCo
         var updatedAttendance = await _context.Attendances
             .Include(a => a.Employee)
             .Include(a => a.Status)
-            .FirstAsync(a => a.Id == attendance.Id, cancellationToken);
+            .FirstAsync(a => a.Id == attendance.Id && !a.IsConfigurationRecord, cancellationToken);
 
         var dto = new AttendanceDto
         {

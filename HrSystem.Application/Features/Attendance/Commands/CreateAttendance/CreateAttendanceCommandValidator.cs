@@ -38,7 +38,9 @@ public class CreateAttendanceCommandValidator : AbstractValidator<CreateAttendan
     private async Task<bool> BeUniqueAttendance(CreateAttendanceCommand command, DateTime date, CancellationToken cancellationToken)
     {
         return !await _context.Attendances.AnyAsync(
-            a => a.EmployeeId == command.EmployeeId && a.Date.Date == date.Date,
+            a => a.EmployeeId == command.EmployeeId
+                && !a.IsConfigurationRecord
+                && a.Date.Date == date.Date,
             cancellationToken);
     }
 }

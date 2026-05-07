@@ -19,6 +19,7 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
         builder.Property(o => o.Code).IsRequired().HasMaxLength(50);
         builder.Property(o => o.Email).HasMaxLength(200);
         builder.Property(o => o.PhoneNumber).HasMaxLength(20);
+        builder.Property(o => o.SecondaryPhoneNumber).HasMaxLength(20);
         builder.Property(o => o.CurrentStorageGB).HasColumnType("decimal(18,2)");
 
         builder.HasOne(o => o.SubscriptionPlan)

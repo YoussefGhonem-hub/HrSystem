@@ -56,6 +56,7 @@ public record CompanyInfoDto
     public string? LegalEntityType { get; init; }
     public string? Email { get; init; }
     public string? PhoneNumber { get; init; }
+    public string? SecondaryPhoneNumber { get; init; }
     public string? Website { get; init; }
     public string? AddressAr { get; init; }
     public string? AddressEn { get; init; }
@@ -98,6 +99,7 @@ public class UpdateOrganizationCompanyInfoCommandHandler
         if (request.LegalEntityType != null) organization.LegalEntityType = request.LegalEntityType;
         if (request.Email != null) organization.Email = request.Email;
         if (request.PhoneNumber != null) organization.PhoneNumber = request.PhoneNumber;
+        if (request.SecondaryPhoneNumber != null) organization.SecondaryPhoneNumber = request.SecondaryPhoneNumber;
         if (request.Website != null) organization.Website = request.Website;
         if (request.AddressAr != null) organization.AddressAr = request.AddressAr;
         if (request.AddressEn != null) organization.AddressEn = request.AddressEn;
@@ -127,6 +129,7 @@ public class UpdateOrganizationCompanyInfoCommandHandler
             LegalEntityType = organization.LegalEntityType,
             Email = organization.Email,
             PhoneNumber = organization.PhoneNumber,
+            SecondaryPhoneNumber = organization.SecondaryPhoneNumber,
             Website = organization.Website,
             AddressAr = organization.AddressAr,
             AddressEn = organization.AddressEn,

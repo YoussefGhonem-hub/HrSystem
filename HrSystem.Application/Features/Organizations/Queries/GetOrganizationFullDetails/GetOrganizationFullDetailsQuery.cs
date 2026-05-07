@@ -64,6 +64,7 @@ public record CompanyInfoDto
     // Contact
     public string? Email { get; init; }
     public string? PhoneNumber { get; init; }
+    public string? SecondaryPhoneNumber { get; init; }
     public string? Website { get; init; }
     public string? AddressAr { get; init; }
     public string? AddressEn { get; init; }
@@ -371,6 +372,7 @@ public class GetOrganizationFullDetailsQueryHandler
                 LegalEntityType = org.LegalEntityType,
                 Email = org.Email,
                 PhoneNumber = org.PhoneNumber,
+                SecondaryPhoneNumber = org.SecondaryPhoneNumber,
                 Website = org.Website,
                 AddressAr = org.AddressAr,
                 AddressEn = org.AddressEn,

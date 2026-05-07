@@ -60,6 +60,7 @@ public class QuickCheckInOutCommandHandler
             .Include(a => a.Status)
             .FirstOrDefaultAsync(a =>
                 !a.IsDeleted &&
+                !a.IsConfigurationRecord &&
                 a.EmployeeId == request.EmployeeId &&
                 a.Date == eventDate,
                 cancellationToken);
@@ -109,7 +110,11 @@ public class QuickCheckInOutCommandHandler
         if (attendance.CheckInTime.HasValue && attendance.CheckOutTime.HasValue)
             attendance.WorkedHours = attendance.CheckOutTime.Value - attendance.CheckInTime.Value;
 
-        attendance.StatusId = AttendanceStatusIds.Present;
+        await ApplyAttendanceMetricsAsync(attendance, employee.BranchId, cancellationToken);
+        if (attendance.StatusId == Guid.Empty)
+        {
+            attendance.StatusId = AttendanceStatusIds.Present;
+        }
         attendance.MarkAsModified(CurrentUser.Id ?? Guid.Empty);
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -154,5 +159,63 @@ public class QuickCheckInOutCommandHandler
             Message = $"{action} recorded successfully.",
             Data = dto
         };
+    }
+
+    private async Task ApplyAttendanceMetricsAsync(AttendanceEntity attendance, Guid? branchId, CancellationToken cancellationToken)
+    {
+        attendance.IsLate = false;
+        attendance.LateMinutes = null;
+        attendance.IsEarlyLeave = false;
+        attendance.EarlyLeaveMinutes = null;
+
+        if (!branchId.HasValue || branchId.Value == Guid.Empty)
+        {
+            if (attendance.StatusId == AttendanceStatusIds.Late)
+            {
+                attendance.StatusId = AttendanceStatusIds.Present;
+            }
+            return;
+        }
+
+        var schedule = await _context.BranchWorkSchedules
+            .AsNoTracking()
+            .Where(s => s.BranchId == branchId.Value && s.IsActive && !s.IsDeleted)
+            .OrderByDescending(s => s.IsDefault)
+            .ThenBy(s => s.StartTime)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (schedule == null)
+        {
+            if (attendance.StatusId == AttendanceStatusIds.Late)
+            {
+                attendance.StatusId = AttendanceStatusIds.Present;
+            }
+            return;
+        }
+
+        if (attendance.CheckInTime.HasValue)
+        {
+            var allowedCheckIn = schedule.StartTime + (schedule.GracePeriodLate ?? TimeSpan.Zero);
+            if (attendance.CheckInTime.Value > allowedCheckIn)
+            {
+                attendance.IsLate = true;
+                attendance.LateMinutes = attendance.CheckInTime.Value - allowedCheckIn;
+                attendance.StatusId = AttendanceStatusIds.Late;
+            }
+            else if (attendance.StatusId == AttendanceStatusIds.Late)
+            {
+                attendance.StatusId = AttendanceStatusIds.Present;
+            }
+        }
+
+        if (attendance.CheckOutTime.HasValue)
+        {
+            var allowedCheckOut = schedule.EndTime - (schedule.GracePeriodEarlyLeave ?? TimeSpan.Zero);
+            if (attendance.CheckOutTime.Value < allowedCheckOut)
+            {
+                attendance.IsEarlyLeave = true;
+                attendance.EarlyLeaveMinutes = allowedCheckOut - attendance.CheckOutTime.Value;
+            }
+        }
     }
 }
