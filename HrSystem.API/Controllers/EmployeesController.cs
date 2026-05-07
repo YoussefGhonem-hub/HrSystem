@@ -129,6 +129,24 @@ public class EmployeesController : APIBaseController
             }
         }
 
+        // Manually bind nested IFormFile for asset image payloads
+        // e.g. assets.assets[0].image in multipart form-data
+        if (command.Assets?.Assets != null)
+        {
+            for (var i = 0; i < command.Assets.Assets.Count; i++)
+            {
+                var imagePrefix = $"assets.assets[{i}].image";
+                var imageFile = Request.Form.Files.FirstOrDefault(f =>
+                    f.Name.Equals(imagePrefix, StringComparison.OrdinalIgnoreCase) ||
+                    f.Name.StartsWith(imagePrefix + "[", StringComparison.OrdinalIgnoreCase));
+
+                if (imageFile != null)
+                {
+                    command.Assets.Assets[i].Image = imageFile;
+                }
+            }
+        }
+
         var result = await _mediator.Send(command);
 
         return result.Match(
