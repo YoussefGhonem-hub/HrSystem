@@ -10,22 +10,25 @@ namespace HrSystem.Infrustructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "SecondaryPhoneNumber",
-                schema: "Organization",
-                table: "Organizations",
-                type: "nvarchar(20)",
-                maxLength: 20,
-                nullable: true);
+            migrationBuilder.Sql(@"
+IF COL_LENGTH('Organization.Organizations', 'SecondaryPhoneNumber') IS NULL
+BEGIN
+    ALTER TABLE [Organization].[Organizations]
+    ADD [SecondaryPhoneNumber] nvarchar(20) NULL;
+END
+");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "SecondaryPhoneNumber",
-                schema: "Organization",
-                table: "Organizations");
+            migrationBuilder.Sql(@"
+IF COL_LENGTH('Organization.Organizations', 'SecondaryPhoneNumber') IS NOT NULL
+BEGIN
+    ALTER TABLE [Organization].[Organizations]
+    DROP COLUMN [SecondaryPhoneNumber];
+END
+");
         }
     }
 }
