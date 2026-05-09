@@ -55,6 +55,14 @@ public class QuickCheckInOutCommandHandler
         var eventDate = request.EventDateTime.Date;
         var eventTime = request.EventDateTime.TimeOfDay;
 
+        if (employee.HiringDate.HasValue && eventDate < employee.HiringDate.Value.Date)
+        {
+            var joiningDate = employee.HiringDate.Value.Date.ToString("yyyy-MM-dd");
+            return Error.Validation(
+                "Attendance.BeforeJoiningDate",
+                $"Attendance date cannot be before employee joining date ({joiningDate}).");
+        }
+
         var attendance = await _context.Attendances
             .Include(a => a.Employee)
             .Include(a => a.Status)
