@@ -235,7 +235,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
                     TimeZone = org.TimeZone,
                     Currency = org.Currency,
                     WeekStartDay = org.WeekStartDay,
-                    DefaultLanguage = org.DefaultLanguage,
+                    DefaultLanguage = LanguageDefaults.NormalizeOrDefault(org.DefaultLanguage),
                     IsActive = org.IsActive,
                     IsTrialPeriod = org.IsTrialPeriod,
                     TrialEndDate = org.TrialEndDate,

@@ -113,6 +113,8 @@ public class UpdateOrganizationBranchesCommandHandler
         if (organization == null)
             return Error.NotFound("Organization.NotFound", "Organization not found");
 
+        var organizationDefaultLanguage = LanguageDefaults.NormalizeOrDefault(organization.DefaultLanguage);
+
         // Get existing branches
         var existingBranches = await _context.Branches
             .Where(b => b.OrganizationId == request.OrganizationId && !b.IsDeleted)
@@ -162,7 +164,7 @@ public class UpdateOrganizationBranchesCommandHandler
                         Fax = input.Fax,
                         TimeZone = input.TimeZone ?? organization.TimeZone,
                         Currency = input.Currency ?? organization.Currency,
-                        Language = input.Language ?? "ar",
+                        Language = LanguageDefaults.NormalizeOrDefault(input.Language, organizationDefaultLanguage),
                         IsHeadquarter = input.IsHeadquarter ?? false,
                         IsActive = true,
                         OpeningDate = input.OpeningDate,
@@ -208,7 +210,8 @@ public class UpdateOrganizationBranchesCommandHandler
                     if (input.Fax != null) branchToUpdate.Fax = input.Fax;
                     if (input.TimeZone != null) branchToUpdate.TimeZone = input.TimeZone;
                     if (input.Currency != null) branchToUpdate.Currency = input.Currency;
-                    if (input.Language != null) branchToUpdate.Language = input.Language;
+                    if (input.Language != null)
+                        branchToUpdate.Language = LanguageDefaults.NormalizeOrDefault(input.Language, organizationDefaultLanguage);
                     if (input.IsHeadquarter.HasValue) branchToUpdate.IsHeadquarter = input.IsHeadquarter.Value;
                     if (input.OpeningDate.HasValue) branchToUpdate.OpeningDate = input.OpeningDate;
 
@@ -273,7 +276,7 @@ public class UpdateOrganizationBranchesCommandHandler
                 Fax = b.Fax,
                 TimeZone = b.TimeZone,
                 Currency = b.Currency,
-                Language = b.Language,
+                Language = LanguageDefaults.NormalizeOrDefault(b.Language, organizationDefaultLanguage),
                 IsHeadquarter = b.IsHeadquarter,
                 IsActive = b.IsActive,
                 OpeningDate = b.OpeningDate

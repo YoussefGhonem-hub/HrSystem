@@ -1,0 +1,1272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Operation completed successfully" xml:space="preserve">
+    <value>تمت العملية بنجاح</value>
+  </data>
+  <data name="Login successful" xml:space="preserve">
+    <value>تم تسجيل الدخول بنجاح</value>
+  </data>
+  <data name="Company information updated successfully" xml:space="preserve">
+    <value>تم تحديث بيانات الشركة بنجاح</value>
+  </data>
+  <data name="Organization not found" xml:space="preserve">
+    <value>المنظمة غير موجودة</value>
+  </data>
+  <data name="Resource not found" xml:space="preserve">
+    <value>المورد غير موجود</value>
+  </data>
+  <data name="Invalid username or password" xml:space="preserve">
+    <value>اسم المستخدم أو كلمة المرور غير صحيحة</value>
+  </data>
+  <data name="User account is inactive" xml:space="preserve">
+    <value>حساب المستخدم غير نشط</value>
+  </data>
+  <data name="Unauthorized access" xml:space="preserve">
+    <value>غير مصرح بالوصول</value>
+  </data>
+  <data name="Invalid request" xml:space="preserve">
+    <value>طلب غير صالح</value>
+  </data>
+  <data name="Invalid argument" xml:space="preserve">
+    <value>معطى غير صالح</value>
+  </data>
+  <data name="Invalid operation" xml:space="preserve">
+    <value>عملية غير صالحة</value>
+  </data>
+  <data name="You are not authorized to perform this action" xml:space="preserve">
+    <value>غير مصرح لك بتنفيذ هذا الإجراء</value>
+  </data>
+  <data name="A database error occurred while saving changes" xml:space="preserve">
+    <value>حدث خطأ في قاعدة البيانات أثناء حفظ التغييرات</value>
+  </data>
+  <data name="A database error occurred. Please try again later." xml:space="preserve">
+    <value>حدث خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى لاحقاً.</value>
+  </data>
+  <data name="An error occurred while processing your request" xml:space="preserve">
+    <value>حدث خطأ أثناء معالجة الطلب</value>
+  </data>
+  <data name="An unexpected error occurred. Please try again later." xml:space="preserve">
+    <value>حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى لاحقاً.</value>
+  </data>
+  <data name="At least one branch is required" xml:space="preserve">
+    <value>مطلوب فرع واحد على الأقل</value>
+  </data>
+  <data name="Admin email already exists" xml:space="preserve">
+    <value>البريد الإلكتروني للمسؤول موجود بالفعل</value>
+  </data>
+  <data name="HR Manager email already exists" xml:space="preserve">
+    <value>البريد الإلكتروني لمدير الموارد البشرية موجود بالفعل</value>
+  </data>
+  <data name="Admin and HR Manager must have different emails" xml:space="preserve">
+    <value>يجب أن يكون بريد المسؤول ومدير الموارد البشرية مختلفين</value>
+  </data>
+  <data name="Branch ID is required for updates" xml:space="preserve">
+    <value>معرف الفرع مطلوب للتحديث</value>
+  </data>
+  <data name="Branch ID is required for deletion" xml:space="preserve">
+    <value>معرف الفرع مطلوب للحذف</value>
+  </data>
+  <data name="Branches updated:" xml:space="preserve">
+    <value>تم تحديث الفروع:</value>
+  </data>
+  <data name="ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â« ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹:" xml:space="preserve">
+    <value>تم تحديث الفروع:</value>
+  </data>
+  <data name="Account settings retrieved" xml:space="preserve">
+    <value>Account settings retrieved</value>
+  </data>
+  <data name="Account settings updated successfully" xml:space="preserve">
+    <value>Account settings updated successfully</value>
+  </data>
+  <data name="An attachment is required for this request type." xml:space="preserve">
+    <value>An attachment is required for this request type.</value>
+  </data>
+  <data name="An attachment is required." xml:space="preserve">
+    <value>An attachment is required.</value>
+  </data>
+  <data name="An employee cannot be their own direct manager" xml:space="preserve">
+    <value>An employee cannot be their own direct manager</value>
+  </data>
+  <data name="At least one branch role assignment is required" xml:space="preserve">
+    <value>At least one branch role assignment is required</value>
+  </data>
+  <data name="At least one leave allocation payload is required." xml:space="preserve">
+    <value>At least one leave allocation payload is required.</value>
+  </data>
+  <data name="At least one limit payload is required." xml:space="preserve">
+    <value>At least one limit payload is required.</value>
+  </data>
+  <data name="At least one setting is required." xml:space="preserve">
+    <value>At least one setting is required.</value>
+  </data>
+  <data name="Attendance correction date is invalid or missing." xml:space="preserve">
+    <value>Attendance correction date is invalid or missing.</value>
+  </data>
+  <data name="Attendance correction detail is required for attendance correction requests." xml:space="preserve">
+    <value>Attendance correction detail is required for attendance correction requests.</value>
+  </data>
+  <data name="Attendance correction details are missing." xml:space="preserve">
+    <value>Attendance correction details are missing.</value>
+  </data>
+  <data name="Attendance correction time is invalid or missing." xml:space="preserve">
+    <value>Attendance correction time is invalid or missing.</value>
+  </data>
+  <data name="Attendance correction type deleted successfully" xml:space="preserve">
+    <value>Attendance correction type deleted successfully</value>
+  </data>
+  <data name="Attendance correction type is invalid or missing." xml:space="preserve">
+    <value>Attendance correction type is invalid or missing.</value>
+  </data>
+  <data name="Attendance correction type must target check-in or check-out." xml:space="preserve">
+    <value>Attendance correction type must target check-in or check-out.</value>
+  </data>
+  <data name="Attendance correction type not found." xml:space="preserve">
+    <value>Attendance correction type not found.</value>
+  </data>
+  <data name="Attendance correction type was not found." xml:space="preserve">
+    <value>Attendance correction type was not found.</value>
+  </data>
+  <data name="Attendance dashboard retrieved successfully" xml:space="preserve">
+    <value>Attendance dashboard retrieved successfully</value>
+  </data>
+  <data name="Attendance date cannot be in the future." xml:space="preserve">
+    <value>Attendance date cannot be in the future.</value>
+  </data>
+  <data name="Attendance record created successfully" xml:space="preserve">
+    <value>Attendance record created successfully</value>
+  </data>
+  <data name="Attendance record deleted successfully" xml:space="preserve">
+    <value>Attendance record deleted successfully</value>
+  </data>
+  <data name="Attendance record not found" xml:space="preserve">
+    <value>Attendance record not found</value>
+  </data>
+  <data name="Attendance record updated successfully" xml:space="preserve">
+    <value>Attendance record updated successfully</value>
+  </data>
+  <data name="Attendance recorded successfully" xml:space="preserve">
+    <value>Attendance recorded successfully</value>
+  </data>
+  <data name="Attendance statuses retrieved successfully" xml:space="preserve">
+    <value>Attendance statuses retrieved successfully</value>
+  </data>
+  <data name="Bank export profile not found." xml:space="preserve">
+    <value>Bank export profile not found.</value>
+  </data>
+  <data name="Biometric enrolled successfully" xml:space="preserve">
+    <value>Biometric enrolled successfully</value>
+  </data>
+  <data name="Biometric verification failed" xml:space="preserve">
+    <value>Biometric verification failed</value>
+  </data>
+  <data name="Both check-in and check-out times are empty." xml:space="preserve">
+    <value>Both check-in and check-out times are empty.</value>
+  </data>
+  <data name="Branch context is required to update roles" xml:space="preserve">
+    <value>Branch context is required to update roles</value>
+  </data>
+  <data name="Branch created successfully" xml:space="preserve">
+    <value>Branch created successfully</value>
+  </data>
+  <data name="Branch deleted successfully" xml:space="preserve">
+    <value>Branch deleted successfully</value>
+  </data>
+  <data name="Branch not found" xml:space="preserve">
+    <value>Branch not found</value>
+  </data>
+  <data name="Branch not found or does not belong to this organization" xml:space="preserve">
+    <value>Branch not found or does not belong to this organization</value>
+  </data>
+  <data name="Branch not found." xml:space="preserve">
+    <value>Branch not found.</value>
+  </data>
+  <data name="Branch request setting deleted successfully" xml:space="preserve">
+    <value>Branch request setting deleted successfully</value>
+  </data>
+  <data name="Branch request setting not found." xml:space="preserve">
+    <value>Branch request setting not found.</value>
+  </data>
+  <data name="Branch request settings updated successfully" xml:space="preserve">
+    <value>Branch request settings updated successfully</value>
+  </data>
+  <data name="Branch updated successfully" xml:space="preserve">
+    <value>Branch updated successfully</value>
+  </data>
+  <data name="Branches retrieved successfully" xml:space="preserve">
+    <value>Branches retrieved successfully</value>
+  </data>
+  <data name="BranchId is required for request submission." xml:space="preserve">
+    <value>BranchId is required for request submission.</value>
+  </data>
+  <data name="BranchId is required." xml:space="preserve">
+    <value>BranchId is required.</value>
+  </data>
+  <data name="Break duration must be a non-negative number of minutes." xml:space="preserve">
+    <value>Break duration must be a non-negative number of minutes.</value>
+  </data>
+  <data name="Cannot delete department with assigned employees" xml:space="preserve">
+    <value>Cannot delete department with assigned employees</value>
+  </data>
+  <data name="Cannot delete goal priority that is assigned to goals" xml:space="preserve">
+    <value>Cannot delete goal priority that is assigned to goals</value>
+  </data>
+  <data name="Cannot delete goal status that is assigned to goals" xml:space="preserve">
+    <value>Cannot delete goal status that is assigned to goals</value>
+  </data>
+  <data name="Cannot delete job title with assigned employees" xml:space="preserve">
+    <value>Cannot delete job title with assigned employees</value>
+  </data>
+  <data name="Cannot delete KPI that has evaluations" xml:space="preserve">
+    <value>Cannot delete KPI that has evaluations</value>
+  </data>
+  <data name="Cannot find 'Date' column in the file header." xml:space="preserve">
+    <value>Cannot find &apos;Date&apos; column in the file header.</value>
+  </data>
+  <data name="Cannot find 'EmployeeCode' column in the file header." xml:space="preserve">
+    <value>Cannot find &apos;EmployeeCode&apos; column in the file header.</value>
+  </data>
+  <data name="Check-in point created successfully." xml:space="preserve">
+    <value>Check-in point created successfully.</value>
+  </data>
+  <data name="Check-in point deleted successfully." xml:space="preserve">
+    <value>Check-in point deleted successfully.</value>
+  </data>
+  <data name="Check-in point not found." xml:space="preserve">
+    <value>Check-in point not found.</value>
+  </data>
+  <data name="Check-in point updated successfully." xml:space="preserve">
+    <value>Check-in point updated successfully.</value>
+  </data>
+  <data name="Check-out time cannot be earlier than check-in time." xml:space="preserve">
+    <value>Check-out time cannot be earlier than check-in time.</value>
+  </data>
+  <data name="Code already exists" xml:space="preserve">
+    <value>Code already exists</value>
+  </data>
+  <data name="Company account number is required." xml:space="preserve">
+    <value>Company account number is required.</value>
+  </data>
+  <data name="Contract types retrieved successfully" xml:space="preserve">
+    <value>Contract types retrieved successfully</value>
+  </data>
+  <data name="Countries retrieved successfully" xml:space="preserve">
+    <value>Countries retrieved successfully</value>
+  </data>
+  <data name="Current HR user has no branch selected" xml:space="preserve">
+    <value>Current HR user has no branch selected</value>
+  </data>
+  <data name="Current user is not associated with a branch" xml:space="preserve">
+    <value>Current user is not associated with a branch</value>
+  </data>
+  <data name="Current user is not linked to an employee" xml:space="preserve">
+    <value>Current user is not linked to an employee</value>
+  </data>
+  <data name="Current user is not linked to an employee." xml:space="preserve">
+    <value>Current user is not linked to an employee.</value>
+  </data>
+  <data name="Department created successfully" xml:space="preserve">
+    <value>Department created successfully</value>
+  </data>
+  <data name="Department deleted successfully" xml:space="preserve">
+    <value>Department deleted successfully</value>
+  </data>
+  <data name="Department ID is required for deletion" xml:space="preserve">
+    <value>Department ID is required for deletion</value>
+  </data>
+  <data name="Department ID is required for updates" xml:space="preserve">
+    <value>Department ID is required for updates</value>
+  </data>
+  <data name="Department manager assigned successfully" xml:space="preserve">
+    <value>Department manager assigned successfully</value>
+  </data>
+  <data name="Department not found" xml:space="preserve">
+    <value>Department not found</value>
+  </data>
+  <data name="Department updated successfully" xml:space="preserve">
+    <value>Department updated successfully</value>
+  </data>
+  <data name="Departments retrieved successfully" xml:space="preserve">
+    <value>Departments retrieved successfully</value>
+  </data>
+  <data name="Direct manager assigned successfully" xml:space="preserve">
+    <value>Direct manager assigned successfully</value>
+  </data>
+  <data name="Direct manager must belong to the same branch" xml:space="preserve">
+    <value>Direct manager must belong to the same branch</value>
+  </data>
+  <data name="Direct manager not found" xml:space="preserve">
+    <value>Direct manager not found</value>
+  </data>
+  <data name="Direct managers retrieved successfully" xml:space="preserve">
+    <value>Direct managers retrieved successfully</value>
+  </data>
+  <data name="Document not found" xml:space="preserve">
+    <value>Document not found</value>
+  </data>
+  <data name="Document S3 key not found" xml:space="preserve">
+    <value>Document S3 key not found</value>
+  </data>
+  <data name="Document updated successfully" xml:space="preserve">
+    <value>Document updated successfully</value>
+  </data>
+  <data name="Document uploaded successfully" xml:space="preserve">
+    <value>Document uploaded successfully</value>
+  </data>
+  <data name="Document URL not found" xml:space="preserve">
+    <value>Document URL not found</value>
+  </data>
+  <data name="Document URL retrieved successfully" xml:space="preserve">
+    <value>Document URL retrieved successfully</value>
+  </data>
+  <data name="Documents retrieved successfully" xml:space="preserve">
+    <value>Documents retrieved successfully</value>
+  </data>
+  <data name="Duplicate branch code in request" xml:space="preserve">
+    <value>Duplicate branch code in request</value>
+  </data>
+  <data name="Each branch assignment must include at least one role ID" xml:space="preserve">
+    <value>Each branch assignment must include at least one role ID</value>
+  </data>
+  <data name="Email is already taken" xml:space="preserve">
+    <value>Email is already taken</value>
+  </data>
+  <data name="Employee already checked in" xml:space="preserve">
+    <value>Employee already checked in</value>
+  </data>
+  <data name="Employee already checked in today." xml:space="preserve">
+    <value>Employee already checked in today.</value>
+  </data>
+  <data name="Employee already checked out" xml:space="preserve">
+    <value>Employee already checked out</value>
+  </data>
+  <data name="Employee already checked out today." xml:space="preserve">
+    <value>Employee already checked out today.</value>
+  </data>
+  <data name="Employee asset created successfully" xml:space="preserve">
+    <value>Employee asset created successfully</value>
+  </data>
+  <data name="Employee asset deleted successfully" xml:space="preserve">
+    <value>Employee asset deleted successfully</value>
+  </data>
+  <data name="Employee asset not found" xml:space="preserve">
+    <value>Employee asset not found</value>
+  </data>
+  <data name="Employee asset updated successfully" xml:space="preserve">
+    <value>Employee asset updated successfully</value>
+  </data>
+  <data name="Employee assets synced successfully" xml:space="preserve">
+    <value>Employee assets synced successfully</value>
+  </data>
+  <data name="Employee attendance configuration updated successfully" xml:space="preserve">
+    <value>Employee attendance configuration updated successfully</value>
+  </data>
+  <data name="Employee code is empty." xml:space="preserve">
+    <value>Employee code is empty.</value>
+  </data>
+  <data name="Employee context is required." xml:space="preserve">
+    <value>Employee context is required.</value>
+  </data>
+  <data name="Employee created with payroll configuration" xml:space="preserve">
+    <value>Employee created with payroll configuration</value>
+  </data>
+  <data name="Employee deleted successfully" xml:space="preserve">
+    <value>Employee deleted successfully</value>
+  </data>
+  <data name="Employee details retrieved successfully" xml:space="preserve">
+    <value>Employee details retrieved successfully</value>
+  </data>
+  <data name="Employee document not found" xml:space="preserve">
+    <value>Employee document not found</value>
+  </data>
+  <data name="Employee is not assigned to a branch." xml:space="preserve">
+    <value>Employee is not assigned to a branch.</value>
+  </data>
+  <data name="Employee is not linked to a user account" xml:space="preserve">
+    <value>Employee is not linked to a user account</value>
+  </data>
+  <data name="Employee job info updated successfully" xml:space="preserve">
+    <value>Employee job info updated successfully</value>
+  </data>
+  <data name="Employee linked to current user not found" xml:space="preserve">
+    <value>Employee linked to current user not found</value>
+  </data>
+  <data name="Employee must belong to the same branch as the department" xml:space="preserve">
+    <value>Employee must belong to the same branch as the department</value>
+  </data>
+  <data name="Employee not found" xml:space="preserve">
+    <value>Employee not found</value>
+  </data>
+  <data name="Employee not found." xml:space="preserve">
+    <value>Employee not found.</value>
+  </data>
+  <data name="Employee payroll configuration saved successfully" xml:space="preserve">
+    <value>Employee payroll configuration saved successfully</value>
+  </data>
+  <data name="Employee payroll updated successfully" xml:space="preserve">
+    <value>Employee payroll updated successfully</value>
+  </data>
+  <data name="Employee personal info updated successfully" xml:space="preserve">
+    <value>Employee personal info updated successfully</value>
+  </data>
+  <data name="Employee record was not found." xml:space="preserve">
+    <value>Employee record was not found.</value>
+  </data>
+  <data name="Employee request not found." xml:space="preserve">
+    <value>Employee request not found.</value>
+  </data>
+  <data name="Employee role not found" xml:space="preserve">
+    <value>Employee role not found</value>
+  </data>
+  <data name="Employee salaries retrieved successfully" xml:space="preserve">
+    <value>Employee salaries retrieved successfully</value>
+  </data>
+  <data name="Employee salary added successfully" xml:space="preserve">
+    <value>Employee salary added successfully</value>
+  </data>
+  <data name="Employee status not found" xml:space="preserve">
+    <value>Employee status not found</value>
+  </data>
+  <data name="Employee status/profile updated" xml:space="preserve">
+    <value>Employee status/profile updated</value>
+  </data>
+  <data name="Employee statuses retrieved successfully" xml:space="preserve">
+    <value>Employee statuses retrieved successfully</value>
+  </data>
+  <data name="Employee updated successfully" xml:space="preserve">
+    <value>Employee updated successfully</value>
+  </data>
+  <data name="Employees cannot submit this request type for the selected branch." xml:space="preserve">
+    <value>Employees cannot submit this request type for the selected branch.</value>
+  </data>
+  <data name="Employees retrieved successfully" xml:space="preserve">
+    <value>Employees retrieved successfully</value>
+  </data>
+  <data name="Excel file is required." xml:space="preserve">
+    <value>Excel file is required.</value>
+  </data>
+  <data name="Excel import is not enabled for this branch." xml:space="preserve">
+    <value>Excel import is not enabled for this branch.</value>
+  </data>
+  <data name="Face template is required for FaceId check-in." xml:space="preserve">
+    <value>Face template is required for FaceId check-in.</value>
+  </data>
+  <data name="FaceId verification failed." xml:space="preserve">
+    <value>FaceId verification failed.</value>
+  </data>
+  <data name="Failed to download document from storage" xml:space="preserve">
+    <value>Failed to download document from storage</value>
+  </data>
+  <data name="Failed to load updated department" xml:space="preserve">
+    <value>Failed to load updated department</value>
+  </data>
+  <data name="Failed to upload asset image" xml:space="preserve">
+    <value>Failed to upload asset image</value>
+  </data>
+  <data name="Failed to upload employee documents to storage" xml:space="preserve">
+    <value>Failed to upload employee documents to storage</value>
+  </data>
+  <data name="Failed to upload new file" xml:space="preserve">
+    <value>Failed to upload new file</value>
+  </data>
+  <data name="Failed to upload profile image" xml:space="preserve">
+    <value>Failed to upload profile image</value>
+  </data>
+  <data name="Feedback created successfully" xml:space="preserve">
+    <value>Feedback created successfully</value>
+  </data>
+  <data name="Feedback deleted successfully" xml:space="preserve">
+    <value>Feedback deleted successfully</value>
+  </data>
+  <data name="Feedback detail is required for feedback requests." xml:space="preserve">
+    <value>Feedback detail is required for feedback requests.</value>
+  </data>
+  <data name="Feedback not found" xml:space="preserve">
+    <value>Feedback not found</value>
+  </data>
+  <data name="Feedback request details not found." xml:space="preserve">
+    <value>Feedback request details not found.</value>
+  </data>
+  <data name="Feedback request not found." xml:space="preserve">
+    <value>Feedback request not found.</value>
+  </data>
+  <data name="Feedback request type not configured." xml:space="preserve">
+    <value>Feedback request type not configured.</value>
+  </data>
+  <data name="Feedback requests are not allowed for this branch." xml:space="preserve">
+    <value>Feedback requests are not allowed for this branch.</value>
+  </data>
+  <data name="Feedback type deleted successfully" xml:space="preserve">
+    <value>Feedback type deleted successfully</value>
+  </data>
+  <data name="Feedback type not found." xml:space="preserve">
+    <value>Feedback type not found.</value>
+  </data>
+  <data name="Feedback updated successfully" xml:space="preserve">
+    <value>Feedback updated successfully</value>
+  </data>
+  <data name="File upload failed" xml:space="preserve">
+    <value>File upload failed</value>
+  </data>
+  <data name="File upload failed." xml:space="preserve">
+    <value>File upload failed.</value>
+  </data>
+  <data name="Genders retrieved successfully" xml:space="preserve">
+    <value>Genders retrieved successfully</value>
+  </data>
+  <data name="Goal created successfully" xml:space="preserve">
+    <value>Goal created successfully</value>
+  </data>
+  <data name="Goal deleted successfully" xml:space="preserve">
+    <value>Goal deleted successfully</value>
+  </data>
+  <data name="Goal milestone created successfully" xml:space="preserve">
+    <value>Goal milestone created successfully</value>
+  </data>
+  <data name="Goal milestone deleted successfully" xml:space="preserve">
+    <value>Goal milestone deleted successfully</value>
+  </data>
+  <data name="Goal milestone not found" xml:space="preserve">
+    <value>Goal milestone not found</value>
+  </data>
+  <data name="Goal milestone updated successfully" xml:space="preserve">
+    <value>Goal milestone updated successfully</value>
+  </data>
+  <data name="Goal not found" xml:space="preserve">
+    <value>Goal not found</value>
+  </data>
+  <data name="Goal priority created successfully" xml:space="preserve">
+    <value>Goal priority created successfully</value>
+  </data>
+  <data name="Goal priority deleted successfully" xml:space="preserve">
+    <value>Goal priority deleted successfully</value>
+  </data>
+  <data name="Goal priority not found" xml:space="preserve">
+    <value>Goal priority not found</value>
+  </data>
+  <data name="Goal priority updated successfully" xml:space="preserve">
+    <value>Goal priority updated successfully</value>
+  </data>
+  <data name="Goal status created successfully" xml:space="preserve">
+    <value>Goal status created successfully</value>
+  </data>
+  <data name="Goal status deleted successfully" xml:space="preserve">
+    <value>Goal status deleted successfully</value>
+  </data>
+  <data name="Goal status not found" xml:space="preserve">
+    <value>Goal status not found</value>
+  </data>
+  <data name="Goal status updated successfully" xml:space="preserve">
+    <value>Goal status updated successfully</value>
+  </data>
+  <data name="Goal updated successfully" xml:space="preserve">
+    <value>Goal updated successfully</value>
+  </data>
+  <data name="GPS coordinates are required for location-based attendance." xml:space="preserve">
+    <value>GPS coordinates are required for location-based attendance.</value>
+  </data>
+  <data name="Holiday ID is required for deletion" xml:space="preserve">
+    <value>Holiday ID is required for deletion</value>
+  </data>
+  <data name="Holiday ID is required for updates" xml:space="preserve">
+    <value>Holiday ID is required for updates</value>
+  </data>
+  <data name="HR Manager cannot edit their own profile." xml:space="preserve">
+    <value>HR Manager cannot edit their own profile.</value>
+  </data>
+  <data name="HR permission requests retrieved successfully" xml:space="preserve">
+    <value>HR permission requests retrieved successfully</value>
+  </data>
+  <data name="HR permission summary retrieved successfully" xml:space="preserve">
+    <value>HR permission summary retrieved successfully</value>
+  </data>
+  <data name="HR vacation requests retrieved successfully" xml:space="preserve">
+    <value>HR vacation requests retrieved successfully</value>
+  </data>
+  <data name="HR vacation summary retrieved successfully" xml:space="preserve">
+    <value>HR vacation summary retrieved successfully</value>
+  </data>
+  <data name="HRManager role not found" xml:space="preserve">
+    <value>HRManager role not found</value>
+  </data>
+  <data name="Installment months must be greater than zero." xml:space="preserve">
+    <value>Installment months must be greater than zero.</value>
+  </data>
+  <data name="Invalid attendance correction type selected." xml:space="preserve">
+    <value>Invalid attendance correction type selected.</value>
+  </data>
+  <data name="Invalid feedback type selected." xml:space="preserve">
+    <value>Invalid feedback type selected.</value>
+  </data>
+  <data name="Invalid feedback type." xml:space="preserve">
+    <value>Invalid feedback type.</value>
+  </data>
+  <data name="Invalid miscellaneous type selected." xml:space="preserve">
+    <value>Invalid miscellaneous type selected.</value>
+  </data>
+  <data name="Invalid miscellaneous type." xml:space="preserve">
+    <value>Invalid miscellaneous type.</value>
+  </data>
+  <data name="Invalid overtime type." xml:space="preserve">
+    <value>Invalid overtime type.</value>
+  </data>
+  <data name="Invalid permission type." xml:space="preserve">
+    <value>Invalid permission type.</value>
+  </data>
+  <data name="Invalid personal type selected." xml:space="preserve">
+    <value>Invalid personal type selected.</value>
+  </data>
+  <data name="Invalid personal type." xml:space="preserve">
+    <value>Invalid personal type.</value>
+  </data>
+  <data name="Invalid request type." xml:space="preserve">
+    <value>Invalid request type.</value>
+  </data>
+  <data name="Invalid training type selected." xml:space="preserve">
+    <value>Invalid training type selected.</value>
+  </data>
+  <data name="Invalid vacation type selected." xml:space="preserve">
+    <value>Invalid vacation type selected.</value>
+  </data>
+  <data name="Invalid vacation type." xml:space="preserve">
+    <value>Invalid vacation type.</value>
+  </data>
+  <data name="Invalid year." xml:space="preserve">
+    <value>Invalid year.</value>
+  </data>
+  <data name="Job title created successfully" xml:space="preserve">
+    <value>Job title created successfully</value>
+  </data>
+  <data name="Job title deleted successfully" xml:space="preserve">
+    <value>Job title deleted successfully</value>
+  </data>
+  <data name="Job title ID is required for deletion" xml:space="preserve">
+    <value>Job title ID is required for deletion</value>
+  </data>
+  <data name="Job title ID is required for updates" xml:space="preserve">
+    <value>Job title ID is required for updates</value>
+  </data>
+  <data name="Job title not found" xml:space="preserve">
+    <value>Job title not found</value>
+  </data>
+  <data name="Job title updated successfully" xml:space="preserve">
+    <value>Job title updated successfully</value>
+  </data>
+  <data name="Job titles retrieved successfully" xml:space="preserve">
+    <value>Job titles retrieved successfully</value>
+  </data>
+  <data name="KPI created successfully" xml:space="preserve">
+    <value>KPI created successfully</value>
+  </data>
+  <data name="KPI deleted successfully" xml:space="preserve">
+    <value>KPI deleted successfully</value>
+  </data>
+  <data name="KPI evaluation created successfully" xml:space="preserve">
+    <value>KPI evaluation created successfully</value>
+  </data>
+  <data name="KPI evaluation deleted successfully" xml:space="preserve">
+    <value>KPI evaluation deleted successfully</value>
+  </data>
+  <data name="KPI evaluation not found" xml:space="preserve">
+    <value>KPI evaluation not found</value>
+  </data>
+  <data name="KPI evaluation updated successfully" xml:space="preserve">
+    <value>KPI evaluation updated successfully</value>
+  </data>
+  <data name="KPI not found" xml:space="preserve">
+    <value>KPI not found</value>
+  </data>
+  <data name="KPI updated successfully" xml:space="preserve">
+    <value>KPI updated successfully</value>
+  </data>
+  <data name="Leave balance is not configured for this employee, vacation type, and year." xml:space="preserve">
+    <value>Leave balance is not configured for this employee, vacation type, and year.</value>
+  </data>
+  <data name="Leave requests spanning multiple calendar years must be split per year before approval." xml:space="preserve">
+    <value>Leave requests spanning multiple calendar years must be split per year before approval.</value>
+  </data>
+  <data name="Loan amount must be greater than zero." xml:space="preserve">
+    <value>Loan amount must be greater than zero.</value>
+  </data>
+  <data name="Loan created successfully" xml:space="preserve">
+    <value>Loan created successfully</value>
+  </data>
+  <data name="Loan deleted successfully" xml:space="preserve">
+    <value>Loan deleted successfully</value>
+  </data>
+  <data name="Loan details retrieved successfully" xml:space="preserve">
+    <value>Loan details retrieved successfully</value>
+  </data>
+  <data name="Loan not found" xml:space="preserve">
+    <value>Loan not found</value>
+  </data>
+  <data name="Loan retrieved successfully" xml:space="preserve">
+    <value>Loan retrieved successfully</value>
+  </data>
+  <data name="Loan updated successfully" xml:space="preserve">
+    <value>Loan updated successfully</value>
+  </data>
+  <data name="Loans retrieved successfully" xml:space="preserve">
+    <value>Loans retrieved successfully</value>
+  </data>
+  <data name="Manager permission overview retrieved successfully" xml:space="preserve">
+    <value>Manager permission overview retrieved successfully</value>
+  </data>
+  <data name="Manager vacation overview retrieved successfully" xml:space="preserve">
+    <value>Manager vacation overview retrieved successfully</value>
+  </data>
+  <data name="Marital statuses retrieved successfully" xml:space="preserve">
+    <value>Marital statuses retrieved successfully</value>
+  </data>
+  <data name="Maximum open feedback requests reached." xml:space="preserve">
+    <value>Maximum open feedback requests reached.</value>
+  </data>
+  <data name="Maximum open miscellaneous requests reached." xml:space="preserve">
+    <value>Maximum open miscellaneous requests reached.</value>
+  </data>
+  <data name="Maximum open overtime requests reached." xml:space="preserve">
+    <value>Maximum open overtime requests reached.</value>
+  </data>
+  <data name="Maximum open permission requests reached." xml:space="preserve">
+    <value>Maximum open permission requests reached.</value>
+  </data>
+  <data name="Maximum open personal requests reached." xml:space="preserve">
+    <value>Maximum open personal requests reached.</value>
+  </data>
+  <data name="Maximum open training requests reached." xml:space="preserve">
+    <value>Maximum open training requests reached.</value>
+  </data>
+  <data name="Maximum open vacation requests reached." xml:space="preserve">
+    <value>Maximum open vacation requests reached.</value>
+  </data>
+  <data name="Miscellaneous detail is required for miscellaneous requests." xml:space="preserve">
+    <value>Miscellaneous detail is required for miscellaneous requests.</value>
+  </data>
+  <data name="Miscellaneous request details not found." xml:space="preserve">
+    <value>Miscellaneous request details not found.</value>
+  </data>
+  <data name="Miscellaneous request not found." xml:space="preserve">
+    <value>Miscellaneous request not found.</value>
+  </data>
+  <data name="Miscellaneous request type not configured." xml:space="preserve">
+    <value>Miscellaneous request type not configured.</value>
+  </data>
+  <data name="Miscellaneous requests are not allowed for this branch." xml:space="preserve">
+    <value>Miscellaneous requests are not allowed for this branch.</value>
+  </data>
+  <data name="Miscellaneous type deleted successfully" xml:space="preserve">
+    <value>Miscellaneous type deleted successfully</value>
+  </data>
+  <data name="Miscellaneous type not found." xml:space="preserve">
+    <value>Miscellaneous type not found.</value>
+  </data>
+  <data name="Month must be between 1 and 12." xml:space="preserve">
+    <value>Month must be between 1 and 12.</value>
+  </data>
+  <data name="Name, StartTime, and EndTime are required for new schedules" xml:space="preserve">
+    <value>Name, StartTime, and EndTime are required for new schedules</value>
+  </data>
+  <data name="NameAr, NameEn, and Code are required for new departments" xml:space="preserve">
+    <value>NameAr, NameEn, and Code are required for new departments</value>
+  </data>
+  <data name="NameAr, NameEn, Code, and CountryId are required for new branches" xml:space="preserve">
+    <value>NameAr, NameEn, Code, and CountryId are required for new branches</value>
+  </data>
+  <data name="NameAr, NameEn, Date, and Year are required for new holidays" xml:space="preserve">
+    <value>NameAr, NameEn, Date, and Year are required for new holidays</value>
+  </data>
+  <data name="Net salary approximated from current configuration (no payslip found)" xml:space="preserve">
+    <value>Net salary approximated from current configuration (no payslip found)</value>
+  </data>
+  <data name="Net salary status retrieved successfully" xml:space="preserve">
+    <value>Net salary status retrieved successfully</value>
+  </data>
+  <data name="No attendance settings configured for this branch. Showing defaults." xml:space="preserve">
+    <value>No attendance settings configured for this branch. Showing defaults.</value>
+  </data>
+  <data name="No bank export profile found. Please create a bank export profile first." xml:space="preserve">
+    <value>No bank export profile found. Please create a bank export profile first.</value>
+  </data>
+  <data name="No biometric enrolled for this employee" xml:space="preserve">
+    <value>No biometric enrolled for this employee</value>
+  </data>
+  <data name="No check-in points configured for this branch. Please contact your administrator." xml:space="preserve">
+    <value>No check-in points configured for this branch. Please contact your administrator.</value>
+  </data>
+  <data name="No data rows found in the file." xml:space="preserve">
+    <value>No data rows found in the file.</value>
+  </data>
+  <data name="No FaceId enrolled for this employee." xml:space="preserve">
+    <value>No FaceId enrolled for this employee.</value>
+  </data>
+  <data name="No organization context" xml:space="preserve">
+    <value>No organization context</value>
+  </data>
+  <data name="No payroll cycles found for the current scope" xml:space="preserve">
+    <value>No payroll cycles found for the current scope</value>
+  </data>
+  <data name="No payslip found for the current user" xml:space="preserve">
+    <value>No payslip found for the current user</value>
+  </data>
+  <data name="No payslips found to delete." xml:space="preserve">
+    <value>No payslips found to delete.</value>
+  </data>
+  <data name="No request settings were found for the specified branch." xml:space="preserve">
+    <value>No request settings were found for the specified branch.</value>
+  </data>
+  <data name="No salary configuration found for the current user" xml:space="preserve">
+    <value>No salary configuration found for the current user</value>
+  </data>
+  <data name="No salary configuration found for this employee" xml:space="preserve">
+    <value>No salary configuration found for this employee</value>
+  </data>
+  <data name="No unpaid payslips found for this period." xml:space="preserve">
+    <value>No unpaid payslips found for this period.</value>
+  </data>
+  <data name="Not allowed to access document" xml:space="preserve">
+    <value>Not allowed to access document</value>
+  </data>
+  <data name="Not allowed to access employee documents" xml:space="preserve">
+    <value>Not allowed to access employee documents</value>
+  </data>
+  <data name="Not allowed to access employee salaries" xml:space="preserve">
+    <value>Not allowed to access employee salaries</value>
+  </data>
+  <data name="Not allowed to access this document" xml:space="preserve">
+    <value>Not allowed to access this document</value>
+  </data>
+  <data name="Not allowed to add employee salary" xml:space="preserve">
+    <value>Not allowed to add employee salary</value>
+  </data>
+  <data name="Not allowed to configure payroll for this employee" xml:space="preserve">
+    <value>Not allowed to configure payroll for this employee</value>
+  </data>
+  <data name="Not allowed to enroll biometric" xml:space="preserve">
+    <value>Not allowed to enroll biometric</value>
+  </data>
+  <data name="Not allowed to manage assets for this employee" xml:space="preserve">
+    <value>Not allowed to manage assets for this employee</value>
+  </data>
+  <data name="Not allowed to manage documents for this employee" xml:space="preserve">
+    <value>Not allowed to manage documents for this employee</value>
+  </data>
+  <data name="Not allowed to submit attendance for this employee" xml:space="preserve">
+    <value>Not allowed to submit attendance for this employee</value>
+  </data>
+  <data name="Not allowed to submit attendance for this employee." xml:space="preserve">
+    <value>Not allowed to submit attendance for this employee.</value>
+  </data>
+  <data name="Not allowed to update this document" xml:space="preserve">
+    <value>Not allowed to update this document</value>
+  </data>
+  <data name="Not allowed to upload document" xml:space="preserve">
+    <value>Not allowed to upload document</value>
+  </data>
+  <data name="Not authorized to update employee profile image" xml:space="preserve">
+    <value>Not authorized to update employee profile image</value>
+  </data>
+  <data name="Not authorized to update employee roles" xml:space="preserve">
+    <value>Not authorized to update employee roles</value>
+  </data>
+  <data name="Not authorized to update this account" xml:space="preserve">
+    <value>Not authorized to update this account</value>
+  </data>
+  <data name="One or more branches are invalid for this organization" xml:space="preserve">
+    <value>One or more branches are invalid for this organization</value>
+  </data>
+  <data name="One or more permission types were not found." xml:space="preserve">
+    <value>One or more permission types were not found.</value>
+  </data>
+  <data name="One or more vacation types were not found." xml:space="preserve">
+    <value>One or more vacation types were not found.</value>
+  </data>
+  <data name="Only department managers can access this overview" xml:space="preserve">
+    <value>Only department managers can access this overview</value>
+  </data>
+  <data name="Only Excel files (.xlsx, .xls) are allowed." xml:space="preserve">
+    <value>Only Excel files (.xlsx, .xls) are allowed.</value>
+  </data>
+  <data name="Only HR can approve requests at this stage." xml:space="preserve">
+    <value>Only HR can approve requests at this stage.</value>
+  </data>
+  <data name="Only HR Manager and HR Specialist can use quick check-in/out." xml:space="preserve">
+    <value>Only HR Manager and HR Specialist can use quick check-in/out.</value>
+  </data>
+  <data name="Only HR Managers and Admins can delete payslips." xml:space="preserve">
+    <value>Only HR Managers and Admins can delete payslips.</value>
+  </data>
+  <data name="Only HR roles can access branch permission requests" xml:space="preserve">
+    <value>Only HR roles can access branch permission requests</value>
+  </data>
+  <data name="Only HR roles can access branch permission summary" xml:space="preserve">
+    <value>Only HR roles can access branch permission summary</value>
+  </data>
+  <data name="Only HR roles can access branch vacation requests" xml:space="preserve">
+    <value>Only HR roles can access branch vacation requests</value>
+  </data>
+  <data name="Only HR roles can access branch vacation summary" xml:space="preserve">
+    <value>Only HR roles can access branch vacation summary</value>
+  </data>
+  <data name="Only HR/Admin can reset user passwords" xml:space="preserve">
+    <value>Only HR/Admin can reset user passwords</value>
+  </data>
+  <data name="Organization code already exists" xml:space="preserve">
+    <value>Organization code already exists</value>
+  </data>
+  <data name="Organization created successfully" xml:space="preserve">
+    <value>Organization created successfully</value>
+  </data>
+  <data name="Organization created successfully with all components" xml:space="preserve">
+    <value>Organization created successfully with all components</value>
+  </data>
+  <data name="Organization trial status retrieved successfully" xml:space="preserve">
+    <value>Organization trial status retrieved successfully</value>
+  </data>
+  <data name="OrganizationAdmin role not found" xml:space="preserve">
+    <value>OrganizationAdmin role not found</value>
+  </data>
+  <data name="OrganizationId is required" xml:space="preserve">
+    <value>OrganizationId is required</value>
+  </data>
+  <data name="Overtime request details not found." xml:space="preserve">
+    <value>Overtime request details not found.</value>
+  </data>
+  <data name="Overtime request not found." xml:space="preserve">
+    <value>Overtime request not found.</value>
+  </data>
+  <data name="Overtime request type not configured." xml:space="preserve">
+    <value>Overtime request type not configured.</value>
+  </data>
+  <data name="Overtime requests are not allowed for this branch." xml:space="preserve">
+    <value>Overtime requests are not allowed for this branch.</value>
+  </data>
+  <data name="Overtime type deleted successfully" xml:space="preserve">
+    <value>Overtime type deleted successfully</value>
+  </data>
+  <data name="Overtime type not found." xml:space="preserve">
+    <value>Overtime type not found.</value>
+  </data>
+  <data name="Password reset successfully" xml:space="preserve">
+    <value>Password reset successfully</value>
+  </data>
+  <data name="Payment details retrieved successfully" xml:space="preserve">
+    <value>Payment details retrieved successfully</value>
+  </data>
+  <data name="Payroll cycle not found for the specified month and year." xml:space="preserve">
+    <value>Payroll cycle not found for the specified month and year.</value>
+  </data>
+  <data name="Payroll statuses retrieved successfully" xml:space="preserve">
+    <value>Payroll statuses retrieved successfully</value>
+  </data>
+  <data name="Payroll summary retrieved successfully" xml:space="preserve">
+    <value>Payroll summary retrieved successfully</value>
+  </data>
+  <data name="Payslip details retrieved successfully" xml:space="preserve">
+    <value>Payslip details retrieved successfully</value>
+  </data>
+  <data name="Payslip not found" xml:space="preserve">
+    <value>Payslip not found</value>
+  </data>
+  <data name="Payslip not found." xml:space="preserve">
+    <value>Payslip not found.</value>
+  </data>
+  <data name="Payslips history retrieved successfully" xml:space="preserve">
+    <value>Payslips history retrieved successfully</value>
+  </data>
+  <data name="Payslips retrieved successfully" xml:space="preserve">
+    <value>Payslips retrieved successfully</value>
+  </data>
+  <data name="Performance review created successfully" xml:space="preserve">
+    <value>Performance review created successfully</value>
+  </data>
+  <data name="Performance review deleted successfully" xml:space="preserve">
+    <value>Performance review deleted successfully</value>
+  </data>
+  <data name="Performance review not found" xml:space="preserve">
+    <value>Performance review not found</value>
+  </data>
+  <data name="Performance review updated successfully" xml:space="preserve">
+    <value>Performance review updated successfully</value>
+  </data>
+  <data name="Permission request details not found." xml:space="preserve">
+    <value>Permission request details not found.</value>
+  </data>
+  <data name="Permission request not found" xml:space="preserve">
+    <value>Permission request not found</value>
+  </data>
+  <data name="Permission request not found." xml:space="preserve">
+    <value>Permission request not found.</value>
+  </data>
+  <data name="Permission request retrieved successfully" xml:space="preserve">
+    <value>Permission request retrieved successfully</value>
+  </data>
+  <data name="Permission request type not configured." xml:space="preserve">
+    <value>Permission request type not configured.</value>
+  </data>
+  <data name="Permission requests are not allowed for this branch." xml:space="preserve">
+    <value>Permission requests are not allowed for this branch.</value>
+  </data>
+  <data name="Permission requests retrieved successfully" xml:space="preserve">
+    <value>Permission requests retrieved successfully</value>
+  </data>
+  <data name="Permission type deleted successfully" xml:space="preserve">
+    <value>Permission type deleted successfully</value>
+  </data>
+  <data name="Permission type not found." xml:space="preserve">
+    <value>Permission type not found.</value>
+  </data>
+  <data name="Personal detail is required for personal requests." xml:space="preserve">
+    <value>Personal detail is required for personal requests.</value>
+  </data>
+  <data name="Personal request details not found." xml:space="preserve">
+    <value>Personal request details not found.</value>
+  </data>
+  <data name="Personal request not found." xml:space="preserve">
+    <value>Personal request not found.</value>
+  </data>
+  <data name="Personal request type not configured." xml:space="preserve">
+    <value>Personal request type not configured.</value>
+  </data>
+  <data name="Personal requests are not allowed for this branch." xml:space="preserve">
+    <value>Personal requests are not allowed for this branch.</value>
+  </data>
+  <data name="Personal type deleted successfully" xml:space="preserve">
+    <value>Personal type deleted successfully</value>
+  </data>
+  <data name="Personal type not found." xml:space="preserve">
+    <value>Personal type not found.</value>
+  </data>
+  <data name="Please provide at least one request setting." xml:space="preserve">
+    <value>Please provide at least one request setting.</value>
+  </data>
+  <data name="Profile image file is required" xml:space="preserve">
+    <value>Profile image file is required</value>
+  </data>
+  <data name="Profile image updated" xml:space="preserve">
+    <value>Profile image updated</value>
+  </data>
+  <data name="Profile name is required." xml:space="preserve">
+    <value>Profile name is required.</value>
+  </data>
+  <data name="Profile retrieved successfully" xml:space="preserve">
+    <value>Profile retrieved successfully</value>
+  </data>
+  <data name="Request details retrieved successfully." xml:space="preserve">
+    <value>Request details retrieved successfully.</value>
+  </data>
+  <data name="Request is not in pending status for manager approval." xml:space="preserve">
+    <value>Request is not in pending status for manager approval.</value>
+  </data>
+  <data name="Request must be approved by manager first before HR approval." xml:space="preserve">
+    <value>Request must be approved by manager first before HR approval.</value>
+  </data>
+  <data name="Request not found." xml:space="preserve">
+    <value>Request not found.</value>
+  </data>
+  <data name="Request type deleted" xml:space="preserve">
+    <value>Request type deleted</value>
+  </data>
+  <data name="Request type not found" xml:space="preserve">
+    <value>Request type not found</value>
+  </data>
+  <data name="Review statuses retrieved successfully" xml:space="preserve">
+    <value>Review statuses retrieved successfully</value>
+  </data>
+  <data name="Review types retrieved successfully" xml:space="preserve">
+    <value>Review types retrieved successfully</value>
+  </data>
+  <data name="Role not found" xml:space="preserve">
+    <value>Role not found</value>
+  </data>
+  <data name="Roles retrieved" xml:space="preserve">
+    <value>Roles retrieved</value>
+  </data>
+  <data name="Roles retrieved successfully" xml:space="preserve">
+    <value>Roles retrieved successfully</value>
+  </data>
+  <data name="Salary breakdown approximated from current configuration (no payslip found)" xml:space="preserve">
+    <value>Salary breakdown approximated from current configuration (no payslip found)</value>
+  </data>
+  <data name="Salary breakdown retrieved successfully" xml:space="preserve">
+    <value>Salary breakdown retrieved successfully</value>
+  </data>
+  <data name="Salary summary retrieved successfully" xml:space="preserve">
+    <value>Salary summary retrieved successfully</value>
+  </data>
+  <data name="Schedule ID is required for deletion" xml:space="preserve">
+    <value>Schedule ID is required for deletion</value>
+  </data>
+  <data name="Schedule ID is required for updates" xml:space="preserve">
+    <value>Schedule ID is required for updates</value>
+  </data>
+  <data name="Subscription plan not found" xml:space="preserve">
+    <value>Subscription plan not found</value>
+  </data>
+  <data name="Supported formats: .xlsx, .xls, .csv" xml:space="preserve">
+    <value>Supported formats: .xlsx, .xls, .csv</value>
+  </data>
+  <data name="Template file is required." xml:space="preserve">
+    <value>Template file is required.</value>
+  </data>
+  <data name="The logged-in user is not linked to an employee profile." xml:space="preserve">
+    <value>The logged-in user is not linked to an employee profile.</value>
+  </data>
+  <data name="The maximum number of open requests for this type has been reached." xml:space="preserve">
+    <value>The maximum number of open requests for this type has been reached.</value>
+  </data>
+  <data name="The specified role was not found" xml:space="preserve">
+    <value>The specified role was not found</value>
+  </data>
+  <data name="This request type is disabled for the selected branch." xml:space="preserve">
+    <value>This request type is disabled for the selected branch.</value>
+  </data>
+  <data name="TitleAr, TitleEn, and Code are required for new job titles" xml:space="preserve">
+    <value>TitleAr, TitleEn, and Code are required for new job titles</value>
+  </data>
+  <data name="Training detail is required for training requests." xml:space="preserve">
+    <value>Training detail is required for training requests.</value>
+  </data>
+  <data name="Training request details not found." xml:space="preserve">
+    <value>Training request details not found.</value>
+  </data>
+  <data name="Training request not found." xml:space="preserve">
+    <value>Training request not found.</value>
+  </data>
+  <data name="Training request type not configured." xml:space="preserve">
+    <value>Training request type not configured.</value>
+  </data>
+  <data name="Training requests are not allowed for this branch." xml:space="preserve">
+    <value>Training requests are not allowed for this branch.</value>
+  </data>
+  <data name="Training type deleted successfully" xml:space="preserve">
+    <value>Training type deleted successfully</value>
+  </data>
+  <data name="Training type not found." xml:space="preserve">
+    <value>Training type not found.</value>
+  </data>
+  <data name="Transfer method details retrieved successfully" xml:space="preserve">
+    <value>Transfer method details retrieved successfully</value>
+  </data>
+  <data name="Unable to determine organization context for salary configuration" xml:space="preserve">
+    <value>Unable to determine organization context for salary configuration</value>
+  </data>
+  <data name="Unable to resolve your employee context." xml:space="preserve">
+    <value>Unable to resolve your employee context.</value>
+  </data>
+  <data name="User account activated successfully" xml:space="preserve">
+    <value>User account activated successfully</value>
+  </data>
+  <data name="User account deactivated successfully" xml:space="preserve">
+    <value>User account deactivated successfully</value>
+  </data>
+  <data name="User account is already active" xml:space="preserve">
+    <value>User account is already active</value>
+  </data>
+  <data name="User account is already deactivated" xml:space="preserve">
+    <value>User account is already deactivated</value>
+  </data>
+  <data name="User context not found" xml:space="preserve">
+    <value>User context not found</value>
+  </data>
+  <data name="User created successfully" xml:space="preserve">
+    <value>User created successfully</value>
+  </data>
+  <data name="User email already exists" xml:space="preserve">
+    <value>User email already exists</value>
+  </data>
+  <data name="User not found" xml:space="preserve">
+    <value>User not found</value>
+  </data>
+  <data name="User retrieved" xml:space="preserve">
+    <value>User retrieved</value>
+  </data>
+  <data name="User updated" xml:space="preserve">
+    <value>User updated</value>
+  </data>
+  <data name="Username is already taken" xml:space="preserve">
+    <value>Username is already taken</value>
+  </data>
+  <data name="Users retrieved" xml:space="preserve">
+    <value>Users retrieved</value>
+  </data>
+  <data name="Vacation detail is required for vacation requests." xml:space="preserve">
+    <value>Vacation detail is required for vacation requests.</value>
+  </data>
+  <data name="Vacation request details not found." xml:space="preserve">
+    <value>Vacation request details not found.</value>
+  </data>
+  <data name="Vacation request must have both start and end dates before approval." xml:space="preserve">
+    <value>Vacation request must have both start and end dates before approval.</value>
+  </data>
+  <data name="Vacation request not found" xml:space="preserve">
+    <value>Vacation request not found</value>
+  </data>
+  <data name="Vacation request not found." xml:space="preserve">
+    <value>Vacation request not found.</value>
+  </data>
+  <data name="Vacation request retrieved successfully" xml:space="preserve">
+    <value>Vacation request retrieved successfully</value>
+  </data>
+  <data name="Vacation request type not configured." xml:space="preserve">
+    <value>Vacation request type not configured.</value>
+  </data>
+  <data name="Vacation requests are not allowed for this branch." xml:space="preserve">
+    <value>Vacation requests are not allowed for this branch.</value>
+  </data>
+  <data name="Vacation requests retrieved successfully" xml:space="preserve">
+    <value>Vacation requests retrieved successfully</value>
+  </data>
+  <data name="Vacation type deleted successfully" xml:space="preserve">
+    <value>Vacation type deleted successfully</value>
+  </data>
+  <data name="Vacation type not found." xml:space="preserve">
+    <value>Vacation type not found.</value>
+  </data>
+  <data name="You are not allowed to edit admin profiles." xml:space="preserve">
+    <value>You are not allowed to edit admin profiles.</value>
+  </data>
+  <data name="You are not allowed to view admin profiles." xml:space="preserve">
+    <value>You are not allowed to view admin profiles.</value>
+  </data>
+  <data name="You can only cancel your own requests." xml:space="preserve">
+    <value>You can only cancel your own requests.</value>
+  </data>
+  <data name="You can only configure payroll for employees in your branch" xml:space="preserve">
+    <value>You can only configure payroll for employees in your branch</value>
+  </data>
+  <data name="You can only create loans for employees in your branch" xml:space="preserve">
+    <value>You can only create loans for employees in your branch</value>
+  </data>
+  <data name="You can only delete loans for employees in your branch" xml:space="preserve">
+    <value>You can only delete loans for employees in your branch</value>
+  </data>
+  <data name="You can only update loans for employees in your branch" xml:space="preserve">
+    <value>You can only update loans for employees in your branch</value>
+  </data>
+  <data name="You can only view loans for employees in your branch" xml:space="preserve">
+    <value>You can only view loans for employees in your branch</value>
+  </data>
+  <data name="You do not have access to this vacation request." xml:space="preserve">
+    <value>You do not have access to this vacation request.</value>
+  </data>
+  <data name="You do not have permission to approve requests." xml:space="preserve">
+    <value>You do not have permission to approve requests.</value>
+  </data>
+  <data name="You do not have permission to approve this request." xml:space="preserve">
+    <value>You do not have permission to approve this request.</value>
+  </data>
+  <data name="You do not have permission to view this payslip" xml:space="preserve">
+    <value>You do not have permission to view this payslip</value>
+  </data>
+</root>

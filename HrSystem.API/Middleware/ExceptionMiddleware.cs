@@ -1,4 +1,5 @@
 using HrSystem.Shared.Common;
+using HrSystem.API.Common.Localization;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Text.Json;
@@ -10,15 +11,18 @@ public class ExceptionMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
     private readonly IHostEnvironment _environment;
+    private readonly IApiMessageLocalizer _messageLocalizer;
 
     public ExceptionMiddleware(
         RequestDelegate next, 
         ILogger<ExceptionMiddleware> logger,
-        IHostEnvironment environment)
+        IHostEnvironment environment,
+        IApiMessageLocalizer messageLocalizer)
     {
         _next = next;
         _logger = logger;
         _environment = environment;
+        _messageLocalizer = messageLocalizer;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -42,7 +46,9 @@ public class ExceptionMiddleware
         var (statusCode, message, errors) = GetExceptionDetails(exception);
         context.Response.StatusCode = statusCode;
 
-        var response = GenericResponse.FailureResult(message, errors);
+        var localizedMessage = _messageLocalizer.Localize(message) ?? message;
+        var localizedErrors = _messageLocalizer.LocalizeMany(errors) ?? errors;
+        var response = GenericResponse.FailureResult(localizedMessage, localizedErrors);
 
         var options = new JsonSerializerOptions
         {

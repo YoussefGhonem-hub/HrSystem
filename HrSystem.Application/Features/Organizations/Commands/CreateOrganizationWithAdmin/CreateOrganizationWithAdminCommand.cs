@@ -121,6 +121,8 @@ public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateO
         CreateOrganizationWithAdminCommand request,
         CancellationToken cancellationToken)
     {
+        var organizationDefaultLanguage = LanguageDefaults.NormalizeOrDefault(request.Organization.DefaultLanguage);
+
         if (request.Branches == null || request.Branches.Count == 0)
         {
             return Error.Validation("Organization.BranchesRequired", "At least one branch is required");
@@ -210,7 +212,7 @@ public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateO
             TimeZone = request.Organization.TimeZone ?? "Egypt Standard Time",
             Currency = request.Organization.Currency ?? "EGP",
             WeekStartDay = request.Organization.WeekStartDay,
-            DefaultLanguage = request.Organization.DefaultLanguage ?? "en"
+            DefaultLanguage = organizationDefaultLanguage
         };
 
         var branchCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -253,7 +255,7 @@ public class CreateOrganizationWithAdminCommandHandler : IRequestHandler<CreateO
             Fax = input.Fax,
             TimeZone = input.TimeZone ?? organization.TimeZone,
             Currency = input.Currency ?? organization.Currency,
-            Language = input.Language,
+            Language = LanguageDefaults.NormalizeOrDefault(input.Language, organizationDefaultLanguage),
             IsHeadquarter = input.IsHeadquarter,
             IsActive = true,
             OpeningDate = input.OpeningDate,

@@ -280,6 +280,8 @@ public class CreateOrganizationFullCommandHandler
         CreateOrganizationFullCommand request,
         CancellationToken cancellationToken)
     {
+        var organizationDefaultLanguage = LanguageDefaults.NormalizeOrDefault(request.Organization.DefaultLanguage);
+
         // ─────────────────────────────────────────────────────────────────
         // 1. Validation
         // ─────────────────────────────────────────────────────────────────
@@ -412,7 +414,7 @@ public class CreateOrganizationFullCommandHandler
             TimeZone = request.Organization.TimeZone ?? "Egypt Standard Time",
             Currency = request.Organization.Currency ?? "EGP",
             WeekStartDay = request.Organization.WeekStartDay ?? "Sunday",
-            DefaultLanguage = request.Organization.DefaultLanguage ?? "en",
+            DefaultLanguage = organizationDefaultLanguage,
             CreatedDate = DateTimeOffset.UtcNow
         };
 
@@ -446,7 +448,7 @@ public class CreateOrganizationFullCommandHandler
                 Fax = branchInput.Fax,
                 TimeZone = branchInput.TimeZone ?? organization.TimeZone,
                 Currency = branchInput.Currency ?? organization.Currency,
-                Language = branchInput.Language ?? "ar",
+                Language = LanguageDefaults.NormalizeOrDefault(branchInput.Language, organizationDefaultLanguage),
                 IsHeadquarter = branchInput.IsHeadquarter,
                 IsActive = true,
                 OpeningDate = branchInput.OpeningDate,

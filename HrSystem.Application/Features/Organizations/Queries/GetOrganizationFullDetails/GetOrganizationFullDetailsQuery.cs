@@ -251,6 +251,8 @@ public class GetOrganizationFullDetailsQueryHandler
         GetOrganizationFullDetailsQuery request,
         CancellationToken cancellationToken)
     {
+        var defaultLanguage = LanguageDefaults.English;
+
         // Load organization with subscription plan
         var org = await _context.Organizations
             .AsNoTracking()
@@ -259,6 +261,8 @@ public class GetOrganizationFullDetailsQueryHandler
 
         if (org == null)
             return Error.NotFound("Organization.NotFound", "Organization not found");
+
+        defaultLanguage = LanguageDefaults.NormalizeOrDefault(org.DefaultLanguage);
 
         // Load branches with countries, schedules, and holidays
         var branches = await _context.Branches
@@ -390,7 +394,7 @@ public class GetOrganizationFullDetailsQueryHandler
                 TimeZone = org.TimeZone,
                 Currency = org.Currency,
                 WeekStartDay = org.WeekStartDay,
-                DefaultLanguage = org.DefaultLanguage,
+                DefaultLanguage = defaultLanguage,
                 IsActive = org.IsActive,
                 IsTrialPeriod = org.IsTrialPeriod,
                 TrialEndDate = org.TrialEndDate,
@@ -423,7 +427,7 @@ public class GetOrganizationFullDetailsQueryHandler
                 Fax = b.Fax,
                 TimeZone = b.TimeZone,
                 Currency = b.Currency,
-                Language = b.Language,
+                Language = LanguageDefaults.NormalizeOrDefault(b.Language, defaultLanguage),
                 IsHeadquarter = b.IsHeadquarter,
                 IsActive = b.IsActive,
                 OpeningDate = b.OpeningDate,

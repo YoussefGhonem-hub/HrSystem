@@ -76,6 +76,10 @@ public class GetOrganizationsListQueryHandler : IRequestHandler<GetOrganizations
             })
             .ToListAsync(cancellationToken);
 
+        items = items
+            .Select(item => item with { DefaultLanguage = LanguageDefaults.NormalizeOrDefault(item.DefaultLanguage) })
+            .ToList();
+
         var paged = PagedResult<OrganizationListDto>.Create(items, totalCount, request.PageNumber, request.PageSize);
 
         return new GenericResponse<PagedResult<OrganizationListDto>>

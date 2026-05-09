@@ -109,7 +109,8 @@ public class UpdateOrganizationCompanyInfoCommandHandler
         if (request.TimeZone != null) organization.TimeZone = request.TimeZone;
         if (request.Currency != null) organization.Currency = request.Currency;
         if (request.WeekStartDay != null) organization.WeekStartDay = request.WeekStartDay;
-        if (request.DefaultLanguage != null) organization.DefaultLanguage = request.DefaultLanguage;
+        if (request.DefaultLanguage != null)
+            organization.DefaultLanguage = LanguageDefaults.NormalizeOrDefault(request.DefaultLanguage);
 
         organization.ModifiedDate = DateTimeOffset.UtcNow;
         organization.ModifiedBy = CurrentUser.Id;
@@ -139,7 +140,7 @@ public class UpdateOrganizationCompanyInfoCommandHandler
             TimeZone = organization.TimeZone,
             Currency = organization.Currency,
             WeekStartDay = organization.WeekStartDay,
-            DefaultLanguage = organization.DefaultLanguage
+            DefaultLanguage = LanguageDefaults.NormalizeOrDefault(organization.DefaultLanguage)
         };
 
         return new GenericResponse<CompanyInfoDto>

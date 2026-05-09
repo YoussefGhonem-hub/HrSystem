@@ -1,23 +1,51 @@
 using HrSystem.Application;
+using HrSystem.API.Common.Localization;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Infrustructure;
 using HrSystem.Infrustructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Storage.AWS3;
 using HrSystem.Shared.CurrentUser;
+using HrSystem.Shared.Common;
+using System.Globalization;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<LocalizeApiResponseFilter>();
+});
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IApiMessageLocalizer, ApiMessageLocalizer>();
+builder.Services.AddScoped<LocalizeApiResponseFilter>();
+builder.Services.AddLocalization();
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = LanguageDefaults.SupportedLanguages
+        .Select(language => new CultureInfo(language))
+        .ToList();
+
+    options.DefaultRequestCulture = new RequestCulture(LanguageDefaults.English);
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+    options.RequestCultureProviders =
+    [
+        new AcceptLanguageHeaderRequestCultureProvider
+        {
+            MaximumAcceptLanguageHeaderValuesToTry = 2
+        }
+    ];
+});
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -83,6 +111,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+var requestLocalizationOptions = app.Services.GetRequiredService<IOptions<RequestLocalizationOptions>>().Value;
 
 using (var scope = app.Services.CreateScope())
 {
@@ -109,6 +138,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+app.UseRequestLocalization(requestLocalizationOptions);
 app.UseMiddleware<HrSystem.API.Middleware.ExceptionMiddleware>();
 
 app.UseSwagger();

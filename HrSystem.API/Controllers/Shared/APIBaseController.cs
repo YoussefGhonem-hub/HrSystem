@@ -1,4 +1,5 @@
 ﻿using ErrorOr;
+using HrSystem.API.Common.Localization;
 using HrSystem.API.Common.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -8,6 +9,8 @@ namespace HrSystem.API.Controllers.Shared
     [ApiController]
     public class APIBaseController : ControllerBase
     {
+        private IApiMessageLocalizer MessageLocalizer => HttpContext.RequestServices.GetRequiredService<IApiMessageLocalizer>();
+
         protected IActionResult Problem(List<Error> errors)
         {
             if (errors.Count is 0)
@@ -28,7 +31,7 @@ namespace HrSystem.API.Controllers.Shared
             var modelStateDictionary = new ModelStateDictionary();
             foreach (var error in errors)
             {
-                modelStateDictionary.AddModelError(error.Code, error.Description);
+                modelStateDictionary.AddModelError(error.Code, MessageLocalizer.Localize(error.Description) ?? error.Description);
             }
             return ValidationProblem(modelStateDictionary);
         }
@@ -44,7 +47,7 @@ namespace HrSystem.API.Controllers.Shared
                 ErrorType.Forbidden => StatusCodes.Status403Forbidden,
                 _ => StatusCodes.Status500InternalServerError
             };
-            return Problem(statusCode: statusCode, title: error.Description);
+            return Problem(statusCode: statusCode, title: MessageLocalizer.Localize(error.Description) ?? error.Description);
         }
     }
 }

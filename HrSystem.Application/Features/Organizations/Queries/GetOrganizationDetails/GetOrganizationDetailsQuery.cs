@@ -132,7 +132,7 @@ public class GetOrganizationDetailsQueryHandler : IRequestHandler<GetOrganizatio
             TimeZone = org.TimeZone,
             Currency = org.Currency,
             WeekStartDay = org.WeekStartDay ?? string.Empty,
-            DefaultLanguage = org.DefaultLanguage,
+            DefaultLanguage = LanguageDefaults.NormalizeOrDefault(org.DefaultLanguage),
             AdminUser = adminUser,
             HrManagerUser = hrManagerUser,
             Branches = org.Branches
