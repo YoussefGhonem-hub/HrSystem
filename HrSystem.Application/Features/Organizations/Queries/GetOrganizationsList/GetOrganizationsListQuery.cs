@@ -26,6 +26,19 @@ public record OrganizationListDto
     public bool IsActive { get; init; }
     public int BranchesCount { get; init; }
     public int EmployeesCount { get; init; }
+    public bool IsTrialPeriod { get; init; }
+    public DateTime? TrialEndDate { get; init; }
+    public DateTime SubscriptionStartDate { get; init; }
+    public DateTime? SubscriptionEndDate { get; init; }
+    public Guid? SubscriptionPlanId { get; init; }
+    public string? SubscriptionPlanCode { get; init; }
+    public string? SubscriptionPlanName { get; init; }
+    public bool AllowPayrollModule { get; init; }
+    public bool AllowPerformanceModule { get; init; }
+    public bool AllowRecruitmentModule { get; init; }
+    public bool AllowCustomReports { get; init; }
+    public bool AllowBiometricIntegration { get; init; }
+    public bool AllowAPIAccess { get; init; }
 }
 
 public class GetOrganizationsListQueryHandler : IRequestHandler<GetOrganizationsListQuery, ErrorOr<GenericResponse<PagedResult<OrganizationListDto>>>>
@@ -42,6 +55,7 @@ public class GetOrganizationsListQueryHandler : IRequestHandler<GetOrganizations
         CancellationToken cancellationToken)
     {
         var query = _context.Organizations
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .AsQueryable();
 
@@ -72,7 +86,20 @@ public class GetOrganizationsListQueryHandler : IRequestHandler<GetOrganizations
                 PhoneNumber = o.PhoneNumber,
                 IsActive = o.IsActive,
                 BranchesCount = o.Branches.Count,
-                EmployeesCount = _context.Employees.Count(e => e.TenantId == o.Id && !e.IsDeleted)
+                EmployeesCount = _context.Employees.Count(e => e.TenantId == o.Id && !e.IsDeleted),
+                IsTrialPeriod = o.IsTrialPeriod,
+                TrialEndDate = o.TrialEndDate,
+                SubscriptionStartDate = o.SubscriptionStartDate,
+                SubscriptionEndDate = o.SubscriptionEndDate,
+                SubscriptionPlanId = o.SubscriptionPlanId,
+                SubscriptionPlanCode = o.SubscriptionPlan != null ? o.SubscriptionPlan.Code : null,
+                SubscriptionPlanName = o.SubscriptionPlan != null ? o.SubscriptionPlan.NameEn : null,
+                AllowPayrollModule = o.SubscriptionPlan == null || o.SubscriptionPlan.AllowPayrollModule,
+                AllowPerformanceModule = o.SubscriptionPlan == null || o.SubscriptionPlan.AllowPerformanceModule,
+                AllowRecruitmentModule = o.SubscriptionPlan == null || o.SubscriptionPlan.AllowRecruitmentModule,
+                AllowCustomReports = o.SubscriptionPlan == null || o.SubscriptionPlan.AllowCustomReports,
+                AllowBiometricIntegration = o.SubscriptionPlan == null || o.SubscriptionPlan.AllowBiometricIntegration,
+                AllowAPIAccess = o.SubscriptionPlan == null || o.SubscriptionPlan.AllowAPIAccess
             })
             .ToListAsync(cancellationToken);
 

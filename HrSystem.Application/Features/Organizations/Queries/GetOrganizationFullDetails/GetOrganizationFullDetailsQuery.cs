@@ -85,7 +85,14 @@ public record CompanyInfoDto
     public DateTime SubscriptionStartDate { get; init; }
     public DateTime? SubscriptionEndDate { get; init; }
     public Guid? SubscriptionPlanId { get; init; }
+    public string? SubscriptionPlanCode { get; init; }
     public string? SubscriptionPlanName { get; init; }
+    public bool AllowPayrollModule { get; init; } = true;
+    public bool AllowPerformanceModule { get; init; } = true;
+    public bool AllowRecruitmentModule { get; init; } = true;
+    public bool AllowCustomReports { get; init; } = true;
+    public bool AllowBiometricIntegration { get; init; } = true;
+    public bool AllowAPIAccess { get; init; } = true;
     
     // Limits
     public int MaxEmployees { get; init; }
@@ -401,7 +408,14 @@ public class GetOrganizationFullDetailsQueryHandler
                 SubscriptionStartDate = org.SubscriptionStartDate,
                 SubscriptionEndDate = org.SubscriptionEndDate,
                 SubscriptionPlanId = org.SubscriptionPlanId,
+                SubscriptionPlanCode = org.SubscriptionPlan?.Code,
                 SubscriptionPlanName = org.SubscriptionPlan?.NameEn,
+                AllowPayrollModule = org.SubscriptionPlan?.AllowPayrollModule ?? true,
+                AllowPerformanceModule = org.SubscriptionPlan?.AllowPerformanceModule ?? true,
+                AllowRecruitmentModule = org.SubscriptionPlan?.AllowRecruitmentModule ?? true,
+                AllowCustomReports = org.SubscriptionPlan?.AllowCustomReports ?? true,
+                AllowBiometricIntegration = org.SubscriptionPlan?.AllowBiometricIntegration ?? true,
+                AllowAPIAccess = org.SubscriptionPlan?.AllowAPIAccess ?? true,
                 MaxEmployees = org.MaxEmployees,
                 CurrentEmployeeCount = totalEmployees
             },

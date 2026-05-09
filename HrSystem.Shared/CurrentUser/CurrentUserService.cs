@@ -27,6 +27,8 @@ public static class CurrentUser
     private const string RoleClaim = ClaimTypes.Role;
     private const string AudienceClaim = "aud";
     private const string OrganizationIdClaim = "organization_id"; // Custom claim for multi-tenancy
+    public const string SelectedOrganizationHeaderName = "X-Selected-Organization-Id";
+    public const string SelectedOrganizationItemKey = "__CurrentUserSelectedOrganizationId__";
     private const string BranchIdClaim = "branch_id"; // Branch claim for multi-branch scoping
     private const string EmployeeIdClaim = "employee_id"; // Employee ID claim
     private const string JobTitleIdClaim = "job_title_id"; // Job Title ID claim
@@ -87,8 +89,33 @@ public static class CurrentUser
     {
         get
         {
-            var raw = GetClaimValue(OrganizationIdClaim) ?? GetClaimValue("OrganizationId");
-            return Guid.TryParse(raw, out var orgId) ? orgId : null;
+            var claimOrganizationId = GetClaimOrganizationId();
+
+            if (IsSuperAdmin)
+            {
+                return SelectedOrganizationId ?? claimOrganizationId;
+            }
+
+            return claimOrganizationId;
+        }
+    }
+
+    public static Guid? SelectedOrganizationId
+    {
+        get
+        {
+            var http = HttpContextAccessor?.HttpContext;
+            if (http is null) return null;
+
+            if (!http.Items.TryGetValue(SelectedOrganizationItemKey, out var selectedValue))
+                return null;
+
+            return selectedValue switch
+            {
+                Guid guid => guid,
+                string raw when Guid.TryParse(raw, out var parsedGuid) => parsedGuid,
+                _ => null
+            };
         }
     }
 
@@ -140,6 +167,23 @@ public static class CurrentUser
     public static IReadOnlyList<string> Permissions => GetPermissions();
     public static IReadOnlyList<string> Audiences => GetAudiences();
     public static bool IsAuthenticated => HttpContextAccessor?.HttpContext?.User?.Identity?.IsAuthenticated == true;
+
+    public static void SetSelectedOrganizationId(Guid? organizationId)
+    {
+        var http = HttpContextAccessor?.HttpContext;
+        if (http is null) return;
+
+        if (organizationId.HasValue)
+        {
+            http.Items[SelectedOrganizationItemKey] = organizationId;
+            return;
+        }
+
+        if (http.Items.ContainsKey(SelectedOrganizationItemKey))
+        {
+            http.Items.Remove(SelectedOrganizationItemKey);
+        }
+    }
 
     public static string? GetClaimValue(string key)
     {
@@ -278,6 +322,13 @@ public static class CurrentUser
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(a => a)
             .ToList();
+    }
+
+    // Manual token parsing helper
+    private static Guid? GetClaimOrganizationId()
+    {
+        var raw = GetClaimValue(OrganizationIdClaim) ?? GetClaimValue("OrganizationId");
+        return Guid.TryParse(raw, out var orgId) ? orgId : null;
     }
 
     // Manual token parsing helper

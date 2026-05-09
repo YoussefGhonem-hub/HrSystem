@@ -34,7 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public Guid CurrentUserId => CurrentUser.Id ?? Guid.Empty;
 
     public bool FilterBypassEnabled => CurrentUser.BypassScopeFilters
-        || CurrentUser.Roles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase));
+        || (CurrentUser.IsSuperAdmin && !CurrentUser.SelectedOrganizationId.HasValue);
 
     public bool IsOrgAdminScope => CurrentUser.Roles.Any(r =>
         string.Equals(r, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase));

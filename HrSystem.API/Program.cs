@@ -1,5 +1,6 @@
 using HrSystem.Application;
 using HrSystem.API.Common.Localization;
+using HrSystem.API.Middleware;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Infrustructure;
 using HrSystem.Infrustructure.Persistence;
@@ -156,6 +157,7 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
+app.UseMiddleware<SelectedOrganizationContextMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
