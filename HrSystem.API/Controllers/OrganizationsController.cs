@@ -6,12 +6,14 @@ using HrSystem.Application.Features.Organizations.Commands.UpdateBranchWorkSched
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationBranches;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationCompanyInfo;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationStructure;
+using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationSubscription;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationDetails;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationAdminDashboard;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationFullDetails;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationTrialStatus;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationsList;
 using HrSystem.Application.Features.Organizations.Queries.GetSuperAdminBillingDashboard;
+using HrSystem.Application.Features.Organizations.Queries.GetSubscriptionPlans;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
@@ -75,6 +77,21 @@ public class OrganizationsController : APIBaseController
         [FromQuery] string? searchTerm = null)
     {
         var result = await _mediator.Send(new GetOrganizationsListQuery(pageNumber, pageSize, searchTerm));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get active subscription plans. Only SuperAdmin.
+    /// </summary>
+    [HttpGet("subscription-plans")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> GetSubscriptionPlans()
+    {
+        var result = await _mediator.Send(new GetSubscriptionPlansQuery());
 
         return result.Match(
             response => Ok(response),
@@ -344,6 +361,32 @@ public class OrganizationsController : APIBaseController
 
     #endregion
 
+    #region Subscription Tab
+
+    /// <summary>
+    /// Update organization subscription and validate monthly limits against active employees.
+    /// </summary>
+    [HttpPut("{id:guid}/subscription")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> UpdateSubscription(Guid id, [FromBody] UpdateSubscriptionRequest request)
+    {
+        var command = new UpdateOrganizationSubscriptionCommand(
+            OrganizationId: id,
+            SubscriptionPlanId: request.SubscriptionPlanId,
+            SubscriptionStartDate: request.SubscriptionStartDate,
+            SubscriptionEndDate: request.SubscriptionEndDate,
+            BillingCycle: request.BillingCycle);
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    #endregion
+
     private IActionResult? EnsureOrganizationAccess(Guid requestedOrganizationId)
     {
         if (User.IsInRole(RoleNames.SuperAdmin))
@@ -410,5 +453,12 @@ public record UpdateStructureRequest(
 public record UpdateWorkSchedulesRequest(List<WorkScheduleUpdateInput> Schedules);
 
 public record UpdateHolidaysRequest(List<HolidayUpdateInput> Holidays);
+
+public record UpdateSubscriptionRequest(
+    Guid SubscriptionPlanId,
+    DateTime? SubscriptionStartDate,
+    DateTime? SubscriptionEndDate,
+    string BillingCycle
+);
 
 #endregion
