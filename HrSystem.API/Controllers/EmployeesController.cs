@@ -8,6 +8,7 @@ using HrSystem.Application.Features.Employees.Commands.SyncEmployeeAssets;
 using HrSystem.Application.Features.Employees.Commands.SyncEmployeeDocuments;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployee;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeDocument;
+using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeAttendance;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeeJobInfo;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePersonalInfo;
 using HrSystem.Application.Features.Employees.Commands.UpdateEmployeePayroll;
@@ -394,6 +395,26 @@ public class EmployeesController : APIBaseController
     public async Task<IActionResult> UpdateEmployeePersonalInfo(Guid employeeId, [FromBody] UpdateEmployeePersonalInfoCommand command)
     {
         if (employeeId != command.EmployeeId)
+        {
+            return BadRequest("ID mismatch");
+        }
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update attendance configuration for an existing employee.
+    /// </summary>
+    [Authorize(Roles = $"{RoleNames.SuperAdmin},{RoleNames.OrganizationAdmin},{RoleNames.HRManager},{RoleNames.HRSpecialist}")]
+    [HttpPut("{id:guid}/attendance")]
+    public async Task<IActionResult> UpdateEmployeeAttendance(Guid id, [FromBody] UpdateEmployeeAttendanceCommand command)
+    {
+        if (id != command.EmployeeId)
         {
             return BadRequest("ID mismatch");
         }

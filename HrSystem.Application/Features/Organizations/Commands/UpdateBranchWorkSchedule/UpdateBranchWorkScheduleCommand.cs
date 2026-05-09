@@ -24,7 +24,7 @@ public record WorkScheduleUpdateInput(
     string? Name,
     string? StartTime,
     string? EndTime,
-    string? BreakDuration,
+    int? BreakDuration,
     int? WorkingHoursPerDay,
     int? WorkingDaysPerWeek,
     string? GracePeriodLate,
@@ -70,7 +70,8 @@ public record WorkScheduleUpdateInput(
 
     public TimeSpan? GetStartTime() => ParseTime(StartTime);
     public TimeSpan? GetEndTime() => ParseTime(EndTime);
-    public TimeSpan? GetBreakDuration() => ParseTime(BreakDuration);
+    public TimeSpan? GetBreakDuration() =>
+        BreakDuration.HasValue ? TimeSpan.FromMinutes(BreakDuration.Value) : null;
     public TimeSpan? GetGracePeriodLate() => ParseTime(GracePeriodLate);
     public TimeSpan? GetGracePeriodEarlyLeave() => ParseTime(GracePeriodEarlyLeave);
 }
@@ -167,6 +168,9 @@ public class UpdateBranchWorkScheduleCommandHandler
                     if (string.IsNullOrEmpty(input.Name) || !startTime.HasValue || !endTime.HasValue)
                         return Error.Validation("Schedule.MissingFields", "Name, StartTime, and EndTime are required for new schedules");
 
+                    if (input.BreakDuration.HasValue && input.BreakDuration.Value < 0)
+                        return Error.Validation("Schedule.BreakDurationInvalid", "Break duration must be a non-negative number of minutes.");
+
                     var newSchedule = new BranchWorkSchedule
                     {
                         Id = Guid.NewGuid(),
@@ -230,6 +234,9 @@ public class UpdateBranchWorkScheduleCommandHandler
                     var updateBreakDuration = input.GetBreakDuration();
                     var updateGracePeriodLate = input.GetGracePeriodLate();
                     var updateGracePeriodEarlyLeave = input.GetGracePeriodEarlyLeave();
+
+                    if (input.BreakDuration.HasValue && input.BreakDuration.Value < 0)
+                        return Error.Validation("Schedule.BreakDurationInvalid", "Break duration must be a non-negative number of minutes.");
 
                     if (updateStartTime.HasValue) scheduleToUpdate.StartTime = updateStartTime.Value;
                     if (updateEndTime.HasValue) scheduleToUpdate.EndTime = updateEndTime.Value;

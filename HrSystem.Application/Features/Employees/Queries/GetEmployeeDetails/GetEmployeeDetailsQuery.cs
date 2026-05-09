@@ -6,6 +6,8 @@ using HrSystem.Application.Features.Payroll.Commands.ConfigureEmployeePayroll;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Storage.AWS3.Services;
@@ -32,6 +34,11 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
         if (employee is null)
         {
             return Error.NotFound(description: "Employee not found");
+        }
+
+        if (!CurrentUser.IsSuperAdmin && await IsAdminProfileAsync(employee.UserId, cancellationToken))
+        {
+            return Error.Forbidden("Employee.AdminProfileViewForbidden", "You are not allowed to view admin profiles.");
         }
 
         var payroll = await GetEmployeePayrollDetailsAsync(request.EmployeeId, cancellationToken);
@@ -133,6 +140,26 @@ public class GetEmployeeDetailsQueryHandler : IRequestHandler<GetEmployeeDetails
             .ToListAsync(cancellationToken);
 
         return roles;
+    }
+
+    private async Task<bool> IsAdminProfileAsync(Guid? userId, CancellationToken cancellationToken)
+    {
+        if (!userId.HasValue)
+        {
+            return false;
+        }
+
+        var roleNames = await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.Roles,
+                ur => ur.RoleId,
+                role => role.Id,
+                (_, role) => role.Name)
+            .ToListAsync(cancellationToken);
+
+        return roleNames.Any(name =>
+            string.Equals(name, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<string?> ResolveProfileImageUrl(string? storedValue, CancellationToken cancellationToken)
