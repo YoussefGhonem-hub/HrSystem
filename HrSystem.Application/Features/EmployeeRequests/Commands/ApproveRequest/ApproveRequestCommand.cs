@@ -217,6 +217,13 @@ public class ApproveRequestCommandHandler
                     return loanErr;
             }
 
+            if (requestTypeCode == "AttendanceCorrection")
+            {
+                var correctionError = await TryApplyAttendanceCorrectionAsync(employeeRequest, cancellationToken);
+                if (correctionError is Error correctionErr)
+                    return correctionErr;
+            }
+
             employeeRequest.Status = EmployeeRequestStatus.Approved;
             employeeRequest.ApprovedBy = currentUserId;
             employeeRequest.ApprovedDate = DateTime.UtcNow;
@@ -480,6 +487,115 @@ public class ApproveRequestCommandHandler
 
         // Default: all other request types require manager approval
         return true;
+    }
+
+    private async Task<Error?> TryApplyAttendanceCorrectionAsync(
+        EmployeeRequest employeeRequest,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(employeeRequest.Description))
+            return Error.Validation("AttendanceCorrection.MissingData", "Attendance correction details are missing.");
+
+        if (!TryExtractDescriptionValue(employeeRequest.Description, "AttendanceCorrectionTypeId", out var correctionTypeIdRaw) ||
+            !Guid.TryParse(correctionTypeIdRaw, out var correctionTypeId))
+        {
+            return Error.Validation("AttendanceCorrection.InvalidType", "Attendance correction type is invalid or missing.");
+        }
+
+        if (!TryExtractDescriptionValue(employeeRequest.Description, "AttendanceDate", out var attendanceDateRaw) ||
+            !DateTime.TryParse(attendanceDateRaw, out var attendanceDate))
+        {
+            return Error.Validation("AttendanceCorrection.InvalidDate", "Attendance correction date is invalid or missing.");
+        }
+
+        if (!TryExtractDescriptionValue(employeeRequest.Description, "CorrectedTime", out var correctedTimeRaw) ||
+            !TimeSpan.TryParse(correctedTimeRaw, out var correctedTime))
+        {
+            return Error.Validation("AttendanceCorrection.InvalidTime", "Attendance correction time is invalid or missing.");
+        }
+
+        var correctionType = await _context.AttendanceCorrectionTypes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == correctionTypeId && t.IsActive && !t.IsDeleted, cancellationToken);
+
+        if (correctionType is null)
+            return Error.Validation("AttendanceCorrection.InvalidType", "Attendance correction type was not found.");
+
+        var typeText = $"{correctionType.NameEn} {correctionType.NameAr}".ToLower();
+        var applyToCheckIn = typeText.Contains("check-in") || typeText.Contains("check in") || typeText.Contains("حضور");
+        var applyToCheckOut = typeText.Contains("check-out") || typeText.Contains("check out") || typeText.Contains("انصراف");
+
+        if (!applyToCheckIn && !applyToCheckOut)
+            return Error.Validation("AttendanceCorrection.UnsupportedType", "Attendance correction type must target check-in or check-out.");
+
+        var targetDate = attendanceDate.Date;
+
+        var attendance = await _context.Attendances
+            .FirstOrDefaultAsync(a =>
+                !a.IsDeleted &&
+                !a.IsConfigurationRecord &&
+                a.EmployeeId == employeeRequest.EmployeeId &&
+                a.Date == targetDate,
+                cancellationToken);
+
+        if (attendance is null)
+        {
+            attendance = new HrSystem.Domain.Entities.Attendance.Attendance
+            {
+                EmployeeId = employeeRequest.EmployeeId,
+                Date = targetDate,
+                StatusId = AttendanceStatusIds.Present,
+                BranchId = employeeRequest.BranchId,
+                TenantId = employeeRequest.TenantId
+            };
+
+            attendance.MarkAsCreated(CurrentUser.Id ?? Guid.Empty);
+            _context.Attendances.Add(attendance);
+        }
+
+        if (applyToCheckIn)
+        {
+            attendance.CheckInTime = correctedTime;
+            attendance.CheckInMethod = AttendanceMethod.Manual;
+        }
+
+        if (applyToCheckOut)
+        {
+            attendance.CheckOutTime = correctedTime;
+            attendance.CheckOutMethod = AttendanceMethod.Manual;
+        }
+
+        if (attendance.CheckInTime.HasValue && attendance.CheckOutTime.HasValue)
+        {
+            if (attendance.CheckOutTime.Value < attendance.CheckInTime.Value)
+                return Error.Validation("AttendanceCorrection.InvalidRange", "Check-out time cannot be earlier than check-in time.");
+
+            attendance.WorkedHours = attendance.CheckOutTime.Value - attendance.CheckInTime.Value;
+        }
+
+        attendance.StatusId = AttendanceStatusIds.Present;
+        attendance.MarkAsModified(CurrentUser.Id ?? Guid.Empty);
+
+        return null;
+    }
+
+    private static bool TryExtractDescriptionValue(string description, string key, out string value)
+    {
+        value = string.Empty;
+        var prefix = key + ":";
+        var lines = description.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine.Trim();
+            if (!line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            value = line.Substring(prefix.Length).Trim();
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -55,6 +55,13 @@ public class QuickCheckInOutCommandHandler
         var eventDate = request.EventDateTime.Date;
         var eventTime = request.EventDateTime.TimeOfDay;
 
+        if (eventDate > DateTime.UtcNow.Date)
+        {
+            return Error.Validation(
+                "Attendance.FutureDateNotAllowed",
+                "Attendance date cannot be in the future.");
+        }
+
         if (employee.HiringDate.HasValue && eventDate < employee.HiringDate.Value.Date)
         {
             var joiningDate = employee.HiringDate.Value.Date.ToString("yyyy-MM-dd");
