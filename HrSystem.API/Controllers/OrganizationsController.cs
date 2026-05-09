@@ -1,17 +1,23 @@
 ﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Organizations.Commands.CreateOrganizationFull;
 using HrSystem.Application.Features.Organizations.Commands.CreateOrganizationWithAdmin;
+using HrSystem.Application.Features.Organizations.Commands.CreateSubscriptionPlan;
+using HrSystem.Application.Features.Organizations.Commands.CollectOrganizationInvoice;
 using HrSystem.Application.Features.Organizations.Commands.UpdateBranchHolidays;
 using HrSystem.Application.Features.Organizations.Commands.UpdateBranchWorkSchedule;
+using HrSystem.Application.Features.Organizations.Commands.GenerateMonthlyOrganizationInvoices;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationBranches;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationCompanyInfo;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationStructure;
 using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationSubscription;
+using HrSystem.Application.Features.Organizations.Commands.UpdateSubscriptionPlan;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationDetails;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationAdminDashboard;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationFullDetails;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationTrialStatus;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationsList;
+using HrSystem.Application.Features.Organizations.Queries.GetInvoiceCollections;
+using HrSystem.Application.Features.Organizations.Queries.GetSuperAdminInvoices;
 using HrSystem.Application.Features.Organizations.Queries.GetSuperAdminBillingDashboard;
 using HrSystem.Application.Features.Organizations.Queries.GetSubscriptionPlans;
 using HrSystem.Domain.Entities.Organization;
@@ -89,9 +95,84 @@ public class OrganizationsController : APIBaseController
     /// </summary>
     [HttpGet("subscription-plans")]
     [Authorize(Roles = RoleNames.SuperAdmin)]
-    public async Task<IActionResult> GetSubscriptionPlans()
+    public async Task<IActionResult> GetSubscriptionPlans([FromQuery] bool includeInactive = false)
     {
-        var result = await _mediator.Send(new GetSubscriptionPlansQuery());
+        var result = await _mediator.Send(new GetSubscriptionPlansQuery(includeInactive));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Create a new subscription plan. Only SuperAdmin.
+    /// </summary>
+    [HttpPost("subscription-plans")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> CreateSubscriptionPlan([FromBody] UpsertSubscriptionPlanRequest request)
+    {
+        var command = new CreateSubscriptionPlanCommand(
+            Code: request.Code,
+            NameEn: request.NameEn,
+            NameAr: request.NameAr,
+            DescriptionEn: request.DescriptionEn,
+            DescriptionAr: request.DescriptionAr,
+            MonthlyPrice: request.MonthlyPrice,
+            AnnualPrice: request.AnnualPrice,
+            Currency: request.Currency,
+            MaxEmployees: request.MaxEmployees,
+            MaxStorageGB: request.MaxStorageGB,
+            MaxDepartments: request.MaxDepartments,
+            AllowBiometricIntegration: request.AllowBiometricIntegration,
+            AllowPayrollModule: request.AllowPayrollModule,
+            AllowPerformanceModule: request.AllowPerformanceModule,
+            AllowRecruitmentModule: request.AllowRecruitmentModule,
+            AllowCustomReports: request.AllowCustomReports,
+            AllowAPIAccess: request.AllowAPIAccess,
+            TrialDays: request.TrialDays,
+            IsActive: request.IsActive,
+            DisplayOrder: request.DisplayOrder);
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Update an existing subscription plan. Only SuperAdmin.
+    /// </summary>
+    [HttpPut("subscription-plans/{id:guid}")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> UpdateSubscriptionPlan(Guid id, [FromBody] UpsertSubscriptionPlanRequest request)
+    {
+        var command = new UpdateSubscriptionPlanCommand(
+            SubscriptionPlanId: id,
+            Code: request.Code,
+            NameEn: request.NameEn,
+            NameAr: request.NameAr,
+            DescriptionEn: request.DescriptionEn,
+            DescriptionAr: request.DescriptionAr,
+            MonthlyPrice: request.MonthlyPrice,
+            AnnualPrice: request.AnnualPrice,
+            Currency: request.Currency,
+            MaxEmployees: request.MaxEmployees,
+            MaxStorageGB: request.MaxStorageGB,
+            MaxDepartments: request.MaxDepartments,
+            AllowBiometricIntegration: request.AllowBiometricIntegration,
+            AllowPayrollModule: request.AllowPayrollModule,
+            AllowPerformanceModule: request.AllowPerformanceModule,
+            AllowRecruitmentModule: request.AllowRecruitmentModule,
+            AllowCustomReports: request.AllowCustomReports,
+            AllowAPIAccess: request.AllowAPIAccess,
+            TrialDays: request.TrialDays,
+            IsActive: request.IsActive,
+            DisplayOrder: request.DisplayOrder);
+
+        var result = await _mediator.Send(command);
 
         return result.Match(
             response => Ok(response),
@@ -385,6 +466,79 @@ public class OrganizationsController : APIBaseController
         );
     }
 
+    /// <summary>
+    /// Generate monthly invoices for all active organizations with active subscription plans.
+    /// Generates one invoice per organization for the selected month and skips already-generated invoices.
+    /// </summary>
+    [HttpPost("invoices/generate-monthly")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> GenerateMonthlyInvoices([FromBody] GenerateMonthlyInvoicesRequest? request)
+    {
+        var command = new GenerateMonthlyOrganizationInvoicesCommand(
+            Year: request?.Year,
+            Month: request?.Month,
+            DueInDays: request?.DueInDays ?? 15);
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// List invoices for collection tracking. Supports filtering by collected/uncollected state.
+    /// </summary>
+    [HttpGet("invoices/collection")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> GetInvoicesForCollection([FromQuery] bool? isCollected = null)
+    {
+        var result = await _mediator.Send(new GetInvoiceCollectionsQuery(isCollected));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// List all invoices for SuperAdmin invoice management screen with line-item details.
+    /// </summary>
+    [HttpGet("invoices/super-admin")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> GetSuperAdminInvoices()
+    {
+        var result = await _mediator.Send(new GetSuperAdminInvoicesQuery());
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Mark a specific invoice as collected (paid).
+    /// </summary>
+    [HttpPut("invoices/{invoiceId:guid}/collect")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> CollectInvoice(Guid invoiceId, [FromBody] CollectInvoiceRequest? request)
+    {
+        var command = new CollectOrganizationInvoiceCommand(
+            InvoiceId: invoiceId,
+            PaymentMethod: request?.PaymentMethod,
+            PaymentReference: request?.PaymentReference,
+            PaidDate: request?.PaidDate,
+            Notes: request?.Notes);
+
+        var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
     #endregion
 
     private IActionResult? EnsureOrganizationAccess(Guid requestedOrganizationId)
@@ -459,6 +613,42 @@ public record UpdateSubscriptionRequest(
     DateTime? SubscriptionStartDate,
     DateTime? SubscriptionEndDate,
     string BillingCycle
+);
+
+public record UpsertSubscriptionPlanRequest(
+    string Code,
+    string NameEn,
+    string NameAr,
+    string? DescriptionEn,
+    string? DescriptionAr,
+    decimal MonthlyPrice,
+    decimal AnnualPrice,
+    string Currency,
+    int MaxEmployees,
+    int MaxStorageGB,
+    int MaxDepartments,
+    bool AllowBiometricIntegration,
+    bool AllowPayrollModule,
+    bool AllowPerformanceModule,
+    bool AllowRecruitmentModule,
+    bool AllowCustomReports,
+    bool AllowAPIAccess,
+    int TrialDays,
+    bool IsActive,
+    int DisplayOrder
+);
+
+public record GenerateMonthlyInvoicesRequest(
+    int? Year,
+    int? Month,
+    int? DueInDays
+);
+
+public record CollectInvoiceRequest(
+    string? PaymentMethod,
+    string? PaymentReference,
+    DateTime? PaidDate,
+    string? Notes
 );
 
 #endregion
