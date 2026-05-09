@@ -9,6 +9,7 @@ using HrSystem.Application.Features.Organizations.Commands.UpdateOrganizationStr
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationDetails;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationAdminDashboard;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationFullDetails;
+using HrSystem.Application.Features.Organizations.Queries.GetOrganizationTrialStatus;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationsList;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Shared.Constants;
@@ -93,6 +94,22 @@ public class OrganizationsController : APIBaseController
         }
 
         var result = await _mediator.Send(new GetOrganizationDetailsQuery(id));
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Public endpoint to check if organization trial period is finished.
+    /// Use this to decide whether to block app access after trial end.
+    /// </summary>
+    [HttpGet("{id:guid}/trial-status")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetOrganizationTrialStatus(Guid id)
+    {
+        var result = await _mediator.Send(new GetOrganizationTrialStatusQuery(id));
 
         return result.Match(
             response => Ok(response),
