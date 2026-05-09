@@ -11,6 +11,7 @@ using HrSystem.Application.Features.Organizations.Queries.GetOrganizationAdminDa
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationFullDetails;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationTrialStatus;
 using HrSystem.Application.Features.Organizations.Queries.GetOrganizationsList;
+using HrSystem.Application.Features.Organizations.Queries.GetSuperAdminBillingDashboard;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
@@ -141,6 +142,21 @@ public class OrganizationsController : APIBaseController
             recentLeaveRequestsCount);
 
         var result = await _mediator.Send(query);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Get super-admin billing dashboard KPI cards.
+    /// </summary>
+    [HttpGet("dashboard/super-admin-billing")]
+    [Authorize(Roles = RoleNames.SuperAdmin)]
+    public async Task<IActionResult> GetSuperAdminBillingDashboard()
+    {
+        var result = await _mediator.Send(new GetSuperAdminBillingDashboardQuery());
 
         return result.Match(
             response => Ok(response),
