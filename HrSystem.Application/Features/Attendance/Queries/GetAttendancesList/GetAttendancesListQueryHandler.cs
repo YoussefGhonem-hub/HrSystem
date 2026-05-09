@@ -86,6 +86,8 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
             EmployeeId = a.EmployeeId,
             EmployeeName = a.Employee.FirstNameEn + " " + a.Employee.LastNameEn,
             EmployeeCode = a.Employee.EmployeeCode,
+            JobTitle = a.Employee.JobTitle != null ? a.Employee.JobTitle.TitleEn : null,
+            Department = a.Employee.Department != null ? a.Employee.Department.NameEn : null,
             Date = a.Date,
             CheckInTime = a.CheckInTime,
             CheckOutTime = a.CheckOutTime,

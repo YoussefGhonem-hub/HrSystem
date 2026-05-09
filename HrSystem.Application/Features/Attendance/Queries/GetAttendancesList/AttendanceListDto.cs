@@ -6,6 +6,8 @@ public record AttendanceListDto
     public Guid EmployeeId { get; init; }
     public string EmployeeName { get; init; } = string.Empty;
     public string EmployeeCode { get; init; } = string.Empty;
+    public string? JobTitle { get; init; }
+    public string? Department { get; init; }
     public DateTime Date { get; init; }
     public TimeSpan? CheckInTime { get; init; }
     public TimeSpan? CheckOutTime { get; init; }
