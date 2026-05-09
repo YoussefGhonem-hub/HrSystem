@@ -121,7 +121,7 @@ public class OrganizationsController : APIBaseController
     /// Get organization-admin dashboard data for the current organization.
     /// </summary>
     [HttpGet("dashboard/org-admin")]
-    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager)]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.DepartmentManager)]
     public async Task<IActionResult> GetOrganizationAdminDashboard(
         [FromQuery] DateTime? date = null,
         [FromQuery] int employeePageNumber = 1,

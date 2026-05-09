@@ -221,11 +221,12 @@ public class GetOrganizationAdminDashboardQueryHandler
 
         var date = request.Date?.Date ?? DateTime.UtcNow.Date;
         var year = date.Year;
+        var scopedEmployeeIds = await ResolveScopedEmployeeIds(cancellationToken);
 
-        var employeeOverview = await BuildEmployeeOverview(cancellationToken);
-        var employeeProfiles = await BuildEmployeeProfiles(request, cancellationToken);
-        var organizationalStructure = await BuildOrganizationalStructure(cancellationToken);
-        var attendanceAndLeave = await BuildAttendanceAndLeave(date, year, request, cancellationToken);
+        var employeeOverview = await BuildEmployeeOverview(scopedEmployeeIds, cancellationToken);
+        var employeeProfiles = await BuildEmployeeProfiles(request, scopedEmployeeIds, cancellationToken);
+        var organizationalStructure = await BuildOrganizationalStructure(scopedEmployeeIds, cancellationToken);
+        var attendanceAndLeave = await BuildAttendanceAndLeave(date, year, request, scopedEmployeeIds, cancellationToken);
 
         var dto = new OrganizationAdminDashboardDto
         {
@@ -241,9 +242,44 @@ public class GetOrganizationAdminDashboardQueryHandler
             "Organization admin dashboard retrieved successfully");
     }
 
-    private async Task<EmployeeOverviewDto> BuildEmployeeOverview(CancellationToken cancellationToken)
+    private async Task<HashSet<Guid>?> ResolveScopedEmployeeIds(CancellationToken cancellationToken)
     {
-        var employees = _context.Employees.AsNoTracking();
+        var roles = CurrentUser.Roles;
+        var isDepartmentManager = roles.Any(r => string.Equals(r, RoleNames.DepartmentManager, StringComparison.OrdinalIgnoreCase));
+        var hasElevatedDashboardAccess =
+            roles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase)) ||
+            roles.Any(r => string.Equals(r, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase)) ||
+            roles.Any(r => string.Equals(r, RoleNames.HRManager, StringComparison.OrdinalIgnoreCase));
+
+        if (!isDepartmentManager || hasElevatedDashboardAccess)
+        {
+            return null;
+        }
+
+        var managerEmployeeId = CurrentUser.EmployeeId;
+        if (!managerEmployeeId.HasValue || managerEmployeeId.Value == Guid.Empty)
+        {
+            return new HashSet<Guid>();
+        }
+
+        var directReports = await _context.Employees
+            .AsNoTracking()
+            .Where(e => e.DirectManagerId == managerEmployeeId.Value)
+            .Select(e => e.Id)
+            .ToListAsync(cancellationToken);
+
+        return directReports.ToHashSet();
+    }
+
+    private async Task<EmployeeOverviewDto> BuildEmployeeOverview(
+        HashSet<Guid>? scopedEmployeeIds,
+        CancellationToken cancellationToken)
+    {
+        var employees = _context.Employees.AsNoTracking().AsQueryable();
+        if (scopedEmployeeIds is not null)
+        {
+            employees = employees.Where(e => scopedEmployeeIds.Contains(e.Id));
+        }
 
         var totalEmployees = await employees.CountAsync(cancellationToken);
         var activeEmployees = await employees.CountAsync(e => e.StatusId == EmployeeStatusIds.Active, cancellationToken);
@@ -261,11 +297,17 @@ public class GetOrganizationAdminDashboardQueryHandler
 
     private async Task<PagedResult<EmployeeProfileDto>> BuildEmployeeProfiles(
         GetOrganizationAdminDashboardQuery request,
+        HashSet<Guid>? scopedEmployeeIds,
         CancellationToken cancellationToken)
     {
         var employees = _context.Employees
             .AsNoTracking()
             .AsQueryable();
+
+        if (scopedEmployeeIds is not null)
+        {
+            employees = employees.Where(e => scopedEmployeeIds.Contains(e.Id));
+        }
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
@@ -302,9 +344,20 @@ public class GetOrganizationAdminDashboardQueryHandler
         return await projected.ToPagedResultAsync(request.EmployeePageNumber, request.EmployeePageSize, cancellationToken);
     }
 
-    private async Task<OrganizationalStructureDto> BuildOrganizationalStructure(CancellationToken cancellationToken)
+    private async Task<OrganizationalStructureDto> BuildOrganizationalStructure(
+        HashSet<Guid>? scopedEmployeeIds,
+        CancellationToken cancellationToken)
     {
-        var departments = await _context.Departments
+        var departmentsQuery = _context.Departments
+            .AsNoTracking();
+
+        if (scopedEmployeeIds is not null)
+        {
+            departmentsQuery = departmentsQuery
+                .Where(d => d.Employees.Any(e => scopedEmployeeIds.Contains(e.Id)));
+        }
+
+        var departments = await departmentsQuery
             .AsNoTracking()
             .OrderBy(d => d.SortOrder)
             .ThenBy(d => d.NameEn)
@@ -318,12 +371,23 @@ public class GetOrganizationAdminDashboardQueryHandler
                 ParentDepartmentId = d.ParentDepartmentId,
                 ManagerId = d.ManagerId,
                 ManagerName = d.Manager != null ? d.Manager.FullNameEn : null,
-                EmployeesCount = d.Employees.Count,
+                EmployeesCount = scopedEmployeeIds == null
+                    ? d.Employees.Count
+                    : d.Employees.Count(e => scopedEmployeeIds.Contains(e.Id)),
                 SubDepartmentsCount = d.SubDepartments.Count(sd => sd.IsActive)
             })
             .ToListAsync(cancellationToken);
 
-        var jobRoles = await _context.JobTitles
+        var jobRolesQuery = _context.JobTitles
+            .AsNoTracking();
+
+        if (scopedEmployeeIds is not null)
+        {
+            jobRolesQuery = jobRolesQuery
+                .Where(j => j.Employees.Any(e => scopedEmployeeIds.Contains(e.Id)));
+        }
+
+        var jobRoles = await jobRolesQuery
             .AsNoTracking()
             .OrderBy(j => j.Level)
             .ThenBy(j => j.TitleEn)
@@ -335,7 +399,9 @@ public class GetOrganizationAdminDashboardQueryHandler
                 Code = j.Code,
                 Level = j.Level,
                 IsActive = j.IsActive,
-                EmployeesCount = j.Employees.Count
+                EmployeesCount = scopedEmployeeIds == null
+                    ? j.Employees.Count
+                    : j.Employees.Count(e => scopedEmployeeIds.Contains(e.Id))
             })
             .ToListAsync(cancellationToken);
 
@@ -360,6 +426,7 @@ public class GetOrganizationAdminDashboardQueryHandler
         var directReports = await _context.Employees
             .AsNoTracking()
             .Where(e => e.DirectManagerId.HasValue)
+            .Where(e => scopedEmployeeIds == null || scopedEmployeeIds.Contains(e.Id))
             .Select(e => new
             {
                 ManagerId = e.DirectManagerId!.Value,
@@ -370,6 +437,25 @@ public class GetOrganizationAdminDashboardQueryHandler
                 JobTitleName = e.JobTitle != null ? e.JobTitle.TitleEn : null
             })
             .ToListAsync(cancellationToken);
+
+        if (scopedEmployeeIds is not null)
+        {
+            managerIds = directReports
+                .Select(r => r.ManagerId)
+                .Distinct()
+                .ToList();
+
+            managers = await _context.Employees
+                .AsNoTracking()
+                .Where(e => managerIds.Contains(e.Id))
+                .Select(e => new
+                {
+                    e.Id,
+                    Name = e.FullNameEn,
+                    DepartmentName = e.Department != null ? e.Department.NameEn : null
+                })
+                .ToListAsync(cancellationToken);
+        }
 
         var reportingHierarchy = managers
             .Select(m =>
@@ -414,6 +500,7 @@ public class GetOrganizationAdminDashboardQueryHandler
         DateTime date,
         int year,
         GetOrganizationAdminDashboardQuery request,
+        HashSet<Guid>? scopedEmployeeIds,
         CancellationToken cancellationToken)
     {
         var safeAttendanceCount = request.RecentAttendanceCount <= 0 ? 50 : request.RecentAttendanceCount;
@@ -423,6 +510,11 @@ public class GetOrganizationAdminDashboardQueryHandler
         var attendanceQuery = _context.Attendances
             .AsNoTracking()
             .Where(a => a.Date.Date == date);
+
+        if (scopedEmployeeIds is not null)
+        {
+            attendanceQuery = attendanceQuery.Where(a => scopedEmployeeIds.Contains(a.EmployeeId));
+        }
 
         var dailySummary = new DailyAttendanceSummaryDto
         {
@@ -457,6 +549,7 @@ public class GetOrganizationAdminDashboardQueryHandler
         var leaveBalances = await _context.EmployeeLeaveBalances
             .AsNoTracking()
             .Where(lb => lb.Year == year)
+            .Where(lb => scopedEmployeeIds == null || scopedEmployeeIds.Contains(lb.EmployeeId))
             .OrderBy(lb => lb.Employee.FirstNameEn)
             .ThenBy(lb => lb.VacationType.NameEn)
             .Select(lb => new EmployeeLeaveBalanceDto
@@ -484,6 +577,7 @@ public class GetOrganizationAdminDashboardQueryHandler
 
         var leaveHistory = await _context.EmployeeLeaveTransactions
             .AsNoTracking()
+            .Where(t => scopedEmployeeIds == null || scopedEmployeeIds.Contains(t.EmployeeId))
             .OrderByDescending(t => t.CreatedDate)
             .Take(safeLeaveHistoryCount)
             .Select(t => new LeaveHistoryDto
@@ -511,7 +605,8 @@ public class GetOrganizationAdminDashboardQueryHandler
         var leaveRequestsQuery = _context.EmployeeRequests
             .AsNoTracking()
             .Where(r => r.RequestTypeRef != null)
-            .Where(r => r.RequestTypeRef!.Code.ToLower() == "vacation");
+            .Where(r => r.RequestTypeRef!.Code.ToLower() == "vacation")
+            .Where(r => scopedEmployeeIds == null || scopedEmployeeIds.Contains(r.EmployeeId));
 
         var leaveRequestSummary = new LeaveRequestApprovalSummaryDto
         {
