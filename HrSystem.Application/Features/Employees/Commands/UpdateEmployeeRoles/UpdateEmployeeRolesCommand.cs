@@ -57,6 +57,16 @@ public class UpdateEmployeeRolesCommandHandler : IRequestHandler<UpdateEmployeeR
             return Error.NotFound(code: "Employee.NotFound", description: "Employee not found");
         }
 
+        var editAccess = await EmployeeEditAuthorizationGuard.EnsureCanEditAsync(
+            _context,
+            employee.Id,
+            employee.UserId,
+            cancellationToken);
+        if (editAccess.IsError)
+        {
+            return editAccess.Errors;
+        }
+
         if (!employee.UserId.HasValue)
         {
             return Error.Validation(code: "Employee.UserMissing", description: "Employee is not linked to a user account");

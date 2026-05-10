@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Employees.Commands;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
@@ -53,6 +54,16 @@ public class UpdateProfileImageCommandHandler : IRequestHandler<UpdateProfileIma
         if (employee is null)
         {
             return Error.NotFound("Employee.NotFound", "Employee not found");
+        }
+
+        var editAccess = await EmployeeEditAuthorizationGuard.EnsureCanEditAsync(
+            _context,
+            employee.Id,
+            employee.UserId,
+            cancellationToken);
+        if (editAccess.IsError)
+        {
+            return editAccess.Errors;
         }
 
         if (request.ProfileImage is null || request.ProfileImage.Length == 0)

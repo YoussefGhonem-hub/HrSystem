@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using ErrorOr;
+using HrSystem.Application.Features.Employees.Commands;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
 using HrSystem.Infrustructure.Persistence;
@@ -29,6 +30,16 @@ public class UpdateEmployeeAttendanceCommandHandler : IRequestHandler<UpdateEmpl
         if (employee is null)
         {
             return Error.NotFound(description: "Employee not found");
+        }
+
+        var editAccess = await EmployeeEditAuthorizationGuard.EnsureCanEditAsync(
+            _context,
+            employee.Id,
+            employee.UserId,
+            cancellationToken);
+        if (editAccess.IsError)
+        {
+            return editAccess.Errors;
         }
 
         var configuration = await _context.Attendances

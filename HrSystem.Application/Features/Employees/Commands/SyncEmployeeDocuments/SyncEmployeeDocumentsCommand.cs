@@ -94,6 +94,16 @@ public class SyncEmployeeDocumentsCommandHandler : IRequestHandler<SyncEmployeeD
             return Error.NotFound("Employee.NotFound", "Employee not found");
         }
 
+        var editAccess = await EmployeeEditAuthorizationGuard.EnsureCanEditAsync(
+            _context,
+            employee.Id,
+            employee.UserId,
+            cancellationToken);
+        if (editAccess.IsError)
+        {
+            return editAccess.Errors;
+        }
+
         // Authorization check
         var isHr = CurrentUser.Roles?.Contains(RoleNames.HRManager) == true ||
                    CurrentUser.Roles?.Contains(RoleNames.HRSpecialist) == true ||

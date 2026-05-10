@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Employees.Commands;
 using HrSystem.Application.Features.LeaveBalances.Dtos;
 using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Enums;
@@ -49,6 +50,16 @@ public class UpsertEmployeeLeaveBalancesCommandHandler
         if (employee is null)
         {
             return Error.NotFound(description: "Employee not found.");
+        }
+
+        var editAccess = await EmployeeEditAuthorizationGuard.EnsureCanEditAsync(
+            _context,
+            employee.Id,
+            employee.UserId,
+            cancellationToken);
+        if (editAccess.IsError)
+        {
+            return editAccess.Errors;
         }
 
         var vacationTypeIds = request.Allocations.Select(a => a.VacationTypeId).Distinct().ToList();

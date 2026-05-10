@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Employees.Commands;
 using HrSystem.Domain.Entities.Payroll;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
@@ -30,6 +31,16 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
         if (employee == null)
         {
             return Error.NotFound("Employee.NotFound", "Employee not found");
+        }
+
+        var editAccess = await EmployeeEditAuthorizationGuard.EnsureCanEditAsync(
+            _context,
+            employee.Id,
+            employee.UserId,
+            cancellationToken);
+        if (editAccess.IsError)
+        {
+            return editAccess.Errors;
         }
 
         var isHr = CurrentUser.Roles?.Contains(RoleNames.HRManager) == true ||
