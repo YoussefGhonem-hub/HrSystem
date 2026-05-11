@@ -132,8 +132,10 @@ public record EmployeeRequestDto
     public string? ManagerComments { get; init; }
     public string? RejectionReason { get; init; }
     public Guid? ApprovedBy { get; init; }
+    public string? ApprovedByName { get; init; }
     public DateTime? ApprovedDate { get; init; }
     public Guid? ProcessedBy { get; init; }
+    public string? ProcessedByName { get; init; }
     public DateTime? ProcessedDate { get; init; }
 
     /// <summary>
@@ -150,6 +152,7 @@ public record EmployeeRequestDto
     public PersonalDetailDto? PersonalDetail { get; init; }
     public FeedbackDetailDto? FeedbackDetail { get; init; }
     public PermissionDetailDto? PermissionDetail { get; init; }
+    public AttendanceCorrectionDetailDto? AttendanceCorrectionDetail { get; init; }
 }
 #endregion
 
@@ -269,6 +272,14 @@ public record PermissionDetailDto
     public DateTime? ManagerApprovalDate { get; init; }
     public string? ManagerComments { get; init; }
     public decimal? LeaveDeduction { get; init; }
+}
+
+public record AttendanceCorrectionDetailDto
+{
+    public Guid AttendanceCorrectionTypeId { get; init; }
+    public string? AttendanceCorrectionTypeName { get; init; }
+    public DateTime AttendanceDate { get; init; }
+    public TimeSpan CorrectedTime { get; init; }
 }
 #endregion
 

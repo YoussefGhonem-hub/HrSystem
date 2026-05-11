@@ -5,6 +5,7 @@ using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Storage.AWS3.Services;
 
 namespace HrSystem.Application.Features.EmployeeRequests.Queries.GetRequestDetail;
 
@@ -19,8 +20,13 @@ public class GetRequestDetailQueryHandler
     : IRequestHandler<GetRequestDetailQuery, ErrorOr<GenericResponse<EmployeeRequestDto>>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IStorageService _storageService;
 
-    public GetRequestDetailQueryHandler(ApplicationDbContext context) => _context = context;
+    public GetRequestDetailQueryHandler(ApplicationDbContext context, IStorageService storageService)
+    {
+        _context = context;
+        _storageService = storageService;
+    }
 
     public async Task<ErrorOr<GenericResponse<EmployeeRequestDto>>> Handle(
         GetRequestDetailQuery request,
@@ -104,13 +110,24 @@ public class GetRequestDetailQueryHandler
             RequestedDate = r.RequestedDate,
             StartDate = r.StartDate,
             EndDate = r.EndDate,
-            AttachmentUrl = r.AttachmentUrl,
+            AttachmentUrl = await ResolveAttachmentUrlAsync(r.AttachmentUrl, cancellationToken),
             ManagerComments = r.ManagerComments,
             RejectionReason = r.RejectionReason,
             ApprovedBy = r.ApprovedBy,
+            ApprovedByName = r.ApprovedByUser != null
+                ? (!string.IsNullOrWhiteSpace(r.ApprovedByUser.FullName)
+                    ? r.ApprovedByUser.FullName
+                    : r.ApprovedByUser.UserName)
+                : null,
             ApprovedDate = r.ApprovedDate,
             ProcessedBy = r.ProcessedBy,
+            ProcessedByName = r.ProcessedByUser != null
+                ? (!string.IsNullOrWhiteSpace(r.ProcessedByUser.FullName)
+                    ? r.ProcessedByUser.FullName
+                    : r.ProcessedByUser.UserName)
+                : null,
             ProcessedDate = r.ProcessedDate,
+            AttendanceCorrectionDetail = await BuildAttendanceCorrectionDetailAsync(r.Description, cancellationToken),
 
             VacationDetail = r.VacationDetail != null ? new VacationDetailDto
             {
@@ -217,5 +234,92 @@ public class GetRequestDetailQueryHandler
         };
 
         return GenericResponse<EmployeeRequestDto>.SuccessResult(dto, "Request details retrieved successfully.");
+    }
+
+    private async Task<AttendanceCorrectionDetailDto?> BuildAttendanceCorrectionDetailAsync(
+        string? description,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return null;
+        }
+
+        if (!TryExtractDescriptionValue(description, "AttendanceCorrectionTypeId", out var correctionTypeIdRaw) ||
+            !Guid.TryParse(correctionTypeIdRaw, out var correctionTypeId))
+        {
+            return null;
+        }
+
+        if (!TryExtractDescriptionValue(description, "AttendanceDate", out var attendanceDateRaw) ||
+            !DateTime.TryParse(attendanceDateRaw, out var attendanceDate))
+        {
+            return null;
+        }
+
+        if (!TryExtractDescriptionValue(description, "CorrectedTime", out var correctedTimeRaw) ||
+            !TimeSpan.TryParse(correctedTimeRaw, out var correctedTime))
+        {
+            return null;
+        }
+
+        var correctionTypeName = await _context.AttendanceCorrectionTypes
+            .AsNoTracking()
+            .Where(t => t.Id == correctionTypeId && t.IsActive && !t.IsDeleted)
+            .Select(t => t.NameEn)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new AttendanceCorrectionDetailDto
+        {
+            AttendanceCorrectionTypeId = correctionTypeId,
+            AttendanceCorrectionTypeName = correctionTypeName,
+            AttendanceDate = attendanceDate.Date,
+            CorrectedTime = correctedTime
+        };
+    }
+
+    private static bool TryExtractDescriptionValue(string description, string key, out string value)
+    {
+        value = string.Empty;
+        var prefix = key + ":";
+        var lines = description.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine.Trim();
+            if (!line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            value = line.Substring(prefix.Length).Trim();
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        return false;
+    }
+
+    private async Task<string?> ResolveAttachmentUrlAsync(string? storedValue, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(storedValue))
+        {
+            return null;
+        }
+
+        if (storedValue.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return storedValue;
+        }
+
+        try
+        {
+            var url = await _storageService.DownloadFileUrl(storedValue, cancellationToken);
+            return string.IsNullOrWhiteSpace(url) ? storedValue : url;
+        }
+        catch
+        {
+            // Return original value if presigning fails to avoid breaking the endpoint.
+            return storedValue;
+        }
     }
 }

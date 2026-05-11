@@ -22,6 +22,9 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         GetPayrollOverviewQuery request,
         CancellationToken cancellationToken)
     {
+        var periodStart = new DateTime(request.Year, request.Month, 1);
+        var periodEnd = new DateTime(request.Year, request.Month, DateTime.DaysInMonth(request.Year, request.Month));
+
         // Get current month payroll cycle
         var currentCycle = await _context.PayrollCycles
             .Where(pc => pc.Month == request.Month && pc.Year == request.Year)
@@ -36,7 +39,14 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
             .FirstOrDefaultAsync(cancellationToken);
 
         // Calculate statistics
-        var statistics = await CalculateStatistics(request.Month, request.Year, currentCycle, lastMonthCycle, cancellationToken);
+        var statistics = await CalculateStatistics(
+            request.Month,
+            request.Year,
+            currentCycle,
+            lastMonthCycle,
+            periodStart,
+            periodEnd,
+            cancellationToken);
 
         // Determine branch scope for HR roles
         var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
@@ -50,7 +60,11 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
             .Include(p => p.Employee)
                 .ThenInclude(e => e.Branch)
             .Include(p => p.PayrollCycle)
-            .Where(p => p.PayrollCycle.Month == request.Month && p.PayrollCycle.Year == request.Year)
+            .Where(p => p.PayrollCycle.Month == request.Month &&
+                        p.PayrollCycle.Year == request.Year &&
+                        p.Employee.HiringDate.HasValue &&
+                        p.Employee.HiringDate.Value.Date <= periodEnd &&
+                        (!p.Employee.TerminationDate.HasValue || p.Employee.TerminationDate.Value.Date >= periodStart))
             .AsQueryable();
 
         // Apply branch scope for HR managers
@@ -132,6 +146,8 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         int year,
         Domain.Entities.Payroll.PayrollCycle? currentCycle,
         Domain.Entities.Payroll.PayrollCycle? lastMonthCycle,
+        DateTime periodStart,
+        DateTime periodEnd,
         CancellationToken cancellationToken)
     {
         // Determine branch scope
@@ -147,7 +163,11 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         {
             currentMonthTotal = currentCycle != null
                 ? await _context.Payslips
-                    .Where(p => p.PayrollCycleId == currentCycle.Id && p.Employee.BranchId == statsBranchId.Value)
+                    .Where(p => p.PayrollCycleId == currentCycle.Id &&
+                                p.Employee.BranchId == statsBranchId.Value &&
+                                p.Employee.HiringDate.HasValue &&
+                                p.Employee.HiringDate.Value.Date <= periodEnd &&
+                                (!p.Employee.TerminationDate.HasValue || p.Employee.TerminationDate.Value.Date >= periodStart))
                     .SumAsync(p => (decimal?)p.NetSalary, cancellationToken) ?? 0
                 : 0;
 
@@ -155,14 +175,27 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
             var lastYear2 = month == 1 ? year - 1 : year;
             lastMonthTotal = lastMonthCycle != null
                 ? await _context.Payslips
-                    .Where(p => p.PayrollCycleId == lastMonthCycle.Id && p.Employee.BranchId == statsBranchId.Value)
+                    .Where(p => p.PayrollCycleId == lastMonthCycle.Id &&
+                                p.Employee.BranchId == statsBranchId.Value)
                     .SumAsync(p => (decimal?)p.NetSalary, cancellationToken) ?? 0
                 : 0;
         }
         else
         {
-            currentMonthTotal = currentCycle?.TotalNetSalary ?? 0;
-            lastMonthTotal = lastMonthCycle?.TotalNetSalary ?? 0;
+            currentMonthTotal = currentCycle != null
+                ? await _context.Payslips
+                    .Where(p => p.PayrollCycleId == currentCycle.Id &&
+                                p.Employee.HiringDate.HasValue &&
+                                p.Employee.HiringDate.Value.Date <= periodEnd &&
+                                (!p.Employee.TerminationDate.HasValue || p.Employee.TerminationDate.Value.Date >= periodStart))
+                    .SumAsync(p => (decimal?)p.NetSalary, cancellationToken) ?? 0
+                : 0;
+
+            lastMonthTotal = lastMonthCycle != null
+                ? await _context.Payslips
+                    .Where(p => p.PayrollCycleId == lastMonthCycle.Id)
+                    .SumAsync(p => (decimal?)p.NetSalary, cancellationToken) ?? 0
+                : 0;
         }
 
         var changePercentage = lastMonthTotal > 0
@@ -172,7 +205,10 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         // Get active employees with their contract types (scoped to branch)
         var employeesQuery = _context.Employees
             .Include(e => e.ContractType)
-            .Where(e => e.Status.NameEn == "Active");
+            .Where(e => e.Status.NameEn == "Active" &&
+                        e.HiringDate.HasValue &&
+                        e.HiringDate.Value.Date <= periodEnd &&
+                        (!e.TerminationDate.HasValue || e.TerminationDate.Value.Date >= periodStart));
 
         if (statsBranchId.HasValue)
         {
@@ -195,7 +231,10 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         var pendingQuery = _context.Payslips
             .Where(p => p.PayrollCycle.Month == month && 
                        p.PayrollCycle.Year == year && 
-                       !p.IsPaid);
+                       !p.IsPaid &&
+                       p.Employee.HiringDate.HasValue &&
+                       p.Employee.HiringDate.Value.Date <= periodEnd &&
+                       (!p.Employee.TerminationDate.HasValue || p.Employee.TerminationDate.Value.Date >= periodStart));
 
         if (statsBranchId.HasValue)
         {

@@ -46,6 +46,8 @@ public record RequestListItemDto
     public string EmployeeCode { get; init; } = string.Empty;
     public string EmployeeName { get; init; } = string.Empty;
     public string? EmployeeProfilePictureUrl { get; init; }
+    public Guid? AttendanceCorrectionTypeId { get; init; }
+    public string? AttendanceCorrectionTypeName { get; init; }
 }
 
 public class GetRequestsOverviewQueryHandler
@@ -91,8 +93,28 @@ public class GetRequestsOverviewQueryHandler
 
         var monthlyTotal = statsSeed.Count(r => r.RequestedDate.Date >= monthStart);
 
-        var pagedRequests = await ApplySorting(listQuery, request.SortBy, request.SortDescending)
-            .Select(r => new RequestListItemDto
+        var correctionTypesById = await _context.AttendanceCorrectionTypes
+            .AsNoTracking()
+            .Where(t => t.IsActive && !t.IsDeleted)
+            .Select(t => new { t.Id, t.NameEn })
+            .ToDictionaryAsync(t => t.Id, t => t.NameEn, cancellationToken);
+
+        var sortedQuery = ApplySorting(listQuery, request.SortBy, request.SortDescending);
+        var totalCount = await sortedQuery.CountAsync(cancellationToken);
+
+        var pageItems = await sortedQuery
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var requestItems = pageItems.Select(r =>
+        {
+            var correctionTypeId = ParseAttendanceCorrectionTypeId(r.Description);
+            var correctionTypeName = correctionTypeId.HasValue && correctionTypesById.TryGetValue(correctionTypeId.Value, out var name)
+                ? name
+                : null;
+
+            return new RequestListItemDto
             {
                 Id = r.Id,
                 RequestTitle = string.IsNullOrWhiteSpace(r.Title)
@@ -107,9 +129,17 @@ public class GetRequestsOverviewQueryHandler
                 EmployeeName = r.Employee != null
                     ? string.Concat(r.Employee.FirstNameEn, " ", r.Employee.LastNameEn)
                     : string.Empty,
-                EmployeeProfilePictureUrl = r.Employee != null ? r.Employee.ProfilePictureUrl : null
-            })
-            .ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+                EmployeeProfilePictureUrl = r.Employee != null ? r.Employee.ProfilePictureUrl : null,
+                AttendanceCorrectionTypeId = correctionTypeId,
+                AttendanceCorrectionTypeName = correctionTypeName
+            };
+        }).ToList();
+
+        var pagedRequests = PagedResult<RequestListItemDto>.Create(
+            requestItems,
+            totalCount,
+            request.PageNumber,
+            request.PageSize);
 
         var dto = new RequestsOverviewDto
         {
@@ -186,5 +216,42 @@ public class GetRequestsOverviewQueryHandler
                 ? query.OrderByDescending(r => r.RequestedDate)
                 : query.OrderBy(r => r.RequestedDate)
         };
+    }
+
+    private static Guid? ParseAttendanceCorrectionTypeId(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return null;
+        }
+
+        if (!TryExtractDescriptionValue(description, "AttendanceCorrectionTypeId", out var rawId) ||
+            !Guid.TryParse(rawId, out var correctionTypeId))
+        {
+            return null;
+        }
+
+        return correctionTypeId;
+    }
+
+    private static bool TryExtractDescriptionValue(string description, string key, out string value)
+    {
+        value = string.Empty;
+        var prefix = key + ":";
+        var lines = description.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine.Trim();
+            if (!line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            value = line.Substring(prefix.Length).Trim();
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        return false;
     }
 }

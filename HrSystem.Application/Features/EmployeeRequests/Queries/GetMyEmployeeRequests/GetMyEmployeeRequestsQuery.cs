@@ -30,6 +30,8 @@ public class GetMyEmployeeRequestsQueryHandler
             .Include(r => r.RequestTypeRef)
             .Include(r => r.Employee)
                 .ThenInclude(e => e!.DirectManager)
+            .Include(r => r.ApprovedByUser)
+            .Include(r => r.ProcessedByUser)
             .Include(r => r.OvertimeDetail).ThenInclude(o => o!.OvertimeType)
             .Where(r => r.EmployeeId == request.EmployeeId);
 
@@ -42,6 +44,12 @@ public class GetMyEmployeeRequestsQueryHandler
             .OrderByDescending(r => r.CreatedDate)
             .Take(200)
             .ToListAsync(cancellationToken);
+
+        var correctionTypesById = await _context.AttendanceCorrectionTypes
+            .AsNoTracking()
+            .Where(t => t.IsActive && !t.IsDeleted)
+            .Select(t => new { t.Id, t.NameEn })
+            .ToDictionaryAsync(t => t.Id, t => t.NameEn, cancellationToken);
 
         var dtos = items.Select(r => new EmployeeRequestDto
         {
@@ -62,7 +70,19 @@ public class GetMyEmployeeRequestsQueryHandler
             ManagerComments = r.ManagerComments,
             RejectionReason = r.RejectionReason,
             ApprovedBy = r.ApprovedBy,
+            ApprovedByName = r.ApprovedByUser != null
+                ? (!string.IsNullOrWhiteSpace(r.ApprovedByUser.FullName)
+                    ? r.ApprovedByUser.FullName
+                    : r.ApprovedByUser.UserName)
+                : null,
             ApprovedDate = r.ApprovedDate,
+            ProcessedBy = r.ProcessedBy,
+            ProcessedByName = r.ProcessedByUser != null
+                ? (!string.IsNullOrWhiteSpace(r.ProcessedByUser.FullName)
+                    ? r.ProcessedByUser.FullName
+                    : r.ProcessedByUser.UserName)
+                : null,
+            ProcessedDate = r.ProcessedDate,
             PendingAt = r.Status == EmployeeRequestStatus.Pending
                 ? (r.Employee != null && r.Employee.DirectManager != null 
                     ? r.Employee.DirectManager.FullNameEn 
@@ -70,6 +90,7 @@ public class GetMyEmployeeRequestsQueryHandler
                 : r.Status == EmployeeRequestStatus.ManagerApproved
                     ? "HR Department"
                     : null,
+            AttendanceCorrectionDetail = BuildAttendanceCorrectionDetail(r.Description, correctionTypesById),
             OvertimeDetail = r.OvertimeDetail != null
                 ? new OvertimeDetailDto
                 {
@@ -89,5 +110,64 @@ public class GetMyEmployeeRequestsQueryHandler
         }).ToList();
 
         return GenericResponse<List<EmployeeRequestDto>>.SuccessResult(dtos);
+    }
+
+    private static AttendanceCorrectionDetailDto? BuildAttendanceCorrectionDetail(
+        string? description,
+        IReadOnlyDictionary<Guid, string> correctionTypesById)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return null;
+        }
+
+        if (!TryExtractDescriptionValue(description, "AttendanceCorrectionTypeId", out var correctionTypeIdRaw) ||
+            !Guid.TryParse(correctionTypeIdRaw, out var correctionTypeId))
+        {
+            return null;
+        }
+
+        if (!TryExtractDescriptionValue(description, "AttendanceDate", out var attendanceDateRaw) ||
+            !DateTime.TryParse(attendanceDateRaw, out var attendanceDate))
+        {
+            return null;
+        }
+
+        if (!TryExtractDescriptionValue(description, "CorrectedTime", out var correctedTimeRaw) ||
+            !TimeSpan.TryParse(correctedTimeRaw, out var correctedTime))
+        {
+            return null;
+        }
+
+        correctionTypesById.TryGetValue(correctionTypeId, out var correctionTypeName);
+
+        return new AttendanceCorrectionDetailDto
+        {
+            AttendanceCorrectionTypeId = correctionTypeId,
+            AttendanceCorrectionTypeName = correctionTypeName,
+            AttendanceDate = attendanceDate.Date,
+            CorrectedTime = correctedTime
+        };
+    }
+
+    private static bool TryExtractDescriptionValue(string description, string key, out string value)
+    {
+        value = string.Empty;
+        var prefix = key + ":";
+        var lines = description.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine.Trim();
+            if (!line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            value = line.Substring(prefix.Length).Trim();
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        return false;
     }
 }
