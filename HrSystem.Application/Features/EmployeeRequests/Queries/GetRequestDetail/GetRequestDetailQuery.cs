@@ -306,11 +306,6 @@ public class GetRequestDetailQueryHandler
             return null;
         }
 
-        if (storedValue.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-        {
-            return storedValue;
-        }
-
         try
         {
             var url = await _storageService.DownloadFileUrl(storedValue, cancellationToken);

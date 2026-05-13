@@ -166,7 +166,14 @@ namespace Storage.AWS3.Services
         {
             try
             {
-                if (string.IsNullOrEmpty(key)) return null;
+                if (string.IsNullOrWhiteSpace(key)) return null;
+
+                var normalizedKey = NormalizeKeyOrUrl(key);
+                if (string.IsNullOrWhiteSpace(normalizedKey))
+                {
+                    return key;
+                }
+
                 var options = AWS3OptionsExtension.GetAWSConfigurationOptions(_configuration);
                 var region = RegionEndpoint.EUNorth1;
                 var credential = AWS3ConfigurationExtension.GetBasicAWSCredentials(_configuration);
@@ -179,7 +186,7 @@ namespace Storage.AWS3.Services
                 var request = new GetPreSignedUrlRequest
                 {
                     BucketName = bucketName,
-                    Key = key,
+                    Key = normalizedKey,
                     Expires = DateTime.Now.AddHours(1) // Adjust expiration as needed
 
                 };
@@ -198,6 +205,56 @@ namespace Storage.AWS3.Services
                 throw;
             }
 
+        }
+
+        private string? NormalizeKeyOrUrl(string value)
+        {
+            var raw = value.Trim();
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return null;
+            }
+
+            // Already a storage key.
+            if (!raw.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !raw.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return raw.TrimStart('/');
+            }
+
+            if (!Uri.TryCreate(raw, UriKind.Absolute, out var uri))
+            {
+                return raw;
+            }
+
+            var host = uri.Host;
+            var looksLikeS3Host = host.Contains("amazonaws.com", StringComparison.OrdinalIgnoreCase) ||
+                                  host.Contains("cloudfront.net", StringComparison.OrdinalIgnoreCase) ||
+                                  host.StartsWith(_bucketName + ".", StringComparison.OrdinalIgnoreCase);
+
+            // Non-S3 URL should be returned untouched.
+            if (!looksLikeS3Host)
+            {
+                return null;
+            }
+
+            var segments = uri.AbsolutePath
+                .Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+
+            if (segments.Count == 0)
+            {
+                return null;
+            }
+
+            // Path-style URL: /{bucket}/{key}
+            if (segments.Count > 1 &&
+                string.Equals(segments[0], _bucketName, StringComparison.OrdinalIgnoreCase))
+            {
+                segments.RemoveAt(0);
+            }
+
+            return string.Join('/', segments);
         }
         public async Task<DownloadedFile> DownloadFile(string key, CancellationToken cancellationToken)
         {
