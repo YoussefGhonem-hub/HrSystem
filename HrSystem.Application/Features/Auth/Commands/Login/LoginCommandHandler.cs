@@ -5,6 +5,7 @@ using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Identity;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -47,7 +48,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
             return Error.Unauthorized(description: "Invalid username or password");
 
         // Get user roles
-        var roles = await _userManager.GetRolesAsync(user);
+        var rawRoles = await _userManager.GetRolesAsync(user);
+        var roles = rawRoles
+            .Select(RoleNames.Normalize)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         // Get employee information if user is linked to an employee
         Guid? employeeId = null;
@@ -206,7 +212,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
 
         // ── Load organization settings ────────────────────────
         OrganizationSettingDto? organizationSetting = null;
-        var isSuperAdmin = roles.Contains("SuperAdmin", StringComparer.OrdinalIgnoreCase);
+        var isSuperAdmin = roles.Contains(RoleNames.SuperAdmin, StringComparer.OrdinalIgnoreCase);
 
         if (!isSuperAdmin && user.OrganizationId != Guid.Empty)
         {

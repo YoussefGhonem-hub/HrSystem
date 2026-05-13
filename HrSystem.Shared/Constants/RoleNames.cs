@@ -59,6 +59,19 @@ public static class RoleNames
         Employee
     };
 
+    private static readonly Dictionary<string, string> AliasToCanonical = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Admin"] = OrganizationAdmin,
+        ["Organization Admin"] = OrganizationAdmin,
+        ["HR Manager"] = HRManager,
+        ["HR Specialist"] = HRSpecialist,
+        ["Department Manager"] = DepartmentManager,
+        ["Dept Manager"] = DepartmentManager,
+        ["IT Manager"] = DepartmentManager,
+        ["Finance Manager"] = DepartmentManager,
+        ["Operations Manager"] = DepartmentManager
+    };
+
     /// <summary>
     /// Checks if a role name is valid
     /// </summary>
@@ -68,10 +81,38 @@ public static class RoleNames
     }
 
     /// <summary>
+    /// Converts role aliases to their canonical system role names.
+    /// </summary>
+    public static string Normalize(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            return roleName;
+        }
+
+        var trimmed = roleName.Trim();
+        if (AliasToCanonical.TryGetValue(trimmed, out var canonical))
+        {
+            return canonical;
+        }
+
+        // Treat unknown "<Department> Manager" labels as DepartmentManager.
+        if (trimmed.EndsWith(" Manager", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.EndsWith("Manager", StringComparison.OrdinalIgnoreCase))
+        {
+            return DepartmentManager;
+        }
+
+        var known = All.FirstOrDefault(r => string.Equals(r, trimmed, StringComparison.OrdinalIgnoreCase));
+        return known ?? trimmed;
+    }
+
+    /// <summary>
     /// Determines whether the supplied role requires a branch scope assignment.
     /// </summary>
     public static bool RequiresBranchScope(string roleName)
     {
-        return BranchScoped.Contains(roleName, StringComparer.OrdinalIgnoreCase);
+        var normalized = Normalize(roleName);
+        return BranchScoped.Contains(normalized, StringComparer.OrdinalIgnoreCase);
     }
 }

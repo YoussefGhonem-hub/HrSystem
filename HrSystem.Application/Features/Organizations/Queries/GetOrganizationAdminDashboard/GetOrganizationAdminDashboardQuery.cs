@@ -244,7 +244,7 @@ public class GetOrganizationAdminDashboardQueryHandler
 
     private async Task<HashSet<Guid>?> ResolveScopedEmployeeIds(CancellationToken cancellationToken)
     {
-        var roles = CurrentUser.Roles;
+        var roles = CurrentUser.Roles.Select(RoleNames.Normalize).ToArray();
         var isDepartmentManager = roles.Any(r => string.Equals(r, RoleNames.DepartmentManager, StringComparison.OrdinalIgnoreCase));
         var hasElevatedDashboardAccess =
             roles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase)) ||
@@ -260,6 +260,26 @@ public class GetOrganizationAdminDashboardQueryHandler
         if (!managerEmployeeId.HasValue || managerEmployeeId.Value == Guid.Empty)
         {
             return new HashSet<Guid>();
+        }
+
+        var managerDepartmentId = await _context.Employees
+            .AsNoTracking()
+            .Where(e => e.Id == managerEmployeeId.Value)
+            .Select(e => e.DepartmentId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (managerDepartmentId.HasValue)
+        {
+            var departmentEmployees = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.DepartmentId == managerDepartmentId.Value)
+                .Select(e => e.Id)
+                .ToListAsync(cancellationToken);
+
+            if (departmentEmployees.Count > 0)
+            {
+                return departmentEmployees.ToHashSet();
+            }
         }
 
         var directReports = await _context.Employees
