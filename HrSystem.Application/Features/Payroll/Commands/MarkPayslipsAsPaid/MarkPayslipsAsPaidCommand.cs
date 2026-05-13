@@ -41,6 +41,11 @@ public class MarkPayslipsAsPaidCommandHandler
         if (request.Year < 2000 || request.Year > 2100)
             return Error.Validation(description: "Invalid year.");
 
+        var periodStart = new DateTime(request.Year, request.Month, 1);
+        var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        if (periodStart > currentMonthStart)
+            return Error.Validation(description: "Future payroll periods cannot be marked as paid.");
+
         var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
             || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
         var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;

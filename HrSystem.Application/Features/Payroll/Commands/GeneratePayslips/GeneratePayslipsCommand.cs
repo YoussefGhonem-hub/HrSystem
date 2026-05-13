@@ -54,6 +54,10 @@ public class GeneratePayslipsCommandHandler
         var periodStart = new DateTime(request.Year, request.Month, 1);
         var periodEnd = periodStart.AddMonths(1).AddDays(-1);
         var daysInMonth = DateTime.DaysInMonth(request.Year, request.Month);
+        var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+
+        if (periodStart > currentMonthStart)
+            return Error.Validation(description: "Future payroll periods cannot be generated.");
 
         var currentTenantId = CurrentUser.OrganizationId ?? Guid.Empty;
 

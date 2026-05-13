@@ -23,7 +23,8 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         CancellationToken cancellationToken)
     {
         var periodStart = new DateTime(request.Year, request.Month, 1);
-        var periodEnd = new DateTime(request.Year, request.Month, DateTime.DaysInMonth(request.Year, request.Month));
+        var daysInMonth = DateTime.DaysInMonth(request.Year, request.Month);
+        var periodEnd = new DateTime(request.Year, request.Month, daysInMonth);
 
         // Get current month payroll cycle
         var currentCycle = await _context.PayrollCycles
@@ -97,33 +98,69 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
                 p.Employee.Department.NameAr.Contains(searchTerm));
         }
 
-        // Select individual employee payroll data
-        var employeeDataQuery = query
-            .Select(p => new PayrollOverviewDto
+        var projectedRows = await query
+            .Select(p => new
             {
-                EmployeeId = p.EmployeeId,
-                EmployeeCode = p.Employee.EmployeeCode,
+                p.EmployeeId,
+                p.Employee.EmployeeCode,
                 EmployeeName = p.Employee.FullNameEn,
                 DepartmentName = p.Employee.Department != null ? p.Employee.Department.NameEn : "No Department",
                 BranchName = p.Employee.Branch != null ? p.Employee.Branch.NameEn : "No Branch",
-                GrossSalary = p.GrossSalary,
-                TotalDeductions = p.TotalDeductions,
-                NetSalary = p.NetSalary,
-                Status = p.IsPaid ? "Paid" : "Pending",
-                PaymentDate = p.PaidDate
-            });
+                p.BasicSalary,
+                p.TotalAllowances,
+                p.OvertimeAmount,
+                p.GrossSalary,
+                p.TotalDeductions,
+                p.NetSalary,
+                p.TotalWorkingDays,
+                p.PaidDate,
+                p.IsPaid,
+                EmployeeHiringDate = p.Employee.HiringDate,
+                EmployeeTerminationDate = p.Employee.TerminationDate
+            })
+            .ToListAsync(cancellationToken);
 
-        // Apply sorting
-        employeeDataQuery = ApplySorting(employeeDataQuery, request.SortBy, request.SortDescending);
+        var employeeData = projectedRows
+            .Select(row => new PayrollOverviewDto
+            {
+                EmployeeId = row.EmployeeId,
+                EmployeeCode = row.EmployeeCode,
+                EmployeeName = row.EmployeeName,
+                DepartmentName = row.DepartmentName,
+                BranchName = row.BranchName,
+                GrossSalary = CalculateOverviewGrossSalary(
+                    row.BasicSalary,
+                    row.TotalAllowances,
+                    row.OvertimeAmount,
+                    row.GrossSalary,
+                    row.TotalWorkingDays,
+                    row.EmployeeHiringDate,
+                    row.EmployeeTerminationDate,
+                    periodStart,
+                    periodEnd,
+                    daysInMonth),
+                TotalDeductions = row.TotalDeductions,
+                NetSalary = row.NetSalary,
+                Status = row.IsPaid ? "Paid" : "Pending",
+                PaymentDate = row.PaidDate
+            })
+            .ToList();
 
-        // Get total count
-        var totalCount = await employeeDataQuery.CountAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var normalizedStatus = request.Status.Trim().ToLower();
+            employeeData = employeeData
+                .Where(x => x.Status.ToLower() == normalizedStatus)
+                .ToList();
+        }
 
-        // Apply pagination
-        var items = await employeeDataQuery
+        var sortedData = ApplySorting(employeeData.AsQueryable(), request.SortBy, request.SortDescending);
+        var totalCount = sortedData.Count();
+
+        var items = sortedData
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         var pagedResult = PagedResult<PayrollOverviewDto>.Create(
             items,
@@ -139,6 +176,43 @@ public class GetPayrollOverviewQueryHandler : IRequestHandler<GetPayrollOverview
         };
 
         return GenericResponse<PayrollOverviewResponseDto>.SuccessResult(response, "Payroll overview retrieved successfully");
+    }
+
+    private static decimal CalculateOverviewGrossSalary(
+        decimal basicSalary,
+        decimal totalAllowances,
+        decimal overtimeAmount,
+        decimal grossSalary,
+        int totalWorkingDays,
+        DateTime? hiringDate,
+        DateTime? terminationDate,
+        DateTime periodStart,
+        DateTime periodEnd,
+        int daysInMonth)
+    {
+        var overlapStart = hiringDate.HasValue && hiringDate.Value.Date > periodStart
+            ? hiringDate.Value.Date
+            : periodStart;
+        var overlapEnd = terminationDate.HasValue && terminationDate.Value.Date < periodEnd
+            ? terminationDate.Value.Date
+            : periodEnd;
+
+        if (overlapEnd < overlapStart)
+            return 0m;
+
+        var payableDays = (overlapEnd - overlapStart).Days + 1;
+        var sourceWorkingDays = totalWorkingDays > 0 ? totalWorkingDays : daysInMonth;
+
+        // Backward-compatibility for previously generated full-month payslips:
+        // if stored working days exceed expected overlap, scale recurring components.
+        if (sourceWorkingDays > payableDays)
+        {
+            var recurringComponent = basicSalary + totalAllowances;
+            var proratedRecurring = Math.Round(recurringComponent * (payableDays / (decimal)sourceWorkingDays), 2);
+            return Math.Round(proratedRecurring + overtimeAmount, 2);
+        }
+
+        return grossSalary;
     }
 
     private async Task<PayrollStatisticsDto> CalculateStatistics(
