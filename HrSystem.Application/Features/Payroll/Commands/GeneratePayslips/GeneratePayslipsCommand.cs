@@ -53,6 +53,7 @@ public class GeneratePayslipsCommandHandler
 
         var periodStart = new DateTime(request.Year, request.Month, 1);
         var periodEnd = periodStart.AddMonths(1).AddDays(-1);
+        var daysInMonth = DateTime.DaysInMonth(request.Year, request.Month);
 
         var currentTenantId = CurrentUser.OrganizationId ?? Guid.Empty;
 
@@ -99,7 +100,10 @@ public class GeneratePayslipsCommandHandler
         var employeesQuery = _context.Employees
             .Include(e => e.Salaries).ThenInclude(s => s.Allowances)
             .Include(e => e.Salaries).ThenInclude(s => s.Deductions)
-            .Where(e => !e.IsDeleted);
+            .Where(e => !e.IsDeleted)
+            // Only generate payslips for employees whose employment overlaps the period.
+            .Where(e => (!e.HiringDate.HasValue || e.HiringDate.Value.Date <= periodEnd)
+                && (!e.TerminationDate.HasValue || e.TerminationDate.Value.Date >= periodStart));
 
         // Apply branch scope for HR managers
         if (branchId.HasValue)
@@ -239,15 +243,34 @@ public class GeneratePayslipsCommandHandler
                 continue;
             }
 
+            var employmentStart = employee.HiringDate.HasValue && employee.HiringDate.Value.Date > periodStart
+                ? employee.HiringDate.Value.Date
+                : periodStart;
+            var employmentEnd = employee.TerminationDate.HasValue && employee.TerminationDate.Value.Date < periodEnd
+                ? employee.TerminationDate.Value.Date
+                : periodEnd;
+
+            if (employmentEnd < employmentStart)
+            {
+                result.PayslipsSkipped++;
+                result.Warnings.Add($"No payroll period overlap for {employee.FullNameEn} ({employee.EmployeeCode}).");
+                continue;
+            }
+
+            var payableDays = (employmentEnd - employmentStart).Days + 1;
+            var prorationFactor = Math.Min(1m, Math.Round(payableDays / (decimal)daysInMonth, 6));
+            var proratedBasicSalary = Math.Round(currentSalary.BasicSalary * prorationFactor, 2);
+
             // --- Calculate Allowances ---
             decimal totalAllowances = 0m;
             var payslipAllowances = new List<PayslipAllowance>();
 
             foreach (var allowance in currentSalary.Allowances.Where(a => !a.IsDeleted))
             {
-                var amount = allowance.IsPercentage && allowance.PercentageValue.HasValue
-                    ? Math.Round(currentSalary.BasicSalary * (allowance.PercentageValue.Value / 100m), 2)
+                var baseAmount = allowance.IsPercentage && allowance.PercentageValue.HasValue
+                    ? currentSalary.BasicSalary * (allowance.PercentageValue.Value / 100m)
                     : allowance.Amount;
+                var amount = Math.Round(baseAmount * prorationFactor, 2);
                 totalAllowances += amount;
                 payslipAllowances.Add(new PayslipAllowance
                 {
@@ -273,7 +296,7 @@ public class GeneratePayslipsCommandHandler
             }
 
             // --- Gross Salary ---
-            decimal grossSalary = currentSalary.BasicSalary + totalAllowances + overtimeAmount;
+            decimal grossSalary = proratedBasicSalary + totalAllowances + overtimeAmount;
 
             // --- Calculate Deductions ---
             decimal totalDeductions = 0m;
@@ -282,9 +305,10 @@ public class GeneratePayslipsCommandHandler
             // 1. Configured salary deductions
             foreach (var deduction in currentSalary.Deductions.Where(d => !d.IsDeleted))
             {
-                var amount = deduction.IsPercentage && deduction.PercentageValue.HasValue
-                    ? Math.Round(currentSalary.BasicSalary * (deduction.PercentageValue.Value / 100m), 2)
+                var baseAmount = deduction.IsPercentage && deduction.PercentageValue.HasValue
+                    ? currentSalary.BasicSalary * (deduction.PercentageValue.Value / 100m)
                     : deduction.Amount;
+                var amount = Math.Round(baseAmount * prorationFactor, 2);
                 totalDeductions += amount;
                 payslipDeductions.Add(new PayslipDeduction
                 {
@@ -301,12 +325,12 @@ public class GeneratePayslipsCommandHandler
             {
                 if (currentSalary.SocialInsuranceEmployeeRate.HasValue && currentSalary.SocialInsuranceEmployeeRate.Value > 0)
                 {
-                    siEmployee = Math.Round(currentSalary.BasicSalary * (currentSalary.SocialInsuranceEmployeeRate.Value / 100m), 2);
+                    siEmployee = Math.Round(proratedBasicSalary * (currentSalary.SocialInsuranceEmployeeRate.Value / 100m), 2);
                     totalDeductions += siEmployee;
                 }
                 if (currentSalary.SocialInsuranceEmployerRate.HasValue && currentSalary.SocialInsuranceEmployerRate.Value > 0)
                 {
-                    siEmployer = Math.Round(currentSalary.BasicSalary * (currentSalary.SocialInsuranceEmployerRate.Value / 100m), 2);
+                    siEmployer = Math.Round(proratedBasicSalary * (currentSalary.SocialInsuranceEmployerRate.Value / 100m), 2);
                 }
             }
 
@@ -375,7 +399,9 @@ public class GeneratePayslipsCommandHandler
 
                 if (fullDayAbsentDays > 0 || halfDayDays > 0)
                 {
-                    var dailySalary = Math.Round(currentSalary.BasicSalary / DateTime.DaysInMonth(request.Year, request.Month), 2);
+                    var dailySalary = payableDays > 0
+                        ? Math.Round(proratedBasicSalary / payableDays, 2)
+                        : 0m;
                     attendanceDeduction = Math.Round((fullDayAbsentDays * dailySalary) + (halfDayDays * dailySalary * 0.5m), 2);
 
                     if (attendanceDeduction > 0)
@@ -398,7 +424,7 @@ public class GeneratePayslipsCommandHandler
             if (existingPayslip != null)
             {
                 // Update existing payslip
-                existingPayslip.BasicSalary = currentSalary.BasicSalary;
+                existingPayslip.BasicSalary = proratedBasicSalary;
                 existingPayslip.TotalAllowances = totalAllowances;
                 existingPayslip.GrossSalary = grossSalary;
                 existingPayslip.OvertimeAmount = overtimeAmount;
@@ -407,6 +433,9 @@ public class GeneratePayslipsCommandHandler
                 existingPayslip.SocialInsuranceEmployee = siEmployee;
                 existingPayslip.SocialInsuranceEmployer = siEmployer;
                 existingPayslip.NetSalary = netSalary;
+                existingPayslip.TotalWorkingDays = payableDays;
+                existingPayslip.ActualWorkingDays = Math.Max(0, payableDays - (int)Math.Ceiling(fullDayAbsentDays + halfDayDays));
+                existingPayslip.AbsentDays = Math.Max(0, (int)Math.Ceiling(fullDayAbsentDays));
                 existingPayslip.GeneratedDate = DateTime.UtcNow;
 
                 // Remove old allowances/deductions and add new ones
@@ -442,7 +471,7 @@ public class GeneratePayslipsCommandHandler
                     PayrollCycleId = cycle.Id,
                     EmployeeId = employee.Id,
                     PayslipNumber = payslipNumber,
-                    BasicSalary = currentSalary.BasicSalary,
+                    BasicSalary = proratedBasicSalary,
                     TotalAllowances = totalAllowances,
                     GrossSalary = grossSalary,
                     OvertimeAmount = overtimeAmount,
@@ -454,9 +483,9 @@ public class GeneratePayslipsCommandHandler
                     LeaveDeductions = 0,
                     UnpaidLeaveDays = 0,
                     NetSalary = netSalary,
-                    TotalWorkingDays = DateTime.DaysInMonth(request.Year, request.Month),
-                    ActualWorkingDays = DateTime.DaysInMonth(request.Year, request.Month) - (int)Math.Ceiling(fullDayAbsentDays + halfDayDays),
-                    AbsentDays = (int)Math.Ceiling(fullDayAbsentDays),
+                    TotalWorkingDays = payableDays,
+                    ActualWorkingDays = Math.Max(0, payableDays - (int)Math.Ceiling(fullDayAbsentDays + halfDayDays)),
+                    AbsentDays = Math.Max(0, (int)Math.Ceiling(fullDayAbsentDays)),
                     GeneratedDate = DateTime.UtcNow,
                     TenantId = employee.TenantId,
                     BranchId = employee.BranchId

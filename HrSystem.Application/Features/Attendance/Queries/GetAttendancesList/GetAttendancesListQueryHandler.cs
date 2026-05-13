@@ -86,6 +86,18 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
             }
         }
 
+        // For employee-scoped date-range history, return a complete calendar view
+        // (including days without punches) so UI/reporting can render all statuses.
+        if (employeeIdFilter.HasValue && effectiveFromDate.HasValue && effectiveToDate.HasValue)
+        {
+            return await BuildEmployeeCalendarRangeResultAsync(
+                request,
+                employeeIdFilter.Value,
+                effectiveFromDate.Value,
+                effectiveToDate.Value,
+                cancellationToken);
+        }
+
         // Apply filters
         query = query.ApplyFilters(
             employeeIdFilter,
@@ -318,6 +330,189 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
         {
             Success = true,
             Data = pagedResult
+        };
+    }
+
+    private async Task<ErrorOr<GenericResponse<PagedResult<AttendanceListDto>>>> BuildEmployeeCalendarRangeResultAsync(
+        GetAttendancesListQuery request,
+        Guid employeeId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken)
+    {
+        var employee = await _context.Employees
+            .AsNoTracking()
+            .ApplyBranchScope()
+            .Where(e => e.Id == employeeId && !e.IsDeleted)
+            .Select(e => new
+            {
+                e.Id,
+                e.BranchId,
+                e.HiringDate,
+                EmployeeName = e.FirstNameEn + " " + e.LastNameEn,
+                e.EmployeeCode,
+                JobTitle = e.JobTitle != null ? e.JobTitle.TitleEn : null,
+                Department = e.Department != null ? e.Department.NameEn : null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (employee == null)
+        {
+            return GenericResponse<PagedResult<AttendanceListDto>>.SuccessResult(
+                PagedResult<AttendanceListDto>.Create(Array.Empty<AttendanceListDto>(), 0, request.PageNumber, request.PageSize));
+        }
+
+        var queryStart = fromDate;
+        if (employee.HiringDate.HasValue)
+        {
+            var hiringDate = employee.HiringDate.Value.Date;
+            if (hiringDate > queryStart)
+            {
+                queryStart = hiringDate;
+            }
+        }
+
+        if (queryStart > toDate)
+        {
+            return GenericResponse<PagedResult<AttendanceListDto>>.SuccessResult(
+                PagedResult<AttendanceListDto>.Create(Array.Empty<AttendanceListDto>(), 0, request.PageNumber, request.PageSize));
+        }
+
+        var existingRows = await _context.Attendances
+            .AsNoTracking()
+            .ApplyBranchScope()
+            .ApplyFilters(employeeId, queryStart, toDate, null, null, null, null)
+            .Select(a => new AttendanceListDto
+            {
+                Id = a.Id,
+                EmployeeId = a.EmployeeId,
+                EmployeeName = a.Employee.FirstNameEn + " " + a.Employee.LastNameEn,
+                EmployeeCode = a.Employee.EmployeeCode,
+                JobTitle = a.Employee.JobTitle != null ? a.Employee.JobTitle.TitleEn : null,
+                Department = a.Employee.Department != null ? a.Employee.Department.NameEn : null,
+                Date = a.Date,
+                CheckInTime = a.CheckInTime,
+                CheckOutTime = a.CheckOutTime,
+                StatusId = a.StatusId,
+                StatusNameEn = a.Status.NameEn,
+                StatusNameAr = a.Status.NameAr,
+                WorkedHours = a.WorkedHours,
+                HalfDayRule = a.HalfDayRule,
+                IsLate = a.IsLate,
+                IsEarlyLeave = a.IsEarlyLeave,
+                IsOvertime = a.IsOvertime
+            })
+            .OrderByDescending(x => x.CheckInTime.HasValue)
+            .ToListAsync(cancellationToken);
+
+        var existingByDate = existingRows
+            .GroupBy(x => x.Date.Date)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var vacationRequestTypeId = await _context.RequestTypes
+            .AsNoTracking()
+            .Where(rt => rt.Code == "Vacation")
+            .Select(rt => rt.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var onLeaveDateSet = new HashSet<DateTime>();
+        if (vacationRequestTypeId != Guid.Empty)
+        {
+            var vacations = await _context.EmployeeRequests
+                .AsNoTracking()
+                .ApplyBranchScope()
+                .Where(r => !r.IsDeleted &&
+                            r.EmployeeId == employeeId &&
+                            r.RequestTypeId == vacationRequestTypeId &&
+                            r.Status == EmployeeRequestStatus.Approved &&
+                            r.StartDate.HasValue &&
+                            r.EndDate.HasValue &&
+                            r.StartDate.Value.Date <= toDate &&
+                            r.EndDate.Value.Date >= queryStart)
+                .Select(r => new { Start = r.StartDate!.Value.Date, End = r.EndDate!.Value.Date })
+                .ToListAsync(cancellationToken);
+
+            foreach (var vacation in vacations)
+            {
+                var start = vacation.Start > queryStart ? vacation.Start : queryStart;
+                var end = vacation.End < toDate ? vacation.End : toDate;
+                for (var day = start; day <= end; day = day.AddDays(1))
+                {
+                    onLeaveDateSet.Add(day);
+                }
+            }
+        }
+
+        var statusLookup = await _context.AttendanceStatuses
+            .AsNoTracking()
+            .Where(s => s.Id == AttendanceStatusIds.Absent || s.Id == AttendanceStatusIds.OnLeave)
+            .Select(s => new { s.Id, s.NameEn, s.NameAr })
+            .ToDictionaryAsync(s => s.Id, cancellationToken);
+
+        var absentStatus = statusLookup.TryGetValue(AttendanceStatusIds.Absent, out var absent)
+            ? absent
+            : new { Id = AttendanceStatusIds.Absent, NameEn = "Absent", NameAr = "غائب" };
+
+        var onLeaveStatus = statusLookup.TryGetValue(AttendanceStatusIds.OnLeave, out var onLeave)
+            ? onLeave
+            : new { Id = AttendanceStatusIds.OnLeave, NameEn = "On Leave", NameAr = "في إجازة" };
+
+        var allRows = new List<AttendanceListDto>();
+        for (var day = queryStart; day <= toDate; day = day.AddDays(1))
+        {
+            if (existingByDate.TryGetValue(day, out var existing))
+            {
+                allRows.Add(existing);
+                continue;
+            }
+
+            var isOnLeave = onLeaveDateSet.Contains(day);
+            allRows.Add(new AttendanceListDto
+            {
+                Id = Guid.Empty,
+                EmployeeId = employee.Id,
+                EmployeeName = employee.EmployeeName,
+                EmployeeCode = employee.EmployeeCode,
+                JobTitle = employee.JobTitle,
+                Department = employee.Department,
+                Date = day,
+                CheckInTime = null,
+                CheckOutTime = null,
+                StatusId = isOnLeave ? AttendanceStatusIds.OnLeave : AttendanceStatusIds.Absent,
+                StatusNameEn = isOnLeave ? onLeaveStatus.NameEn : absentStatus.NameEn,
+                StatusNameAr = isOnLeave ? onLeaveStatus.NameAr : absentStatus.NameAr,
+                WorkedHours = null,
+                HalfDayRule = null,
+                IsLate = false,
+                IsEarlyLeave = false,
+                IsOvertime = false
+            });
+        }
+
+        await EnrichAttendanceStatusesAsync(allRows, cancellationToken);
+
+        var filtered = ApplyInMemoryStatusFilters(allRows, request.StatusId, request.IsLate, request.IsOvertime);
+        var sorted = ApplyInMemorySorting(filtered, request.SortBy, request.IsDescending);
+
+        var totalCount = sorted.Count;
+        var pagedItems = sorted
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        var result = new PagedResult<AttendanceListDto>
+        {
+            Items = pagedItems,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize)
+        };
+
+        return new GenericResponse<PagedResult<AttendanceListDto>>
+        {
+            Success = true,
+            Data = result
         };
     }
 
