@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.EmployeeRequests.Common;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Domain.Enums;
@@ -30,7 +31,8 @@ public class CreateOvertimeRequestCommandHandler
     private static readonly EmployeeRequestStatus[] OpenStatuses =
     {
         EmployeeRequestStatus.Draft,
-        EmployeeRequestStatus.Pending
+        EmployeeRequestStatus.Pending,
+        EmployeeRequestStatus.ManagerApproved
     };
 
     private readonly ApplicationDbContext _context;
@@ -94,6 +96,12 @@ public class CreateOvertimeRequestCommandHandler
         if (overtimeType == null)
             return Error.Validation(description: "Invalid overtime type.");
 
+        var initialStatus = await EmployeeRequestWorkflowHelper.ResolveInitialStatusAsync(
+            _context,
+            employee.DirectManagerId,
+            overtimeType.RequiresManagerApproval,
+            cancellationToken);
+
         // Get employee's salary to use their configured overtime multiplier
         var currentSalary = await _context.Salaries
             .AsNoTracking()
@@ -116,7 +124,7 @@ public class CreateOvertimeRequestCommandHandler
         var employeeRequest = new EmployeeRequest
         {
             RequestTypeId = requestType.Id,
-            Status = EmployeeRequestStatus.Pending,
+            Status = initialStatus,
             EmployeeId = request.EmployeeId,
             Title = request.Title.Trim(),
             Description = request.Description?.Trim(),

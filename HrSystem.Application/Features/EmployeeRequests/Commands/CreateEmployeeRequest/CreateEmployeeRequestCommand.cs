@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.EmployeeRequests.Common;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Domain.Enums;
@@ -91,7 +92,8 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
     private static readonly EmployeeRequestStatus[] OpenStatuses =
     {
         EmployeeRequestStatus.Draft,
-        EmployeeRequestStatus.Pending
+        EmployeeRequestStatus.Pending,
+        EmployeeRequestStatus.ManagerApproved
     };
 
     private readonly ApplicationDbContext _context;
@@ -155,6 +157,13 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         if (validationError is not null)
             return validationError.Value;
 
+        var requiresManagerApproval = await ResolveRequiresManagerApprovalAsync(request, cancellationToken);
+        var initialStatus = await EmployeeRequestWorkflowHelper.ResolveInitialStatusAsync(
+            _context,
+            employee.DirectManagerId,
+            requiresManagerApproval,
+            cancellationToken);
+
         // Upload attachment to S3 if provided
         string? attachmentUrl = null;
         if (request.Attachment != null && request.Attachment.Length > 0)
@@ -168,7 +177,7 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
         var entity = new EmployeeRequest
         {
             RequestTypeId = requestType.Id,
-            Status = EmployeeRequestStatus.Pending,
+            Status = initialStatus,
             EmployeeId = request.EmployeeId,
             Title = request.Title.Trim(),
             Description = request.Description?.Trim(),
@@ -188,6 +197,56 @@ public class CreateEmployeeRequestCommandHandler : IRequestHandler<CreateEmploye
 
         var dto = MapToDto(entity, request, requestType);
         return GenericResponse<EmployeeRequestDto>.SuccessResult(dto, "Request submitted successfully");
+    }
+
+    private async Task<bool> ResolveRequiresManagerApprovalAsync(CreateEmployeeRequestCommand request, CancellationToken ct)
+    {
+        return request.RequestTypeCode switch
+        {
+            "Vacation" when request.VacationDetail is not null =>
+                await _context.VacationTypes
+                    .AsNoTracking()
+                    .Where(t => t.Id == request.VacationDetail.VacationTypeId)
+                    .Select(t => t.RequiresManagerApproval)
+                    .FirstOrDefaultAsync(ct),
+
+            "Training" when request.TrainingDetail is not null =>
+                await _context.TrainingTypes
+                    .AsNoTracking()
+                    .Where(t => t.Id == request.TrainingDetail.TrainingTypeId)
+                    .Select(t => t.RequiresManagerApproval)
+                    .FirstOrDefaultAsync(ct),
+
+            "Miscellaneous" when request.MiscellaneousDetail is not null =>
+                await _context.MiscellaneousTypes
+                    .AsNoTracking()
+                    .Where(t => t.Id == request.MiscellaneousDetail.MiscellaneousTypeId)
+                    .Select(t => t.RequiresManagerApproval)
+                    .FirstOrDefaultAsync(ct),
+
+            "Personal" when request.PersonalDetail is not null =>
+                await _context.PersonalTypes
+                    .AsNoTracking()
+                    .Where(t => t.Id == request.PersonalDetail.PersonalTypeId)
+                    .Select(t => t.RequiresManagerApproval)
+                    .FirstOrDefaultAsync(ct),
+
+            "Feedback" when request.FeedbackDetail is not null =>
+                await _context.FeedbackTypes
+                    .AsNoTracking()
+                    .Where(t => t.Id == request.FeedbackDetail.FeedbackTypeId)
+                    .Select(t => t.RequiresManagerApproval)
+                    .FirstOrDefaultAsync(ct),
+
+            "AttendanceCorrection" when request.AttendanceCorrectionDetail is not null =>
+                await _context.AttendanceCorrectionTypes
+                    .AsNoTracking()
+                    .Where(t => t.Id == request.AttendanceCorrectionDetail.AttendanceCorrectionTypeId)
+                    .Select(t => t.RequiresManagerApproval)
+                    .FirstOrDefaultAsync(ct),
+
+            _ => true
+        };
     }
 
     private async Task<Error?> ValidateTypeSpecificDetail(CreateEmployeeRequestCommand request, CancellationToken ct)

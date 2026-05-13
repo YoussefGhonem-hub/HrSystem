@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.EmployeeRequests.Common;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Domain.Enums;
@@ -33,7 +34,8 @@ public class CreatePersonalRequestCommandHandler
     private static readonly EmployeeRequestStatus[] OpenStatuses =
     {
         EmployeeRequestStatus.Draft,
-        EmployeeRequestStatus.Pending
+        EmployeeRequestStatus.Pending,
+        EmployeeRequestStatus.ManagerApproved
     };
 
     private readonly ApplicationDbContext _context;
@@ -97,6 +99,12 @@ public class CreatePersonalRequestCommandHandler
         if (personalType == null)
             return Error.Validation(description: "Invalid personal type.");
 
+        var initialStatus = await EmployeeRequestWorkflowHelper.ResolveInitialStatusAsync(
+            _context,
+            employee.DirectManagerId,
+            personalType.RequiresManagerApproval,
+            cancellationToken);
+
         // Upload attachment to S3 if provided
         string? attachmentUrl = null;
         if (request.Attachment != null && request.Attachment.Length > 0)
@@ -110,7 +118,7 @@ public class CreatePersonalRequestCommandHandler
         var employeeRequest = new EmployeeRequest
         {
             RequestTypeId = requestType.Id,
-            Status = EmployeeRequestStatus.Pending,
+            Status = initialStatus,
             EmployeeId = request.EmployeeId,
             Title = request.Title.Trim(),
             Description = request.Description?.Trim(),

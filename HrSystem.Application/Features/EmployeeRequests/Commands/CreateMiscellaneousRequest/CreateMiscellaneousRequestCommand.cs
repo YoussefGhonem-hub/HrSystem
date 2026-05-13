@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.EmployeeRequests.Common;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Requests;
 using HrSystem.Domain.Enums;
@@ -32,7 +33,8 @@ public class CreateMiscellaneousRequestCommandHandler
     private static readonly EmployeeRequestStatus[] OpenStatuses =
     {
         EmployeeRequestStatus.Draft,
-        EmployeeRequestStatus.Pending
+        EmployeeRequestStatus.Pending,
+        EmployeeRequestStatus.ManagerApproved
     };
 
     private readonly ApplicationDbContext _context;
@@ -96,6 +98,12 @@ public class CreateMiscellaneousRequestCommandHandler
         if (miscType == null)
             return Error.Validation(description: "Invalid miscellaneous type.");
 
+        var initialStatus = await EmployeeRequestWorkflowHelper.ResolveInitialStatusAsync(
+            _context,
+            employee.DirectManagerId,
+            miscType.RequiresManagerApproval,
+            cancellationToken);
+
         // Upload attachment to S3 if provided
         string? attachmentUrl = null;
         if (request.Attachment != null && request.Attachment.Length > 0)
@@ -109,7 +117,7 @@ public class CreateMiscellaneousRequestCommandHandler
         var employeeRequest = new EmployeeRequest
         {
             RequestTypeId = requestType.Id,
-            Status = EmployeeRequestStatus.Pending,
+            Status = initialStatus,
             EmployeeId = request.EmployeeId,
             Title = request.Title.Trim(),
             Description = request.Description?.Trim(),
