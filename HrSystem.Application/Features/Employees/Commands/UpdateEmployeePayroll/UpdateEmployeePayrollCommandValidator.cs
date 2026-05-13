@@ -23,6 +23,33 @@ public class UpdateEmployeePayrollCommandValidator : AbstractValidator<UpdateEmp
         RuleFor(x => x.BasicSalary)
             .GreaterThanOrEqualTo(0m);
 
+        RuleFor(x => x)
+            .CustomAsync(async (command, validationContext, cancellationToken) =>
+            {
+                if (command.EmployeeId == Guid.Empty)
+                    return;
+
+                var salaryRange = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Id == command.EmployeeId)
+                    .Select(e => new
+                    {
+                        MinSalary = e.JobTitle != null ? e.JobTitle.MinSalary : (decimal?)null,
+                        MaxSalary = e.JobTitle != null ? e.JobTitle.MaxSalary : (decimal?)null
+                    })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (salaryRange?.MinSalary is null || salaryRange.MaxSalary is null)
+                    return;
+
+                if (command.BasicSalary < salaryRange.MinSalary.Value || command.BasicSalary > salaryRange.MaxSalary.Value)
+                {
+                    validationContext.AddFailure(
+                        nameof(UpdateEmployeePayrollCommand.BasicSalary),
+                        $"Basic salary must be between {salaryRange.MinSalary.Value:0.##} and {salaryRange.MaxSalary.Value:0.##} for the employee's job title.");
+                }
+            });
+
         RuleFor(x => x.EffectiveDate)
             .NotEmpty();
 

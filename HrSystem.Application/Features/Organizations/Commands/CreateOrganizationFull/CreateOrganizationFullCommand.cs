@@ -8,6 +8,8 @@ using HrSystem.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text.Json;
 
 namespace HrSystem.Application.Features.Organizations.Commands.CreateOrganizationFull;
 
@@ -112,7 +114,7 @@ public record BranchWorkScheduleInput(
     string Name,
     TimeSpan StartTime,
     TimeSpan EndTime,
-    TimeSpan? BreakDuration,
+    JsonElement? BreakDuration,
     int WorkingHoursPerDay,
     int WorkingDaysPerWeek,
     TimeSpan? GracePeriodLate,
@@ -423,8 +425,9 @@ public class CreateOrganizationFullCommandHandler
         var allWorkSchedules = new List<BranchWorkSchedule>();
         var allHolidays = new List<BranchHoliday>();
 
-        foreach (var branchInput in request.Branches)
+        for (var branchIndex = 0; branchIndex < request.Branches.Count; branchIndex++)
         {
+            var branchInput = request.Branches[branchIndex];
             var branchId = Guid.NewGuid();
             
             var branch = new Branch
@@ -459,8 +462,17 @@ public class CreateOrganizationFullCommandHandler
             // Create work schedules for this branch
             if (branchInput.WorkSchedules?.Count > 0)
             {
-                foreach (var scheduleInput in branchInput.WorkSchedules)
+                for (var scheduleIndex = 0; scheduleIndex < branchInput.WorkSchedules.Count; scheduleIndex++)
                 {
+                    var scheduleInput = branchInput.WorkSchedules[scheduleIndex];
+                    var breakDuration = ParseBreakDuration(scheduleInput.BreakDuration);
+                    if (breakDuration.IsError)
+                    {
+                        return Error.Validation(
+                            code: "Schedule.BreakDurationInvalid",
+                            description: $"Invalid breakDuration in branches[{branchIndex}].workSchedules[{scheduleIndex}]. Use 'HH:mm:ss' or number of minutes.");
+                    }
+
                     var schedule = new BranchWorkSchedule
                     {
                         Id = Guid.NewGuid(),
@@ -469,7 +481,7 @@ public class CreateOrganizationFullCommandHandler
                         Name = scheduleInput.Name,
                         StartTime = scheduleInput.StartTime,
                         EndTime = scheduleInput.EndTime,
-                        BreakDuration = scheduleInput.BreakDuration,
+                        BreakDuration = breakDuration.Value,
                         WorkingHoursPerDay = scheduleInput.WorkingHoursPerDay,
                         WorkingDaysPerWeek = scheduleInput.WorkingDaysPerWeek,
                         GracePeriodLate = scheduleInput.GracePeriodLate,
@@ -832,6 +844,55 @@ public class CreateOrganizationFullCommandHandler
             Message = "Organization created successfully with all components",
             Data = dto
         };
+    }
+
+    private static ErrorOr<TimeSpan?> ParseBreakDuration(JsonElement? breakDuration)
+    {
+        if (!breakDuration.HasValue)
+            return (TimeSpan?)null;
+
+        var value = breakDuration.Value;
+        if (value.ValueKind == JsonValueKind.Null || value.ValueKind == JsonValueKind.Undefined)
+            return (TimeSpan?)null;
+
+        TimeSpan parsed;
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.String:
+            {
+                var raw = value.GetString();
+                if (string.IsNullOrWhiteSpace(raw))
+                    return (TimeSpan?)null;
+
+                if (TimeSpan.TryParse(raw, CultureInfo.InvariantCulture, out parsed)
+                    || TimeSpan.TryParse(raw, out parsed))
+                {
+                    if (parsed < TimeSpan.Zero)
+                        return Error.Validation(code: "Schedule.BreakDurationInvalid", description: "Break duration must be non-negative.");
+                    return (TimeSpan?)parsed;
+                }
+
+                if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var minutesFromString)
+                    || decimal.TryParse(raw, NumberStyles.Number, CultureInfo.CurrentCulture, out minutesFromString))
+                {
+                    if (minutesFromString < 0)
+                        return Error.Validation(code: "Schedule.BreakDurationInvalid", description: "Break duration must be non-negative.");
+                    return (TimeSpan?)TimeSpan.FromMinutes((double)minutesFromString);
+                }
+
+                return Error.Validation(code: "Schedule.BreakDurationInvalid", description: "Break duration must be 'HH:mm:ss' or number of minutes.");
+            }
+            case JsonValueKind.Number:
+            {
+                if (!value.TryGetDecimal(out var minutes))
+                    return Error.Validation(code: "Schedule.BreakDurationInvalid", description: "Break duration number is not valid.");
+                if (minutes < 0)
+                    return Error.Validation(code: "Schedule.BreakDurationInvalid", description: "Break duration must be non-negative.");
+                return (TimeSpan?)TimeSpan.FromMinutes((double)minutes);
+            }
+            default:
+                return Error.Validation(code: "Schedule.BreakDurationInvalid", description: "Break duration must be 'HH:mm:ss' or number of minutes.");
+        }
     }
 }
 

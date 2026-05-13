@@ -28,6 +28,34 @@ public class CreateEmployeeFullCommandValidator : AbstractValidator<CreateEmploy
                 .SetValidator(new CreateEmployeePayrollSectionValidator());
         });
 
+        RuleFor(x => x)
+            .CustomAsync(async (command, validationContext, cancellationToken) =>
+            {
+                var jobTitleId = command.JobInfo?.JobTitleId;
+                if (jobTitleId == null || jobTitleId == Guid.Empty)
+                    return;
+
+                var payroll = command.Payroll;
+                if (payroll is null)
+                    return;
+
+                var salaryRange = await context.JobTitles
+                    .AsNoTracking()
+                    .Where(j => j.Id == jobTitleId)
+                    .Select(j => new { j.MinSalary, j.MaxSalary })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (salaryRange is null)
+                    return;
+
+                if (payroll.BasicSalary < salaryRange.MinSalary || payroll.BasicSalary > salaryRange.MaxSalary)
+                {
+                    validationContext.AddFailure(
+                        "Payroll.BasicSalary",
+                        $"Basic salary must be between {salaryRange.MinSalary:0.##} and {salaryRange.MaxSalary:0.##} for the selected job title.");
+                }
+            });
+
         When(x => x.Attendance is not null, () =>
         {
             RuleFor(x => x.Attendance!)

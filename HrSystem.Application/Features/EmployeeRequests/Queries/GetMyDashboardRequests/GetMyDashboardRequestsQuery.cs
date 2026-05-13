@@ -81,14 +81,14 @@ public class GetMyDashboardRequestsQueryHandler
         var employeeId = CurrentUser.EmployeeId;
         var branchId = CurrentUser.BranchId;
 
-        if (!employeeId.HasValue)
-            return Error.Validation(description: "The logged-in user is not linked to an employee profile.");
-
         // Determine the effective role (highest privilege wins)
         var isHR = roles.Any(r =>
             r == RoleNames.HRManager ||
             r == RoleNames.HRSpecialist ||
             r == RoleNames.OrganizationAdmin);
+
+        if (!employeeId.HasValue && !isHR)
+            return Error.Validation(description: "The logged-in user is not linked to an employee profile.");
 
         var isManager = roles.Any(r => r == RoleNames.DepartmentManager);
 
@@ -113,22 +113,39 @@ public class GetMyDashboardRequestsQueryHandler
         // ───────────────────────────────────────────────
         // 1) My own requests (all roles)
         // ───────────────────────────────────────────────
-        var myQuery = ApplySorting(
-            ApplyFilters(
-                BaseQuery().Where(r => r.EmployeeId == employeeId.Value),
-                request),
-            request);
+        int myTotalCount;
+        int myPendingCount;
+        PagedResult<EmployeeRequestDto> myRequests;
 
-        var myTotalCount = await myQuery.CountAsync(cancellationToken);
-        var myPendingCount = await myQuery
-            .Where(r => r.Status == EmployeeRequestStatus.Pending)
-            .CountAsync(cancellationToken);
+        if (employeeId.HasValue)
+        {
+            var myQuery = ApplySorting(
+                ApplyFilters(
+                    BaseQuery().Where(r => r.EmployeeId == employeeId.Value),
+                    request),
+                request);
 
-        var myRequests = await PaginateAndProject(
-            myQuery,
-            request.MyRequestsPageNumber,
-            request.MyRequestsPageSize,
-            cancellationToken);
+            myTotalCount = await myQuery.CountAsync(cancellationToken);
+            myPendingCount = await myQuery
+                .Where(r => r.Status == EmployeeRequestStatus.Pending)
+                .CountAsync(cancellationToken);
+
+            myRequests = await PaginateAndProject(
+                myQuery,
+                request.MyRequestsPageNumber,
+                request.MyRequestsPageSize,
+                cancellationToken);
+        }
+        else
+        {
+            myTotalCount = 0;
+            myPendingCount = 0;
+            myRequests = PagedResult<EmployeeRequestDto>.Create(
+                new List<EmployeeRequestDto>(),
+                0,
+                request.MyRequestsPageNumber,
+                request.MyRequestsPageSize);
+        }
 
         // ───────────────────────────────────────────────
         // 2) Pending approval requests (role-dependent)
@@ -139,11 +156,11 @@ public class GetMyDashboardRequestsQueryHandler
         if (isHR)
         {
             // Debug: Log the query parameters for HR
-            Console.WriteLine($"[DEBUG HR] EmployeeId: {employeeId.Value}, BranchId: {branchId}");
+            Console.WriteLine($"[DEBUG HR] EmployeeId: {(employeeId.HasValue ? employeeId.Value.ToString() : "N/A")}, BranchId: {branchId}");
             
             // Check direct reports count
             var directReportsCount = await _context.Employees
-                .Where(e => e.DirectManagerId == employeeId.Value)
+                .Where(e => employeeId.HasValue && e.DirectManagerId == employeeId.Value)
                 .CountAsync(cancellationToken);
             Console.WriteLine($"[DEBUG HR] Direct reports count: {directReportsCount}");
             
@@ -152,9 +169,10 @@ public class GetMyDashboardRequestsQueryHandler
                 .Include(r => r.Employee)
                 .Where(r => 
                     r.Status == EmployeeRequestStatus.Pending && 
+                    employeeId.HasValue &&
                     r.Employee.DirectManagerId == employeeId.Value)
                 .CountAsync(cancellationToken);
-            Console.WriteLine($"[DEBUG HR] Pending requests with DirectManagerId={employeeId.Value}: {pendingWithManager}");
+            Console.WriteLine($"[DEBUG HR] Pending requests with DirectManagerId={(employeeId.HasValue ? employeeId.Value.ToString() : "N/A")}: {pendingWithManager}");
             
             // Check ManagerApproved requests in branch
             var managerApprovedCount = await _context.EmployeeRequests
@@ -172,11 +190,11 @@ public class GetMyDashboardRequestsQueryHandler
                 ApplyFilters(
                     BaseQuery()
                         .Where(r =>
-                            r.EmployeeId != employeeId.Value &&
+                            (!employeeId.HasValue || r.EmployeeId != employeeId.Value) &&
                             (!branchId.HasValue || r.BranchId == branchId) &&
                             (r.Status == EmployeeRequestStatus.ManagerApproved ||
                              (r.Status == EmployeeRequestStatus.Pending && r.Employee.DirectManagerId == null) ||
-                             (r.Status == EmployeeRequestStatus.Pending && r.Employee.DirectManagerId == employeeId.Value))),
+                             (employeeId.HasValue && r.Status == EmployeeRequestStatus.Pending && r.Employee.DirectManagerId == employeeId.Value))),
                     request),
                 request);
 
@@ -191,33 +209,35 @@ public class GetMyDashboardRequestsQueryHandler
         }
         else if (isManager)
         {
+            var managerEmployeeId = employeeId!.Value;
+
             // Debug: Log the query parameters
-            Console.WriteLine($"[DEBUG] Manager query - EmployeeId: {employeeId.Value}");
+            Console.WriteLine($"[DEBUG] Manager query - EmployeeId: {managerEmployeeId}");
             
             // First check if there are ANY pending requests with this manager
             var debugCount = await _context.EmployeeRequests
                 .Include(r => r.Employee)
-                .Where(r => r.Employee.DirectManagerId == employeeId.Value)
+                .Where(r => r.Employee.DirectManagerId == managerEmployeeId)
                 .CountAsync(cancellationToken);
             
-            Console.WriteLine($"[DEBUG] Total requests with DirectManagerId={employeeId.Value}: {debugCount}");
+            Console.WriteLine($"[DEBUG] Total requests with DirectManagerId={managerEmployeeId}: {debugCount}");
             
             var pendingDebugCount = await _context.EmployeeRequests
                 .Include(r => r.Employee)
                 .Where(r => 
                     r.Status == EmployeeRequestStatus.Pending &&
-                    r.Employee.DirectManagerId == employeeId.Value)
+                    r.Employee.DirectManagerId == managerEmployeeId)
                 .CountAsync(cancellationToken);
                 
-            Console.WriteLine($"[DEBUG] Pending requests with DirectManagerId={employeeId.Value}: {pendingDebugCount}");
+            Console.WriteLine($"[DEBUG] Pending requests with DirectManagerId={managerEmployeeId}: {pendingDebugCount}");
 
             var pendingQuery = ApplySorting(
                 ApplyFilters(
                     BaseQuery()
                         .Where(r =>
                             r.Status == EmployeeRequestStatus.Pending &&
-                            r.Employee.DirectManagerId == employeeId.Value &&
-                            r.EmployeeId != employeeId.Value),
+                            r.Employee.DirectManagerId == managerEmployeeId &&
+                            r.EmployeeId != managerEmployeeId),
                     request),
                 request);
 
