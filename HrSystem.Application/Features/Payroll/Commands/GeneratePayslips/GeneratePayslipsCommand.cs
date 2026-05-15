@@ -382,8 +382,17 @@ public class GeneratePayslipsCommandHandler
                 && branchPolicyByBranchId.TryGetValue(employee.BranchId.Value, out var branchPolicy)
                 && attendanceByEmployeeId.TryGetValue(employee.Id, out var employeeAttendance))
             {
+                var attendanceDates = new HashSet<DateTime>();
+
                 foreach (var attendance in employeeAttendance)
                 {
+                    if (attendance.Date < employmentStart || attendance.Date > employmentEnd)
+                    {
+                        continue;
+                    }
+
+                    attendanceDates.Add(attendance.Date.Date);
+
                     if (attendance.StatusId == AttendanceStatusIds.Absent)
                     {
                         fullDayAbsentDays += 1m;
@@ -399,6 +408,12 @@ public class GeneratePayslipsCommandHandler
                     {
                         halfDayDays += 1m;
                     }
+                }
+
+                var missingAttendanceDays = Math.Max(0, payableDays - attendanceDates.Count);
+                if (missingAttendanceDays > 0)
+                {
+                    fullDayAbsentDays += missingAttendanceDays;
                 }
 
                 if (fullDayAbsentDays > 0 || halfDayDays > 0)

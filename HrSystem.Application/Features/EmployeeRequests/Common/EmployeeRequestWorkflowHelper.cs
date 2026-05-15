@@ -63,7 +63,7 @@ internal static class EmployeeRequestWorkflowHelper
                 .AnyAsync(
                     x => x.UserId == manager.UserId.Value
                          && x.RoleName != null
-                         && HrRoleNames.Contains(x.RoleName),
+                         && HrRoleNames.Contains(RoleNames.Normalize(x.RoleName), StringComparer.OrdinalIgnoreCase),
                     cancellationToken);
 
             if (hasHrRole)

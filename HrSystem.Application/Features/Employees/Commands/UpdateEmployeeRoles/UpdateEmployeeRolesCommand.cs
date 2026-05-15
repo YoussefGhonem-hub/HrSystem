@@ -31,17 +31,18 @@ public class UpdateEmployeeRolesCommandHandler : IRequestHandler<UpdateEmployeeR
             return Error.Unauthorized(description: "No organization context");
         }
 
-        var branchId = CurrentUser.BranchId ;
-        if (branchId == Guid.Empty)
-        {
-            return Error.Validation(code: "Branch.Required", description: "Branch context is required to update roles");
-        }
+        var requesterBranchId = CurrentUser.BranchId;
+
+        var normalizedRoles = CurrentUser.Roles
+            .Select(RoleNames.Normalize)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .ToArray();
 
         // Authorization: HR/Admin only
-        var isHr = CurrentUser.Roles?.Contains(RoleNames.HRManager) == true ||
-                   CurrentUser.Roles?.Contains(RoleNames.HRSpecialist) == true ||
-                   CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true ||
-                   CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true;
+        var isHr = normalizedRoles.Any(r => string.Equals(r, RoleNames.HRManager, StringComparison.OrdinalIgnoreCase)) ||
+                   normalizedRoles.Any(r => string.Equals(r, RoleNames.HRSpecialist, StringComparison.OrdinalIgnoreCase)) ||
+                   normalizedRoles.Any(r => string.Equals(r, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase)) ||
+                   normalizedRoles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase));
 
         if (!isHr)
         {
@@ -72,9 +73,18 @@ public class UpdateEmployeeRolesCommandHandler : IRequestHandler<UpdateEmployeeR
             return Error.Validation(code: "Employee.UserMissing", description: "Employee is not linked to a user account");
         }
 
+        var branchId = (requesterBranchId.HasValue && requesterBranchId.Value != Guid.Empty)
+            ? requesterBranchId.Value
+            : employee.BranchId;
+
+        if (!branchId.HasValue || branchId.Value == Guid.Empty)
+        {
+            return Error.Validation(code: "Branch.Required", description: "Target employee must be linked to a branch to update branch-scoped roles");
+        }
+
         // Validate branch
         var branch = await _context.Branches
-            .FirstOrDefaultAsync(b => b.Id == branchId && b.OrganizationId == orgId.Value, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == branchId.Value && b.OrganizationId == orgId.Value, cancellationToken);
 
         if (branch == null)
         {
@@ -95,7 +105,7 @@ public class UpdateEmployeeRolesCommandHandler : IRequestHandler<UpdateEmployeeR
 
         // Remove existing branch-scoped roles for this user/branch
         var existingRoles = await _context.UserBranchRoles
-            .Where(ubr => ubr.UserId == employee.UserId.Value && ubr.BranchId == branchId)
+            .Where(ubr => ubr.UserId == employee.UserId.Value && ubr.BranchId == branchId.Value)
             .ToListAsync(cancellationToken);
 
         _context.UserBranchRoles.RemoveRange(existingRoles);
@@ -107,7 +117,7 @@ public class UpdateEmployeeRolesCommandHandler : IRequestHandler<UpdateEmployeeR
             {
                 Id = Guid.NewGuid(),
                 UserId = employee.UserId.Value,
-                BranchId = branchId,
+                BranchId = branchId.Value,
                 RoleName = roleName
             };
 

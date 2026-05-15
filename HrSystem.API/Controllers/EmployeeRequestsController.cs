@@ -45,7 +45,7 @@ using System.Linq;
 
 namespace HrSystem.API.Controllers;
 
-[Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager,Employee")]
+[Authorize(Roles = RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist + "," + RoleNames.DepartmentManager + "," + RoleNames.Employee + ",Organization Admin,HR Manager,HR Specialist,Department Manager,Dept Manager,Manager Department")]
 [Route("api/[controller]")]
 public class EmployeeRequestsController : APIBaseController
 {
@@ -97,7 +97,7 @@ public class EmployeeRequestsController : APIBaseController
     /// <summary>
     /// Requests overview cards and list for HR/manager dashboards (filters + statistics).
     /// </summary>
-    [Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager")]
+    [Authorize(Roles = RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist + "," + RoleNames.DepartmentManager + ",Organization Admin,HR Manager,HR Specialist,Department Manager,Dept Manager,Manager Department")]
     [HttpGet("overview")]
     public async Task<IActionResult> GetRequestsOverview(
         [FromQuery] string? searchTerm = null,
@@ -142,7 +142,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Manager approves or rejects any employee request.
     /// The request type is auto-detected. Request must be in Pending status.
     /// </summary>
-    [Authorize(Roles = "DepartmentManager,HRManager,HRSpecialist,OrganizationAdmin")]
+    [Authorize(Roles = RoleNames.DepartmentManager + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist + "," + RoleNames.OrganizationAdmin + ",Department Manager,Dept Manager,Manager Department,HR Manager,HR Specialist,Organization Admin")]
     [HttpPost("{requestId:guid}/manager-approval")]
     public async Task<IActionResult> ManagerApproveRequest(
         Guid requestId,
@@ -157,7 +157,7 @@ public class EmployeeRequestsController : APIBaseController
     /// HR approves or rejects any employee request (after manager approval).
     /// The request type is auto-detected. Request must be in ManagerApproved status.
     /// </summary>
-    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin")]
+    [Authorize(Roles = RoleNames.HRManager + "," + RoleNames.HRSpecialist + "," + RoleNames.OrganizationAdmin + ",HR Manager,HR Specialist,Organization Admin")]
     [HttpPost("{requestId:guid}/hr-approval")]
     public async Task<IActionResult> HRApproveRequest(
         Guid requestId,
@@ -214,7 +214,7 @@ public class EmployeeRequestsController : APIBaseController
     /// Returns all requests for a specific employee with status statistics.
     /// Supports filtering by one or multiple request types, pagination, and sorts by created date descending.
     /// </summary>
-    [Authorize(Roles = "OrganizationAdmin,HRManager,HRSpecialist,DepartmentManager")]
+    [Authorize(Roles = RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.HRSpecialist + "," + RoleNames.DepartmentManager + ",Organization Admin,HR Manager,HR Specialist,Department Manager,Dept Manager,Manager Department")]
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetEmployeeRequests(
         Guid employeeId,

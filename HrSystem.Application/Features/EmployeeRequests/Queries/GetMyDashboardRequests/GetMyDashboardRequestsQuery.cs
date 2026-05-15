@@ -77,20 +77,22 @@ public class GetMyDashboardRequestsQueryHandler
         GetMyDashboardRequestsQuery request,
         CancellationToken cancellationToken)
     {
-        var roles = CurrentUser.Roles;
+        var roles = CurrentUser.Roles
+            .Select(RoleNames.Normalize)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .ToArray();
         var employeeId = CurrentUser.EmployeeId;
         var branchId = CurrentUser.BranchId;
 
         // Determine the effective role (highest privilege wins)
-        var isHR = roles.Any(r =>
-            r == RoleNames.HRManager ||
-            r == RoleNames.HRSpecialist ||
-            r == RoleNames.OrganizationAdmin);
+        var isHR = roles.Any(r => string.Equals(r, RoleNames.HRManager, StringComparison.OrdinalIgnoreCase))
+            || roles.Any(r => string.Equals(r, RoleNames.HRSpecialist, StringComparison.OrdinalIgnoreCase))
+            || roles.Any(r => string.Equals(r, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase));
 
         if (!employeeId.HasValue && !isHR)
             return Error.Validation(description: "The logged-in user is not linked to an employee profile.");
 
-        var isManager = roles.Any(r => r == RoleNames.DepartmentManager);
+        var isManager = roles.Any(r => string.Equals(r, RoleNames.DepartmentManager, StringComparison.OrdinalIgnoreCase));
 
         // Check if user is actually a direct manager (has subordinates) even without DepartmentManager role
         if (!isManager && employeeId.HasValue)

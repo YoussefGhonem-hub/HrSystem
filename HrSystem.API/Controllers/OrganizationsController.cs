@@ -30,7 +30,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HrSystem.API.Controllers;
 
 [Route("api/[controller]")]
-[Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.HRManager + "," + RoleNames.OrganizationAdmin)]
+[Authorize]
 public class OrganizationsController : APIBaseController
 {
     private readonly ISender _mediator;
@@ -220,7 +220,6 @@ public class OrganizationsController : APIBaseController
     /// Get organization-admin dashboard data for the current organization.
     /// </summary>
     [HttpGet("dashboard/org-admin")]
-    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.OrganizationAdmin + "," + RoleNames.HRManager + "," + RoleNames.DepartmentManager)]
     public async Task<IActionResult> GetOrganizationAdminDashboard(
         [FromQuery] DateTime? date = null,
         [FromQuery] int employeePageNumber = 1,
@@ -230,6 +229,21 @@ public class OrganizationsController : APIBaseController
         [FromQuery] int recentLeaveHistoryCount = 20,
         [FromQuery] int recentLeaveRequestsCount = 20)
     {
+        var normalizedRoles = CurrentUser.Roles
+            .Select(RoleNames.Normalize)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .ToArray();
+
+        var canAccessDashboard = normalizedRoles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            || normalizedRoles.Any(r => string.Equals(r, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase))
+            || normalizedRoles.Any(r => string.Equals(r, RoleNames.HRManager, StringComparison.OrdinalIgnoreCase))
+            || normalizedRoles.Any(r => string.Equals(r, RoleNames.DepartmentManager, StringComparison.OrdinalIgnoreCase));
+
+        if (!canAccessDashboard)
+        {
+            return Forbid();
+        }
+
         var query = new GetOrganizationAdminDashboardQuery(
             date,
             employeePageNumber,
@@ -543,14 +557,20 @@ public class OrganizationsController : APIBaseController
 
     private IActionResult? EnsureOrganizationAccess(Guid requestedOrganizationId)
     {
-        if (User.IsInRole(RoleNames.SuperAdmin))
+        var normalizedRoles = CurrentUser.Roles
+            .Select(RoleNames.Normalize)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .ToArray();
+
+        var isSuperAdmin = normalizedRoles.Any(r => string.Equals(r, RoleNames.SuperAdmin, StringComparison.OrdinalIgnoreCase));
+        if (isSuperAdmin)
         {
             return null;
         }
 
         var isAllowedScopedRole =
-            User.IsInRole(RoleNames.HRManager) ||
-            User.IsInRole(RoleNames.OrganizationAdmin);
+            normalizedRoles.Any(r => string.Equals(r, RoleNames.HRManager, StringComparison.OrdinalIgnoreCase)) ||
+            normalizedRoles.Any(r => string.Equals(r, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase));
 
         if (!isAllowedScopedRole)
         {

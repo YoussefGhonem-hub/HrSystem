@@ -57,16 +57,18 @@ public class ApproveRequestCommandHandler
             return Error.NotFound(description: "Request not found.");
 
         // Determine approval level from caller's role
-        var roles = CurrentUser.Roles;
+        var roles = CurrentUser.Roles
+            .Select(RoleNames.Normalize)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .ToArray();
         var currentUserId = CurrentUser.Id;
         var currentEmployeeId = CurrentUser.EmployeeId;
 
-        bool isHR = roles.Any(r =>
-            r == RoleNames.HRManager ||
-            r == RoleNames.HRSpecialist ||
-            r == RoleNames.OrganizationAdmin);
+        bool isHR = roles.Any(r => string.Equals(r, RoleNames.HRManager, StringComparison.OrdinalIgnoreCase))
+            || roles.Any(r => string.Equals(r, RoleNames.HRSpecialist, StringComparison.OrdinalIgnoreCase))
+            || roles.Any(r => string.Equals(r, RoleNames.OrganizationAdmin, StringComparison.OrdinalIgnoreCase));
 
-        bool isManager = roles.Any(r => r == RoleNames.DepartmentManager);
+        bool isManager = roles.Any(r => string.Equals(r, RoleNames.DepartmentManager, StringComparison.OrdinalIgnoreCase));
 
         ApprovalLevel level;
 

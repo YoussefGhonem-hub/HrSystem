@@ -117,8 +117,8 @@ public record BranchWorkScheduleInput(
     JsonElement? BreakDuration,
     int WorkingHoursPerDay,
     int WorkingDaysPerWeek,
-    TimeSpan? GracePeriodLate,
-    TimeSpan? GracePeriodEarlyLeave,
+    JsonElement? GracePeriodLate,
+    JsonElement? GracePeriodEarlyLeave,
     bool IsSunday,
     bool IsMonday,
     bool IsTuesday,
@@ -473,6 +473,22 @@ public class CreateOrganizationFullCommandHandler
                             description: $"Invalid breakDuration in branches[{branchIndex}].workSchedules[{scheduleIndex}]. Use 'HH:mm:ss' or number of minutes.");
                     }
 
+                    var gracePeriodLate = ParseOptionalDuration(scheduleInput.GracePeriodLate, "gracePeriodLate");
+                    if (gracePeriodLate.IsError)
+                    {
+                        return Error.Validation(
+                            code: "Schedule.GracePeriodLateInvalid",
+                            description: $"Invalid gracePeriodLate in branches[{branchIndex}].workSchedules[{scheduleIndex}]. Use 'HH:mm:ss' or number of minutes.");
+                    }
+
+                    var gracePeriodEarlyLeave = ParseOptionalDuration(scheduleInput.GracePeriodEarlyLeave, "gracePeriodEarlyLeave");
+                    if (gracePeriodEarlyLeave.IsError)
+                    {
+                        return Error.Validation(
+                            code: "Schedule.GracePeriodEarlyLeaveInvalid",
+                            description: $"Invalid gracePeriodEarlyLeave in branches[{branchIndex}].workSchedules[{scheduleIndex}]. Use 'HH:mm:ss' or number of minutes.");
+                    }
+
                     var schedule = new BranchWorkSchedule
                     {
                         Id = Guid.NewGuid(),
@@ -484,8 +500,8 @@ public class CreateOrganizationFullCommandHandler
                         BreakDuration = breakDuration.Value,
                         WorkingHoursPerDay = scheduleInput.WorkingHoursPerDay,
                         WorkingDaysPerWeek = scheduleInput.WorkingDaysPerWeek,
-                        GracePeriodLate = scheduleInput.GracePeriodLate,
-                        GracePeriodEarlyLeave = scheduleInput.GracePeriodEarlyLeave,
+                        GracePeriodLate = gracePeriodLate.Value,
+                        GracePeriodEarlyLeave = gracePeriodEarlyLeave.Value,
                         IsSunday = scheduleInput.IsSunday,
                         IsMonday = scheduleInput.IsMonday,
                         IsTuesday = scheduleInput.IsTuesday,
@@ -892,6 +908,55 @@ public class CreateOrganizationFullCommandHandler
             }
             default:
                 return Error.Validation(code: "Schedule.BreakDurationInvalid", description: "Break duration must be 'HH:mm:ss' or number of minutes.");
+        }
+    }
+
+    private static ErrorOr<TimeSpan?> ParseOptionalDuration(JsonElement? value, string fieldName)
+    {
+        if (!value.HasValue)
+            return (TimeSpan?)null;
+
+        var json = value.Value;
+        if (json.ValueKind == JsonValueKind.Null || json.ValueKind == JsonValueKind.Undefined)
+            return (TimeSpan?)null;
+
+        TimeSpan parsed;
+        switch (json.ValueKind)
+        {
+            case JsonValueKind.String:
+            {
+                var raw = json.GetString();
+                if (string.IsNullOrWhiteSpace(raw))
+                    return (TimeSpan?)null;
+
+                if (TimeSpan.TryParse(raw, CultureInfo.InvariantCulture, out parsed)
+                    || TimeSpan.TryParse(raw, out parsed))
+                {
+                    if (parsed < TimeSpan.Zero)
+                        return Error.Validation(code: $"Schedule.{fieldName}Invalid", description: $"{fieldName} must be non-negative.");
+                    return (TimeSpan?)parsed;
+                }
+
+                if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var minutesFromString)
+                    || decimal.TryParse(raw, NumberStyles.Number, CultureInfo.CurrentCulture, out minutesFromString))
+                {
+                    if (minutesFromString < 0)
+                        return Error.Validation(code: $"Schedule.{fieldName}Invalid", description: $"{fieldName} must be non-negative.");
+                    return (TimeSpan?)TimeSpan.FromMinutes((double)minutesFromString);
+                }
+
+                return Error.Validation(code: $"Schedule.{fieldName}Invalid", description: $"{fieldName} must be 'HH:mm:ss' or number of minutes.");
+            }
+            case JsonValueKind.Number:
+            {
+                if (!json.TryGetDecimal(out var minutes))
+                    return Error.Validation(code: $"Schedule.{fieldName}Invalid", description: $"{fieldName} number is not valid.");
+                if (minutes < 0)
+                    return Error.Validation(code: $"Schedule.{fieldName}Invalid", description: $"{fieldName} must be non-negative.");
+                return (TimeSpan?)TimeSpan.FromMinutes((double)minutes);
+            }
+            default:
+                return Error.Validation(code: $"Schedule.{fieldName}Invalid", description: $"{fieldName} must be 'HH:mm:ss' or number of minutes.");
         }
     }
 }
