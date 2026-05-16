@@ -1,0 +1,187 @@
+using ErrorOr;
+using HrSystem.Infrustructure.Persistence;
+using HrSystem.Shared.Common;
+using HrSystem.Shared.Constants;
+using HrSystem.Shared.CurrentUser;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace HrSystem.Application.Features.Attendance.Queries.Reports;
+
+public record GetPayrollAttendanceReportQuery(
+    int Month,
+    int Year,
+    Guid? DepartmentId = null,
+    Guid? EmployeeId = null
+) : IRequest<ErrorOr<GenericResponse<PayrollAttendanceReportDto>>>;
+
+public class GetPayrollAttendanceReportQueryHandler
+    : IRequestHandler<GetPayrollAttendanceReportQuery, ErrorOr<GenericResponse<PayrollAttendanceReportDto>>>
+{
+    private readonly ApplicationDbContext _context;
+
+    public GetPayrollAttendanceReportQueryHandler(ApplicationDbContext context) => _context = context;
+
+    public async Task<ErrorOr<GenericResponse<PayrollAttendanceReportDto>>> Handle(
+        GetPayrollAttendanceReportQuery request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Month < 1 || request.Month > 12)
+            return Error.Validation(description: "Month must be between 1 and 12.");
+        if (request.Year < 2000 || request.Year > 2100)
+            return Error.Validation(description: "Invalid year.");
+
+        var fromDate = new DateTime(request.Year, request.Month, 1);
+        var toDate = fromDate.AddMonths(1).AddDays(-1);
+
+        var isSuperOrOrgAdmin = CurrentUser.IsOrganizationAdmin || CurrentUser.IsSuperAdmin;
+        var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
+
+        // Get BranchWorkSchedule to calculate working days
+        var schedule = branchId.HasValue
+            ? await _context.BranchWorkSchedules.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.BranchId == branchId.Value && s.IsActive && !s.IsDeleted, cancellationToken)
+            : null;
+
+        var holidays = await _context.BranchHolidays.AsNoTracking()
+            .Where(h => !h.IsDeleted && h.IsActive
+                && ((h.Year == request.Year && h.Date.Month == request.Month)
+                    || (h.IsRecurring && h.RecurringMonth == request.Month)))
+            .Select(h => h.Date.Date)
+            .ToListAsync(cancellationToken);
+
+        int totalWorkingDays = CountWorkingDays(fromDate, toDate, schedule, holidays);
+
+        // Attendance records for the month
+        var attQuery = _context.Attendances
+            .AsNoTracking()
+            .Include(a => a.Employee)
+                .ThenInclude(e => e.Department)
+            .Include(a => a.Employee)
+                .ThenInclude(e => e.Salaries)
+            .Where(a => !a.IsDeleted
+                && !a.IsConfigurationRecord
+                && a.Date.Date >= fromDate
+                && a.Date.Date <= toDate);
+
+        if (branchId.HasValue)
+            attQuery = attQuery.Where(a => a.Employee.BranchId == branchId);
+
+        if (request.DepartmentId.HasValue)
+            attQuery = attQuery.Where(a => a.Employee.DepartmentId == request.DepartmentId);
+
+        if (request.EmployeeId.HasValue)
+            attQuery = attQuery.Where(a => a.EmployeeId == request.EmployeeId);
+
+        var records = await attQuery.ToListAsync(cancellationToken);
+
+        var rows = records
+            .GroupBy(a => new
+            {
+                a.EmployeeId,
+                Code = a.Employee.EmployeeCode,
+                Name = a.Employee.FirstNameEn + " " + a.Employee.LastNameEn,
+                Dept = a.Employee.Department?.NameEn ?? string.Empty
+            })
+            .Select(g =>
+            {
+                var currentSalary = g.First().Employee.Salaries
+                    .Where(s => s.IsCurrent && !s.IsDeleted)
+                    .OrderByDescending(s => s.EffectiveDate)
+                    .FirstOrDefault();
+
+                var basicSalary = currentSalary?.BasicSalary ?? 0m;
+                var overtimeMultiplier = currentSalary?.OvertimeMultiplier ?? 1.5m;
+                var workedDays = g.Count(a => a.StatusId == AttendanceStatusIds.Present || a.StatusId == AttendanceStatusIds.Late);
+                var absentDays = g.Count(a => a.StatusId == AttendanceStatusIds.Absent);
+                var totalLateMin = g.Sum(a => a.LateMinutes.HasValue ? a.LateMinutes.Value.TotalMinutes : 0);
+                var otHours = g.Sum(a => a.OvertimeHours.HasValue ? a.OvertimeHours.Value.TotalHours : 0);
+
+                var dailyRate = totalWorkingDays > 0 ? basicSalary / totalWorkingDays : 0m;
+                var hourlyRate = dailyRate / 8m;
+
+                // Absent deduction: absent days × daily rate
+                var absentDeduction = absentDays * dailyRate;
+
+                // Late deduction: late hours × hourly rate
+                var lateDeduction = (decimal)(totalLateMin / 60.0) * hourlyRate;
+
+                // Overtime amount: OT hours × hourly rate × multiplier
+                var otAmount = (decimal)otHours * hourlyRate * overtimeMultiplier;
+
+                var netImpact = otAmount - absentDeduction - lateDeduction;
+
+                return new PayrollAttendanceRowDto
+                {
+                    EmployeeCode = g.Key.Code,
+                    EmployeeName = g.Key.Name,
+                    Department = g.Key.Dept,
+                    BasicSalary = basicSalary,
+                    TotalWorkingDays = totalWorkingDays,
+                    WorkedDays = workedDays,
+                    AbsentDays = absentDays,
+                    LateMinutes = Math.Round(totalLateMin, 1),
+                    DailyRate = Math.Round(dailyRate, 2),
+                    AbsentDeductionAmount = Math.Round(absentDeduction, 2),
+                    LateDeductionAmount = Math.Round(lateDeduction, 2),
+                    OvertimeHours = Math.Round(otHours, 2),
+                    OvertimeRate = overtimeMultiplier,
+                    OvertimeAmount = Math.Round(otAmount, 2),
+                    NetSalaryImpact = Math.Round(netImpact, 2)
+                };
+            })
+            .OrderBy(r => r.Department).ThenBy(r => r.EmployeeName)
+            .ToList();
+
+        var dto = new PayrollAttendanceReportDto
+        {
+            Meta = new AttendanceReportMeta
+            {
+                ReportType = "Payroll Attendance Report",
+                GeneratedAt = DateTime.UtcNow,
+                FromDate = fromDate,
+                ToDate = toDate
+            },
+            Month = request.Month,
+            Year = request.Year,
+            TotalWorkingDays = totalWorkingDays,
+            TotalLateDeductions = rows.Sum(r => r.LateDeductionAmount),
+            TotalOvertimeAmounts = rows.Sum(r => r.OvertimeAmount),
+            Rows = rows
+        };
+
+        return GenericResponse<PayrollAttendanceReportDto>.SuccessResult(dto, "Payroll attendance report generated successfully.");
+    }
+
+    private static int CountWorkingDays(
+        DateTime from, DateTime to,
+        Domain.Entities.Organization.BranchWorkSchedule? schedule,
+        List<DateTime> holidays)
+    {
+        int count = 0;
+        for (var day = from.Date; day <= to.Date; day = day.AddDays(1))
+        {
+            if (IsWorkingDay(day, schedule) && !holidays.Contains(day.Date))
+                count++;
+        }
+        return count;
+    }
+
+    private static bool IsWorkingDay(DateTime day, Domain.Entities.Organization.BranchWorkSchedule? schedule)
+    {
+        if (schedule == null)
+            return day.DayOfWeek != DayOfWeek.Friday && day.DayOfWeek != DayOfWeek.Saturday;
+
+        return day.DayOfWeek switch
+        {
+            DayOfWeek.Sunday => schedule.IsSunday,
+            DayOfWeek.Monday => schedule.IsMonday,
+            DayOfWeek.Tuesday => schedule.IsTuesday,
+            DayOfWeek.Wednesday => schedule.IsWednesday,
+            DayOfWeek.Thursday => schedule.IsThursday,
+            DayOfWeek.Friday => schedule.IsFriday,
+            DayOfWeek.Saturday => schedule.IsSaturday,
+            _ => false
+        };
+    }
+}
