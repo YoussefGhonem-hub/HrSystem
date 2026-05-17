@@ -20,6 +20,8 @@ using HrSystem.Application.Features.Organizations.Queries.GetInvoiceCollections;
 using HrSystem.Application.Features.Organizations.Queries.GetSuperAdminInvoices;
 using HrSystem.Application.Features.Organizations.Queries.GetSuperAdminBillingDashboard;
 using HrSystem.Application.Features.Organizations.Queries.GetSubscriptionPlans;
+using HrSystem.Application.Features.Organizations.Queries.GetPayrollSettings;
+using HrSystem.Application.Features.Organizations.Commands.UpsertPayrollSettings;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
@@ -590,6 +592,43 @@ public class OrganizationsController : APIBaseController
 
         return null;
     }
+
+    #region Payroll Settings
+
+    /// <summary>
+    /// Get the payroll cycle configuration for the given organization.
+    /// </summary>
+    [HttpGet("{organizationId:guid}/payroll-settings")]
+    [Authorize(Roles = $"{RoleNames.HRManager},{RoleNames.OrganizationAdmin},{RoleNames.SuperAdmin}")]
+    public async Task<IActionResult> GetPayrollSettings(Guid organizationId, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetPayrollSettingsQuery(organizationId), ct);
+        return result.Match(Ok, Problem);
+    }
+
+    /// <summary>
+    /// Create or update the payroll cycle configuration for the given organization.
+    /// </summary>
+    [HttpPut("{organizationId:guid}/payroll-settings")]
+    [Authorize(Roles = $"{RoleNames.HRManager},{RoleNames.OrganizationAdmin},{RoleNames.SuperAdmin}")]
+    public async Task<IActionResult> UpsertPayrollSettings(
+        Guid organizationId,
+        [FromBody] UpsertPayrollSettingsRequest body,
+        CancellationToken ct)
+    {
+        var command = new UpsertPayrollSettingsCommand(
+            organizationId,
+            body.CycleType,
+            body.CustomCutoffStartDay,
+            body.CustomCutoffEndDay,
+            body.AnchorDate,
+            body.Notes);
+
+        var result = await _mediator.Send(command, ct);
+        return result.Match(Ok, Problem);
+    }
+
+    #endregion
 }
 
 #region Request DTOs
@@ -672,3 +711,12 @@ public record CollectInvoiceRequest(
 );
 
 #endregion
+
+public record UpsertPayrollSettingsRequest(
+    HrSystem.Domain.Enums.PayCycleType CycleType,
+    int? CustomCutoffStartDay,
+    int? CustomCutoffEndDay,
+    DateOnly? AnchorDate,
+    string? Notes
+);
+

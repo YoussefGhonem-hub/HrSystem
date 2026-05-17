@@ -101,6 +101,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<HrSystem.Domain.Entities.Organization.OrganizationInvoice> OrganizationInvoices => Set<HrSystem.Domain.Entities.Organization.OrganizationInvoice>();
     public DbSet<HrSystem.Domain.Entities.Organization.InvoiceStatus> InvoiceStatuses => Set<HrSystem.Domain.Entities.Organization.InvoiceStatus>();
     public DbSet<HrSystem.Domain.Entities.Organization.OrganizationInvoiceItem> OrganizationInvoiceItems => Set<HrSystem.Domain.Entities.Organization.OrganizationInvoiceItem>();
+    public DbSet<HrSystem.Domain.Entities.Organization.OrganizationPayrollSettings> OrganizationPayrollSettings => Set<HrSystem.Domain.Entities.Organization.OrganizationPayrollSettings>();
 
     // Employee Self-Service Requests
     public DbSet<EmployeeRequest> EmployeeRequests => Set<EmployeeRequest>();

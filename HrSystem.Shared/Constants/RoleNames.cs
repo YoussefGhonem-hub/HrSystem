@@ -96,6 +96,13 @@ public static class RoleNames
             return canonical;
         }
 
+        // Exact match against known canonical roles first (e.g. "HRManager" must NOT fall into the EndsWith check).
+        var known = All.FirstOrDefault(r => string.Equals(r, trimmed, StringComparison.OrdinalIgnoreCase));
+        if (known != null)
+        {
+            return known;
+        }
+
         // Treat unknown "<Department> Manager" labels as DepartmentManager.
         if (trimmed.EndsWith(" Manager", StringComparison.OrdinalIgnoreCase) ||
             trimmed.EndsWith("Manager", StringComparison.OrdinalIgnoreCase))
@@ -103,8 +110,7 @@ public static class RoleNames
             return DepartmentManager;
         }
 
-        var known = All.FirstOrDefault(r => string.Equals(r, trimmed, StringComparison.OrdinalIgnoreCase));
-        return known ?? trimmed;
+        return trimmed;
     }
 
     /// <summary>
