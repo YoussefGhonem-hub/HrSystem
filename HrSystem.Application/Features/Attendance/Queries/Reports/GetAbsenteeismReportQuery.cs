@@ -6,6 +6,7 @@ using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 namespace HrSystem.Application.Features.Attendance.Queries.Reports;
 
@@ -57,6 +58,26 @@ public class GetAbsenteeismReportQueryHandler
             absenceQuery = absenceQuery.Where(a => a.EmployeeId == request.EmployeeId);
 
         var absences = await absenceQuery.ToListAsync(cancellationToken);
+
+        // Employees who have no attendance record at all in the range are implicitly absent.
+        var allEmployeesInRange = await _context.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Where(e => !e.IsDeleted && e.StatusId == EmployeeStatusIds.Active)
+            .Where(e => !branchId.HasValue || e.BranchId == branchId)
+            .Where(e => !request.DepartmentId.HasValue || e.DepartmentId == request.DepartmentId)
+            .Where(e => !request.EmployeeId.HasValue || e.Id == request.EmployeeId)
+            .ToListAsync(cancellationToken);
+
+        var employeesWithAnyRecord = (await _context.Attendances
+            .AsNoTracking()
+            .Where(a => !a.IsDeleted && !a.IsConfigurationRecord
+                && a.Date.Date >= from && a.Date.Date <= to)
+            .Where(a => !branchId.HasValue || a.Employee.BranchId == branchId)
+            .Select(a => a.EmployeeId)
+            .Distinct()
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
 
         // Load approved leave requests in the range to detect authorized absences
         var approvedLeaveReqs = await _context.EmployeeRequests
@@ -125,6 +146,23 @@ public class GetAbsenteeismReportQueryHandler
             })
             .OrderByDescending(r => r.AbsentDays)
             .ToList();
+
+        // Add implicit absentees (no records whatsoever in the date range).
+        var implicitAbsentRows = allEmployeesInRange
+            .Where(e => !employeesWithAnyRecord.Contains(e.Id))
+            .Select(e => new AbsenteeismRowDto
+            {
+                EmployeeCode = e.EmployeeCode,
+                EmployeeName = e.FirstNameEn + " " + e.LastNameEn,
+                Department = e.Department?.NameEn ?? string.Empty,
+                AbsentDays = totalDaysInRange,
+                AuthorizedAbsenceDays = 0,
+                UnauthorizedAbsenceDays = totalDaysInRange,
+                AbsenceRate = 100,
+                AbsenceReasons = new List<string>()
+            });
+
+        rows = rows.Concat(implicitAbsentRows).OrderByDescending(r => r.AbsentDays).ToList();
 
         // Department summary
         var deptSummary = rows

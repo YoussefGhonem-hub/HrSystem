@@ -1,12 +1,14 @@
 using ErrorOr;
 using HrSystem.Application.Features.Employees.Commands.CreateEmployee;
 using HrSystem.Application.Features.Employees.Queries.GetEmployeeById;
+using HrSystem.Domain.Entities.Account;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Storage.AWS3.Services;
 
@@ -22,13 +24,24 @@ public record UpdateEmployeeStatusAndProfileCommand(
 
 public class UpdateEmployeeStatusAndProfileCommandHandler : IRequestHandler<UpdateEmployeeStatusAndProfileCommand, ErrorOr<GenericResponse<EmployeeDto>>>
 {
+    private static readonly HashSet<Guid> AccessRevokingStatuses = new()
+    {
+        EmployeeStatusIds.Terminated,
+        EmployeeStatusIds.Resigned
+    };
+
     private readonly ApplicationDbContext _context;
     private readonly IStorageService _storageService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public UpdateEmployeeStatusAndProfileCommandHandler(ApplicationDbContext context, IStorageService storageService)
+    public UpdateEmployeeStatusAndProfileCommandHandler(
+        ApplicationDbContext context,
+        IStorageService storageService,
+        UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _storageService = storageService;
+        _userManager = userManager;
     }
 
     public async Task<ErrorOr<GenericResponse<EmployeeDto>>> Handle(
@@ -70,6 +83,20 @@ public class UpdateEmployeeStatusAndProfileCommandHandler : IRequestHandler<Upda
             employee.StatusId = request.StatusId.Value;
             employee.TerminationReason = request.StatusReason;
             employee.TerminationDate = request.StatusEffectiveDate;
+
+            // Revoke system access immediately upon termination or resignation.
+            if (AccessRevokingStatuses.Contains(request.StatusId.Value) && employee.UserId.HasValue)
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == employee.UserId.Value, cancellationToken);
+                if (user != null)
+                {
+                    user.IsActive = false;
+                    user.LockoutEnabled = true;
+                    user.LockoutEnd = DateTimeOffset.MaxValue;
+                    // Rotate security stamp so existing JWT tokens are rejected on next validation.
+                    await _userManager.UpdateSecurityStampAsync(user);
+                }
+            }
         }
 
         if (request.ProfileImage is not null && request.ProfileImage.Length > 0)

@@ -23,9 +23,9 @@ public record EmployeePermissionBalanceDto
     public string PermissionTypeNameAr { get; init; } = string.Empty;
     public decimal? MaxHoursPerMonth { get; init; }
     public decimal UsedHours { get; init; }
-    public decimal RemainingHours => MaxHoursPerMonth.HasValue 
-        ? Math.Max(0, MaxHoursPerMonth.Value - UsedHours) 
-        : decimal.MaxValue;
+    public decimal? RemainingHours => MaxHoursPerMonth.HasValue
+        ? Math.Max(0, MaxHoursPerMonth.Value - UsedHours)
+        : null;
     public bool HasLimit => MaxHoursPerMonth.HasValue;
     public string? Notes { get; init; }
 }

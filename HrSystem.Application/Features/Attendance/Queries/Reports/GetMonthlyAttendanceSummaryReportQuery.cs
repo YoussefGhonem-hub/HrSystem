@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
@@ -74,6 +75,21 @@ public class GetMonthlyAttendanceSummaryReportQueryHandler
 
         var records = await query.ToListAsync(cancellationToken);
 
+        // Include employees who are active but have zero attendance records in the month.
+        var employeesWithRecords = records.Select(a => a.EmployeeId).ToHashSet();
+        var allActiveEmployeesQuery = _context.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.JobTitle)
+            .Where(e => !e.IsDeleted && e.StatusId == EmployeeStatusIds.Active);
+        if (branchId.HasValue)
+            allActiveEmployeesQuery = allActiveEmployeesQuery.Where(e => e.BranchId == branchId.Value);
+        if (request.DepartmentId.HasValue)
+            allActiveEmployeesQuery = allActiveEmployeesQuery.Where(e => e.DepartmentId == request.DepartmentId.Value);
+        if (request.EmployeeId.HasValue)
+            allActiveEmployeesQuery = allActiveEmployeesQuery.Where(e => e.Id == request.EmployeeId.Value);
+        var allActiveEmployees = await allActiveEmployeesQuery.ToListAsync(cancellationToken);
+
         // Load approved leave request dates per employee to count leave days that
         // may not have a corresponding OnLeave attendance record yet.
         var employeeIdsInRecords = records.Select(a => a.EmployeeId).Distinct().ToList();
@@ -100,6 +116,7 @@ public class GetMonthlyAttendanceSummaryReportQueryHandler
             }
         }
 
+        // Build rows from employees who have records in the month.
         var grouped = records
             .GroupBy(a => new
             {
@@ -151,6 +168,28 @@ public class GetMonthlyAttendanceSummaryReportQueryHandler
             .OrderBy(r => r.Department).ThenBy(r => r.EmployeeName)
             .ToList();
 
+        // Add fully-absent employees (no records at all in the month).
+        var zeroRecordRows = allActiveEmployees
+            .Where(e => !employeesWithRecords.Contains(e.Id))
+            .Select(e => new EmployeeMonthlyAttendanceDto
+            {
+                EmployeeCode = e.EmployeeCode,
+                EmployeeName = e.FirstNameEn + " " + e.LastNameEn,
+                Department = e.Department?.NameEn ?? string.Empty,
+                JobTitle = e.JobTitle?.TitleEn ?? string.Empty,
+                DaysPresent = 0,
+                DaysAbsent = totalWorkingDays,
+                DaysLate = 0,
+                TotalLateMinutes = 0,
+                OvertimeHours = 0,
+                LeaveDaysTaken = 0,
+                AttendancePercentage = 0
+            });
+
+        var allRows = grouped.Concat(zeroRecordRows)
+            .OrderBy(r => r.Department).ThenBy(r => r.EmployeeName)
+            .ToList();
+
         var dto = new MonthlyAttendanceSummaryReportDto
         {
             Meta = new AttendanceReportMeta
@@ -163,7 +202,7 @@ public class GetMonthlyAttendanceSummaryReportQueryHandler
             Month = request.Month,
             Year = request.Year,
             TotalWorkingDays = totalWorkingDays,
-            Rows = grouped
+            Rows = allRows
         };
 
         return GenericResponse<MonthlyAttendanceSummaryReportDto>.SuccessResult(dto, "Monthly attendance summary report generated successfully.");

@@ -53,8 +53,8 @@ public class GetPendingDisbursementsQueryHandler
         if (request.Month < 1 || request.Month > 12)
             return Error.Validation(description: "Month must be between 1 and 12.");
 
-        var periodEnd = new DateTime(request.Year, request.Month,
-            DateTime.DaysInMonth(request.Year, request.Month));
+        var periodStart = new DateTime(request.Year, request.Month, 1);
+        var periodEnd = periodStart.AddMonths(1).AddDays(-1);
 
         // Apply branch scope for HR managers
         var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
@@ -78,6 +78,8 @@ public class GetPendingDisbursementsQueryHandler
             .Where(l => !l.IsDeleted
                         && l.IsActive
                         && l.StartDate <= periodEnd
+                        && l.RemainingAmount > 0
+                        && (!l.EndDate.HasValue || l.EndDate.Value >= periodStart)
                         && !disbursedLoanIds.Contains(l.Id));
 
         if (branchId.HasValue)

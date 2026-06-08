@@ -137,6 +137,16 @@ public class GeneratePayslipsCommandHandler
             .GroupBy(s => s.BranchId)
             .ToDictionary(g => g.Key, g => g.First());
 
+        // Load public holidays that fall within the period (branch-specific + global).
+        var holidaySet = (await _context.BranchHolidays
+            .AsNoTracking()
+            .Where(h => !h.IsDeleted && h.IsActive
+                && ((h.Year == request.Year && h.Date.Month == request.Month)
+                    || (h.IsRecurring && h.RecurringMonth == request.Month)))
+            .Select(h => h.Date.Date)
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
+
         var attendanceRecords = await _context.Attendances
             .Where(a => !a.IsDeleted
                 && !a.IsConfigurationRecord
@@ -262,6 +272,9 @@ public class GeneratePayslipsCommandHandler
             }
 
             var payableDays = (employmentEnd - employmentStart).Days + 1;
+            // Working days = calendar days minus weekends and public holidays in the employment range.
+            branchPolicyByBranchId.TryGetValue(employee.BranchId ?? Guid.Empty, out var empBranchPolicy);
+            var expectedWorkingDays = CountWorkingDaysRange(employmentStart, employmentEnd, empBranchPolicy, holidaySet);
             var prorationFactor = Math.Min(1m, Math.Round(payableDays / (decimal)daysInMonth, 6));
             var proratedBasicSalary = Math.Round(currentSalary.BasicSalary * prorationFactor, 2);
 
@@ -387,11 +400,14 @@ public class GeneratePayslipsCommandHandler
                 foreach (var attendance in employeeAttendance)
                 {
                     if (attendance.Date < employmentStart || attendance.Date > employmentEnd)
-                    {
                         continue;
-                    }
 
-                    attendanceDates.Add(attendance.Date.Date);
+                    var dateOnly = attendance.Date.Date;
+                    // Only count working-day records toward attendance tracking.
+                    if (!IsWorkingDay(dateOnly, branchPolicy) || holidaySet.Contains(dateOnly))
+                        continue;
+
+                    attendanceDates.Add(dateOnly);
 
                     if (attendance.StatusId == AttendanceStatusIds.Absent)
                     {
@@ -410,7 +426,8 @@ public class GeneratePayslipsCommandHandler
                     }
                 }
 
-                var missingAttendanceDays = Math.Max(0, payableDays - attendanceDates.Count);
+                // Missing = expected working days with no record at all (implicitly absent).
+                var missingAttendanceDays = Math.Max(0, expectedWorkingDays - attendanceDates.Count);
                 if (missingAttendanceDays > 0)
                 {
                     fullDayAbsentDays += missingAttendanceDays;
@@ -452,7 +469,7 @@ public class GeneratePayslipsCommandHandler
                 existingPayslip.SocialInsuranceEmployee = siEmployee;
                 existingPayslip.SocialInsuranceEmployer = siEmployer;
                 existingPayslip.NetSalary = netSalary;
-                existingPayslip.TotalWorkingDays = payableDays;
+                existingPayslip.TotalWorkingDays = expectedWorkingDays;
                 existingPayslip.ActualWorkingDays = Math.Max(0, payableDays - (int)Math.Ceiling(fullDayAbsentDays + halfDayDays));
                 existingPayslip.AbsentDays = Math.Max(0, (int)Math.Ceiling(fullDayAbsentDays));
                 existingPayslip.GeneratedDate = DateTime.UtcNow;
@@ -502,7 +519,7 @@ public class GeneratePayslipsCommandHandler
                     LeaveDeductions = 0,
                     UnpaidLeaveDays = 0,
                     NetSalary = netSalary,
-                    TotalWorkingDays = payableDays,
+                    TotalWorkingDays = expectedWorkingDays,
                     ActualWorkingDays = Math.Max(0, payableDays - (int)Math.Ceiling(fullDayAbsentDays + halfDayDays)),
                     AbsentDays = Math.Max(0, (int)Math.Ceiling(fullDayAbsentDays)),
                     GeneratedDate = DateTime.UtcNow,
@@ -574,6 +591,38 @@ public class GeneratePayslipsCommandHandler
         }
 
         return totalTax;
+    }
+
+    private static int CountWorkingDaysRange(
+        DateTime from, DateTime to,
+        Domain.Entities.Organization.BranchWorkSchedule? schedule,
+        HashSet<DateTime> holidays)
+    {
+        int count = 0;
+        for (var day = from.Date; day <= to.Date; day = day.AddDays(1))
+        {
+            if (IsWorkingDay(day, schedule) && !holidays.Contains(day.Date))
+                count++;
+        }
+        return count;
+    }
+
+    private static bool IsWorkingDay(DateTime day, Domain.Entities.Organization.BranchWorkSchedule? schedule)
+    {
+        if (schedule == null)
+            return day.DayOfWeek != DayOfWeek.Friday && day.DayOfWeek != DayOfWeek.Saturday;
+
+        return day.DayOfWeek switch
+        {
+            DayOfWeek.Sunday => schedule.IsSunday,
+            DayOfWeek.Monday => schedule.IsMonday,
+            DayOfWeek.Tuesday => schedule.IsTuesday,
+            DayOfWeek.Wednesday => schedule.IsWednesday,
+            DayOfWeek.Thursday => schedule.IsThursday,
+            DayOfWeek.Friday => schedule.IsFriday,
+            DayOfWeek.Saturday => schedule.IsSaturday,
+            _ => false
+        };
     }
 
     private static decimal CalculateWorkedHoursForPolicy(

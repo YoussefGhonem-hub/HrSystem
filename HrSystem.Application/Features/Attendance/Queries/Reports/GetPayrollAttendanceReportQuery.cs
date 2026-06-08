@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
@@ -52,70 +53,69 @@ public class GetPayrollAttendanceReportQueryHandler
 
         int totalWorkingDays = CountWorkingDays(fromDate, toDate, schedule, holidays);
 
-        // Attendance records for the month
-        var attQuery = _context.Attendances
+        // Start from all active employees to include those with no check-in records.
+        var empQuery = _context.Employees
             .AsNoTracking()
-            .Include(a => a.Employee)
-                .ThenInclude(e => e.Department)
-            .Include(a => a.Employee)
-                .ThenInclude(e => e.Salaries)
+            .Include(e => e.Department)
+            .Include(e => e.Salaries)
+            .Where(e => !e.IsDeleted && e.StatusId == EmployeeStatusIds.Active);
+
+        if (branchId.HasValue)
+            empQuery = empQuery.Where(e => e.BranchId == branchId);
+
+        if (request.DepartmentId.HasValue)
+            empQuery = empQuery.Where(e => e.DepartmentId == request.DepartmentId);
+
+        if (request.EmployeeId.HasValue)
+            empQuery = empQuery.Where(e => e.Id == request.EmployeeId);
+
+        var employees = await empQuery.ToListAsync(cancellationToken);
+        var employeeIds = employees.Select(e => e.Id).ToList();
+
+        // Attendance records for the month
+        var records = await _context.Attendances
+            .AsNoTracking()
             .Where(a => !a.IsDeleted
                 && !a.IsConfigurationRecord
                 && a.Date.Date >= fromDate
-                && a.Date.Date <= toDate);
+                && a.Date.Date <= toDate
+                && employeeIds.Contains(a.EmployeeId))
+            .ToListAsync(cancellationToken);
 
-        if (branchId.HasValue)
-            attQuery = attQuery.Where(a => a.Employee.BranchId == branchId);
+        var recordsByEmployee = records
+            .GroupBy(a => a.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
-        if (request.DepartmentId.HasValue)
-            attQuery = attQuery.Where(a => a.Employee.DepartmentId == request.DepartmentId);
-
-        if (request.EmployeeId.HasValue)
-            attQuery = attQuery.Where(a => a.EmployeeId == request.EmployeeId);
-
-        var records = await attQuery.ToListAsync(cancellationToken);
-
-        var rows = records
-            .GroupBy(a => new
+        var rows = employees.Select(emp =>
             {
-                a.EmployeeId,
-                Code = a.Employee.EmployeeCode,
-                Name = a.Employee.FirstNameEn + " " + a.Employee.LastNameEn,
-                Dept = a.Employee.Department?.NameEn ?? string.Empty
-            })
-            .Select(g =>
-            {
-                var currentSalary = g.First().Employee.Salaries
+                recordsByEmployee.TryGetValue(emp.Id, out var empRecords);
+                empRecords ??= new List<Domain.Entities.Attendance.Attendance>();
+
+                var currentSalary = emp.Salaries
                     .Where(s => s.IsCurrent && !s.IsDeleted)
                     .OrderByDescending(s => s.EffectiveDate)
                     .FirstOrDefault();
 
                 var basicSalary = currentSalary?.BasicSalary ?? 0m;
                 var overtimeMultiplier = currentSalary?.OvertimeMultiplier ?? 1.5m;
-                var workedDays = g.Count(a => a.StatusId == AttendanceStatusIds.Present || a.StatusId == AttendanceStatusIds.Late);
-                var absentDays = g.Count(a => a.StatusId == AttendanceStatusIds.Absent);
-                var totalLateMin = g.Sum(a => a.LateMinutes.HasValue ? a.LateMinutes.Value.TotalMinutes : 0);
-                var otHours = g.Sum(a => a.OvertimeHours.HasValue ? a.OvertimeHours.Value.TotalHours : 0);
+                var workedDays = empRecords.Count(a => a.StatusId == AttendanceStatusIds.Present || a.StatusId == AttendanceStatusIds.Late);
+                var absentDays = empRecords.Count(a => a.StatusId == AttendanceStatusIds.Absent);
+                var totalLateMin = empRecords.Sum(a => a.LateMinutes.HasValue ? a.LateMinutes.Value.TotalMinutes : 0);
+                var otHours = empRecords.Sum(a => a.OvertimeHours.HasValue ? a.OvertimeHours.Value.TotalHours : 0);
 
                 var dailyRate = totalWorkingDays > 0 ? basicSalary / totalWorkingDays : 0m;
                 var hourlyRate = dailyRate / 8m;
 
-                // Absent deduction: absent days × daily rate
                 var absentDeduction = absentDays * dailyRate;
-
-                // Late deduction: late hours × hourly rate
                 var lateDeduction = (decimal)(totalLateMin / 60.0) * hourlyRate;
-
-                // Overtime amount: OT hours × hourly rate × multiplier
                 var otAmount = (decimal)otHours * hourlyRate * overtimeMultiplier;
-
                 var netImpact = otAmount - absentDeduction - lateDeduction;
 
                 return new PayrollAttendanceRowDto
                 {
-                    EmployeeCode = g.Key.Code,
-                    EmployeeName = g.Key.Name,
-                    Department = g.Key.Dept,
+                    EmployeeCode = emp.EmployeeCode,
+                    EmployeeName = emp.FirstNameEn + " " + emp.LastNameEn,
+                    Department = emp.Department?.NameEn ?? string.Empty,
                     BasicSalary = basicSalary,
                     TotalWorkingDays = totalWorkingDays,
                     WorkedDays = workedDays,

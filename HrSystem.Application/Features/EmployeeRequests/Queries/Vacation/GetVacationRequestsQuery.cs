@@ -72,8 +72,14 @@ public class GetVacationRequestsQueryHandler : IRequestHandler<GetVacationReques
             .Where(r => r.RequestTypeRef != null && r.RequestTypeRef.Code == "Vacation")
             .AsQueryable();
 
-        // Apply role-based filters
-        if (isEmployee)
+        // Apply role-based filters.
+        // Self-view: when caller explicitly requests their own employee ID, always return own
+        // requests regardless of role (e.g. DepartmentManager viewing their own leave history).
+        if (request.EmployeeId.HasValue && request.EmployeeId.Value == currentEmployee.Id)
+        {
+            query = query.Where(r => r.EmployeeId == currentEmployee.Id);
+        }
+        else if (isEmployee)
         {
             // Employee: Get all their own vacation requests
             query = query.Where(r => r.EmployeeId == currentEmployee.Id);
@@ -112,8 +118,8 @@ public class GetVacationRequestsQueryHandler : IRequestHandler<GetVacationReques
             query = query.Where(r => r.StartDate <= request.StartDateTo.Value);
         }
 
-        // Allow HR/Managers to filter by specific employee if provided
-        if (!isEmployee && request.EmployeeId.HasValue)
+        // Allow HR/Managers to filter by a specific employee other than themselves
+        if (!isEmployee && request.EmployeeId.HasValue && request.EmployeeId.Value != currentEmployee.Id)
         {
             query = query.Where(r => r.EmployeeId == request.EmployeeId.Value);
         }

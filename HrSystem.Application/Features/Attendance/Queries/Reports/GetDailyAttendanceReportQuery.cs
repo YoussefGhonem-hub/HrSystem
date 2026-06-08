@@ -30,48 +30,65 @@ public class GetDailyAttendanceReportQueryHandler
         var isSuperOrOrgAdmin = CurrentUser.IsOrganizationAdmin || CurrentUser.IsSuperAdmin;
         var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
 
-        var query = _context.Attendances
+        // Start from all active employees so the report includes everyone regardless of
+        // whether they have an attendance record for the date.
+        var employeeQuery = _context.Employees
             .AsNoTracking()
-            .Include(a => a.Employee)
-                .ThenInclude(e => e.Department)
-            .Include(a => a.Employee)
-                .ThenInclude(e => e.JobTitle)
+            .Include(e => e.Department)
+            .Include(e => e.JobTitle)
+            .Where(e => !e.IsDeleted && e.StatusId == EmployeeStatusIds.Active);
+
+        if (branchId.HasValue)
+            employeeQuery = employeeQuery.Where(e => e.BranchId == branchId);
+
+        if (request.DepartmentId.HasValue)
+            employeeQuery = employeeQuery.Where(e => e.DepartmentId == request.DepartmentId);
+
+        if (request.EmployeeId.HasValue)
+            employeeQuery = employeeQuery.Where(e => e.Id == request.EmployeeId);
+
+        var employees = await employeeQuery.ToListAsync(cancellationToken);
+        var employeeIds = employees.Select(e => e.Id).ToList();
+
+        // Load attendance records for those employees on the report date.
+        var attendanceRecords = await _context.Attendances
+            .AsNoTracking()
             .Include(a => a.Status)
             .Where(a => !a.IsDeleted
                 && !a.IsConfigurationRecord
-                && a.Date.Date == reportDate);
+                && a.Date.Date == reportDate
+                && employeeIds.Contains(a.EmployeeId))
+            .ToListAsync(cancellationToken);
 
-        if (branchId.HasValue)
-            query = query.Where(a => a.Employee.BranchId == branchId);
+        var attendanceByEmployee = attendanceRecords
+            .GroupBy(a => a.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedDate).First());
 
-        if (request.DepartmentId.HasValue)
-            query = query.Where(a => a.Employee.DepartmentId == request.DepartmentId);
-
-        if (request.EmployeeId.HasValue)
-            query = query.Where(a => a.EmployeeId == request.EmployeeId);
-
-        var records = await query.ToListAsync(cancellationToken);
-
-        var rows = records.Select(a => new DailyAttendanceRowDto
+        var rows = employees.Select(e =>
         {
-            EmployeeCode = a.Employee.EmployeeCode,
-            EmployeeName = a.Employee.FirstNameEn + " " + a.Employee.LastNameEn,
-            Department = a.Employee.Department?.NameEn ?? string.Empty,
-            JobTitle = a.Employee.JobTitle?.TitleEn ?? string.Empty,
-            Status = a.Status?.NameEn ?? string.Empty,
-            CheckIn = a.CheckInTime,
-            CheckOut = a.CheckOutTime,
-            LateMinutes = a.LateMinutes.HasValue ? (int)a.LateMinutes.Value.TotalMinutes : 0,
-            EarlyLeaveMinutes = a.EarlyLeaveMinutes.HasValue ? (int)a.EarlyLeaveMinutes.Value.TotalMinutes : 0,
-            WorkedHours = a.WorkedHours.HasValue ? Math.Round(a.WorkedHours.Value.TotalHours, 2) : 0
+            attendanceByEmployee.TryGetValue(e.Id, out var att);
+            return new DailyAttendanceRowDto
+            {
+                EmployeeCode = e.EmployeeCode,
+                EmployeeName = e.FirstNameEn + " " + e.LastNameEn,
+                Department = e.Department?.NameEn ?? string.Empty,
+                JobTitle = e.JobTitle?.TitleEn ?? string.Empty,
+                Status = att?.Status?.NameEn ?? "Absent",
+                CheckIn = att?.CheckInTime,
+                CheckOut = att?.CheckOutTime,
+                LateMinutes = att?.LateMinutes.HasValue == true ? (int)att.LateMinutes!.Value.TotalMinutes : 0,
+                EarlyLeaveMinutes = att?.EarlyLeaveMinutes.HasValue == true ? (int)att.EarlyLeaveMinutes!.Value.TotalMinutes : 0,
+                WorkedHours = att?.WorkedHours.HasValue == true ? Math.Round(att.WorkedHours!.Value.TotalHours, 2) : 0
+            };
         }).OrderBy(r => r.Department).ThenBy(r => r.EmployeeName).ToList();
 
-        var presentCount = records.Count(a => a.StatusId == AttendanceStatusIds.Present || a.StatusId == AttendanceStatusIds.Late);
-        var absentCount = records.Count(a => a.StatusId == AttendanceStatusIds.Absent);
-        var lateCount = records.Count(a => a.IsLate);
-        var earlyLeaveCount = records.Count(a => a.IsEarlyLeave);
-        var onLeaveCount = records.Count(a => a.StatusId == AttendanceStatusIds.OnLeave);
-        var totalEmployees = records.Count;
+        var presentCount = attendanceRecords.Count(a => a.StatusId == AttendanceStatusIds.Present || a.StatusId == AttendanceStatusIds.Late);
+        var absentCount = employees.Count - attendanceByEmployee.Count
+            + attendanceRecords.Count(a => a.StatusId == AttendanceStatusIds.Absent);
+        var lateCount = attendanceRecords.Count(a => a.IsLate);
+        var earlyLeaveCount = attendanceRecords.Count(a => a.IsEarlyLeave);
+        var onLeaveCount = attendanceRecords.Count(a => a.StatusId == AttendanceStatusIds.OnLeave);
+        var totalEmployees = employees.Count;
         var attendanceRate = totalEmployees > 0
             ? Math.Round((double)presentCount / totalEmployees * 100, 2)
             : 0;
