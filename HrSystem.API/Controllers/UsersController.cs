@@ -1,5 +1,6 @@
 ﻿using HrSystem.API.Controllers.Shared;
 using HrSystem.Application.Features.Users.Commands.ActivateAccount;
+using HrSystem.Application.Features.Users.Commands.ChangeMyPassword;
 using HrSystem.Application.Features.Users.Commands.ChangeUserRole;
 using HrSystem.Application.Features.Users.Commands.CreateUserWithBranchRoles;
 using HrSystem.Application.Features.Users.Commands.DeactivateAccount;
@@ -198,6 +199,20 @@ public class UsersController : APIBaseController
             return BadRequest("User ID mismatch");
         }
 
+        var result = await _mediator.Send(command);
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Change the current user's own password (self-service — any authenticated user)
+    /// </summary>
+    [HttpPost("me/change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangeMyPassword([FromBody] ChangeMyPasswordCommand command)
+    {
         var result = await _mediator.Send(command);
         return result.Match(
             response => Ok(response),

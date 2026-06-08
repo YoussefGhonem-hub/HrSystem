@@ -47,7 +47,8 @@ public class GetEmployeeAssetsListQueryHandler : IRequestHandler<GetEmployeeAsse
             ReturnDate = a.ReturnDate,
             IsReturned = a.IsReturned,
             Value = a.Value,
-            Condition = a.Condition
+            Condition = a.Condition,
+            ImageUrl = a.ImageUrl
         }).ToList();
 
         var pagedResult = new PagedResult<EmployeeAssetListDto>

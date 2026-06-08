@@ -60,7 +60,10 @@ public class GetMyPayslipsQueryHandler : IRequestHandler<GetMyPayslipsQuery, Err
                 PayrollCycleId = p.PayrollCycleId,
                 Year = p.PayrollCycle.Year,
                 Month = p.PayrollCycle.Month,
+                GrossSalary = p.GrossSalary,
+                TotalDeductions = p.TotalDeductions,
                 NetSalary = p.NetSalary,
+                IsPaid = p.IsPaid,
                 PdfFileUrl = p.PdfFileUrl,
                 GeneratedDate = p.GeneratedDate
             });

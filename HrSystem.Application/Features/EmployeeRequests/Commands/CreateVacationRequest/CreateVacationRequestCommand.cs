@@ -91,6 +91,24 @@ public class CreateVacationRequestCommandHandler
                 return Error.Validation(description: "Maximum open vacation requests reached.");
         }
 
+        // Overlap validation — reject full, partial, and contained overlaps.
+        // Only active (non-cancelled, non-rejected) requests are checked.
+        var startDate = request.StartDate.Date;
+        var endDate = request.EndDate.Date;
+        var hasOverlap = await _context.EmployeeRequests
+            .AnyAsync(r =>
+                r.EmployeeId == request.EmployeeId &&
+                r.RequestTypeId == requestType.Id &&
+                OpenStatuses.Contains(r.Status) &&
+                r.StartDate.HasValue && r.EndDate.HasValue &&
+                r.StartDate.Value.Date <= endDate &&
+                r.EndDate.Value.Date >= startDate,
+                cancellationToken);
+
+        if (hasOverlap)
+            return Error.Conflict(
+                description: "A vacation request for the selected dates (or overlapping dates) already exists. Cancel or modify the existing request first.");
+
         var vacationType = await _context.VacationTypes
             .AsNoTracking()
             .FirstOrDefaultAsync(vt => vt.Id == request.VacationTypeId, cancellationToken);

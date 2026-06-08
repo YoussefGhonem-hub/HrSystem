@@ -15,7 +15,7 @@ public static class AWS3ConfigurationExtension
     {
         var config = new AmazonS3Config()
         {
-            RegionEndpoint = Amazon.RegionEndpoint.AFSouth1
+            RegionEndpoint = Amazon.RegionEndpoint.EUNorth1
         };
         return config;
     }

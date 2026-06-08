@@ -23,4 +23,5 @@ public class MyProfileDto
     public DateTime? HiringDate { get; set; }
     public DateTime? ProbationEndDate { get; set; }
     public string? MedicalInsuranceStatus { get; set; }
+    public string? ProfilePictureUrl { get; set; }
 }

@@ -79,7 +79,8 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, Error
             EmploymentStatusAr = employee.Status?.NameAr,
             HiringDate = employee.HiringDate,
             ProbationEndDate = employee.ProbationEndDate,
-            MedicalInsuranceStatus = null
+            MedicalInsuranceStatus = null,
+            ProfilePictureUrl = employee.ProfilePictureUrl
         };
 
         return new GenericResponse<MyProfileDto>

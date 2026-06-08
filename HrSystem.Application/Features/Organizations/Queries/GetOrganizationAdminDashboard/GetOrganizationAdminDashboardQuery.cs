@@ -536,13 +536,28 @@ public class GetOrganizationAdminDashboardQueryHandler
             attendanceQuery = attendanceQuery.Where(a => scopedEmployeeIds.Contains(a.EmployeeId));
         }
 
+        var totalRecords = await attendanceQuery.CountAsync(cancellationToken);
+        var presentCount = await attendanceQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Present, cancellationToken);
+        var explicitAbsent = await attendanceQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Absent, cancellationToken);
+        var onLeaveCount = await attendanceQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.OnLeave, cancellationToken);
+        var lateCount = await attendanceQuery.CountAsync(a => a.IsLate, cancellationToken);
+
+        // Employees with no record today are implicitly absent.
+        var activeEmployeesQuery = _context.Employees.AsNoTracking()
+            .Where(e => e.StatusId == EmployeeStatusIds.Active);
+        if (scopedEmployeeIds is not null)
+            activeEmployeesQuery = activeEmployeesQuery.Where(e => scopedEmployeeIds.Contains(e.Id));
+        var totalActive = await activeEmployeesQuery.CountAsync(cancellationToken);
+        var employeesWithRecordToday = await attendanceQuery.Select(a => a.EmployeeId).Distinct().CountAsync(cancellationToken);
+        var absentCount = explicitAbsent + Math.Max(0, totalActive - employeesWithRecordToday);
+
         var dailySummary = new DailyAttendanceSummaryDto
         {
-            TotalRecords = await attendanceQuery.CountAsync(cancellationToken),
-            PresentCount = await attendanceQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Present, cancellationToken),
-            AbsentCount = await attendanceQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Absent, cancellationToken),
-            OnLeaveCount = await attendanceQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.OnLeave, cancellationToken),
-            LateCount = await attendanceQuery.CountAsync(a => a.IsLate, cancellationToken)
+            TotalRecords = totalRecords,
+            PresentCount = presentCount,
+            AbsentCount = absentCount,
+            OnLeaveCount = onLeaveCount,
+            LateCount = lateCount
         };
 
         var dailyRecords = await attendanceQuery

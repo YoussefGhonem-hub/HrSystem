@@ -13,4 +13,5 @@ public record EmployeeAssetListDto
     public bool IsReturned { get; init; }
     public decimal? Value { get; init; }
     public string Condition { get; init; } = string.Empty;
+    public string? ImageUrl { get; init; }
 }
