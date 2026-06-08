@@ -1,6 +1,5 @@
 using ErrorOr;
 using HrSystem.Shared.Common;
-using HrSystem.Shared.Constants;
 using HrSystem.Shared.CurrentUser;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -28,11 +27,13 @@ public class GetMyRolesQueryHandler : IRequestHandler<GetMyRolesQuery, ErrorOr<G
             return Error.Unauthorized(description: "User context not found");
         }
 
+        // Return the calling user's own assigned roles
+        var currentRoleNames = CurrentUser.Roles.ToList();
+
         var roles = await _context.Roles
+            .Where(r => currentRoleNames.Contains(r.Name!))
             .Select(r => new MyRoleDto(r.Id, r.Name ?? string.Empty, r.DisplayName))
             .ToListAsync(cancellationToken);
-
-        roles = ApplyVisibilityFilter(roles);
 
         return new GenericResponse<List<MyRoleDto>>
         {
@@ -40,28 +41,5 @@ public class GetMyRolesQueryHandler : IRequestHandler<GetMyRolesQuery, ErrorOr<G
             Message = "Roles retrieved",
             Data = roles
         };
-    }
-
-    private static List<MyRoleDto> ApplyVisibilityFilter(List<MyRoleDto> roles)
-    {
-        var currentRoles = CurrentUser.Roles ?? Array.Empty<string>();
-
-        bool isSuperAdmin = currentRoles.Contains(RoleNames.SuperAdmin, StringComparer.OrdinalIgnoreCase);
-        bool isOrgAdmin = currentRoles.Contains(RoleNames.OrganizationAdmin, StringComparer.OrdinalIgnoreCase);
-        bool isHrManager = currentRoles.Contains(RoleNames.HRManager, StringComparer.OrdinalIgnoreCase);
-        bool isHrSpecialist = currentRoles.Contains(RoleNames.HRSpecialist, StringComparer.OrdinalIgnoreCase);
-        bool isHr = isHrManager || isHrSpecialist;
-
-        // If caller is OrgAdmin or HR (and not SuperAdmin), restrict to HR + Employee roles only
-        if (!isSuperAdmin && (isOrgAdmin || isHr))
-        {
-            roles = roles
-                .Where(r => r.Name.Equals(RoleNames.HRManager, StringComparison.OrdinalIgnoreCase)
-                            || r.Name.Equals(RoleNames.HRSpecialist, StringComparison.OrdinalIgnoreCase)
-                            || r.Name.Equals(RoleNames.Employee, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        return roles;
     }
 }

@@ -17,7 +17,7 @@ public class PayrollAllowancePayload
     public string? Description { get; set; }
     public bool IsTaxable { get; set; }
     public bool IsSubjectToInsurance { get; set; }
-    public decimal Amount { get; set; }
+    public decimal? Amount { get; set; }
     public bool IsPercentage { get; set; }
     public decimal? PercentageValue { get; set; }
 }
@@ -28,7 +28,7 @@ public class PayrollDeductionPayload
     public string NameEn { get; set; } = "";
     public string? Description { get; set; }
     public bool IsRecurring { get; set; }
-    public decimal Amount { get; set; }
+    public decimal? Amount { get; set; }
     public bool IsPercentage { get; set; }
     public decimal? PercentageValue { get; set; }
 }

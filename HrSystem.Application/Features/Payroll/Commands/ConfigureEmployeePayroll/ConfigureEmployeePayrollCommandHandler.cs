@@ -259,7 +259,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             allowance.Description = match.Description;
             allowance.IsTaxable = match.IsTaxable;
             allowance.IsSubjectToInsurance = match.IsSubjectToInsurance;
-            allowance.Amount = match.Amount;
+            allowance.Amount = match.Amount ?? 0m;
             allowance.IsPercentage = match.IsPercentage;
             allowance.PercentageValue = match.IsPercentage ? match.PercentageValue : null;
             allowance.MarkAsModified(currentUserId);
@@ -275,7 +275,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
                 Description = remaining.Description,
                 IsTaxable = remaining.IsTaxable,
                 IsSubjectToInsurance = remaining.IsSubjectToInsurance,
-                Amount = remaining.Amount,
+                Amount = remaining.Amount ?? 0m,
                 IsPercentage = remaining.IsPercentage,
                 PercentageValue = remaining.IsPercentage ? remaining.PercentageValue : null,
                 TenantId = tenantId,
@@ -316,7 +316,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
             deduction.NameEn = match.NameEn;
             deduction.Description = match.Description;
             deduction.IsRecurring = match.IsRecurring;
-            deduction.Amount = match.Amount;
+            deduction.Amount = match.Amount ?? 0m;
             deduction.IsPercentage = match.IsPercentage;
             deduction.PercentageValue = match.IsPercentage ? match.PercentageValue : null;
             deduction.MarkAsModified(currentUserId);
@@ -331,7 +331,7 @@ public class ConfigureEmployeePayrollCommandHandler : IRequestHandler<ConfigureE
                 NameEn = remaining.NameEn,
                 Description = remaining.Description,
                 IsRecurring = remaining.IsRecurring,
-                Amount = remaining.Amount,
+                Amount = remaining.Amount ?? 0m,
                 IsPercentage = remaining.IsPercentage,
                 PercentageValue = remaining.IsPercentage ? remaining.PercentageValue : null,
                 TenantId = tenantId,

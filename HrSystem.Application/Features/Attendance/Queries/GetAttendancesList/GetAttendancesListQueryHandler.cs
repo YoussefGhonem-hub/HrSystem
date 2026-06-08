@@ -284,6 +284,99 @@ public class GetAttendancesListQueryHandler : IRequestHandler<GetAttendancesList
             };
         }
 
+        // For admin/HR multi-day views without a specific employee filter, supplement with
+        // employees who have no attendance records in the date range so they appear as absent.
+        if (!employeeIdFilter.HasValue && effectiveFromDate.HasValue && effectiveToDate.HasValue)
+        {
+            var allDtos = await query.Select(a => new AttendanceListDto
+            {
+                Id = a.Id,
+                EmployeeId = a.EmployeeId,
+                EmployeeName = a.Employee.FirstNameEn + " " + a.Employee.LastNameEn,
+                EmployeeCode = a.Employee.EmployeeCode,
+                JobTitle = a.Employee.JobTitle != null ? a.Employee.JobTitle.TitleEn : null,
+                Department = a.Employee.Department != null ? a.Employee.Department.NameEn : null,
+                Date = a.Date,
+                CheckInTime = a.CheckInTime,
+                CheckOutTime = a.CheckOutTime,
+                StatusId = a.StatusId,
+                StatusNameEn = a.Status.NameEn,
+                StatusNameAr = a.Status.NameAr,
+                WorkedHours = a.WorkedHours,
+                HalfDayRule = a.HalfDayRule,
+                IsLate = a.IsLate,
+                IsEarlyLeave = a.IsEarlyLeave,
+                IsOvertime = a.IsOvertime
+            }).ToListAsync(cancellationToken);
+
+            // Find employees with no records in the date range and add them as absent on the first day of the range
+            var employeesWithRecords = allDtos.Select(d => d.EmployeeId).ToHashSet();
+            var missingEmpQuery = _context.Employees
+                .AsNoTracking()
+                .ApplyBranchScope()
+                .Where(e => !e.IsDeleted
+                    && (!e.HiringDate.HasValue || e.HiringDate.Value.Date <= effectiveToDate.Value)
+                    && !employeesWithRecords.Contains(e.Id));
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var term = request.SearchTerm.Trim().ToLower();
+                missingEmpQuery = missingEmpQuery.Where(e =>
+                    e.FirstNameEn.ToLower().Contains(term) ||
+                    e.LastNameEn.ToLower().Contains(term) ||
+                    e.EmployeeCode.ToLower().Contains(term));
+            }
+
+            var missingEmployees = await missingEmpQuery
+                .Select(e => new AttendanceListDto
+                {
+                    Id = Guid.Empty,
+                    EmployeeId = e.Id,
+                    EmployeeName = e.FirstNameEn + " " + e.LastNameEn,
+                    EmployeeCode = e.EmployeeCode,
+                    JobTitle = e.JobTitle != null ? e.JobTitle.TitleEn : null,
+                    Department = e.Department != null ? e.Department.NameEn : null,
+                    Date = effectiveFromDate.Value,
+                    CheckInTime = null,
+                    CheckOutTime = null,
+                    StatusId = AttendanceStatusIds.Absent,
+                    StatusNameEn = "Absent",
+                    StatusNameAr = "غائب",
+                    WorkedHours = null,
+                    HalfDayRule = null,
+                    IsLate = false,
+                    IsEarlyLeave = false,
+                    IsOvertime = false
+                })
+                .ToListAsync(cancellationToken);
+
+            allDtos.AddRange(missingEmployees);
+
+            await EnrichAttendanceStatusesAsync(allDtos, cancellationToken);
+
+            allDtos = ApplyInMemoryStatusFilters(allDtos, request.StatusId, request.IsLate, request.IsOvertime);
+            allDtos = ApplyInMemorySorting(allDtos, request.SortBy, request.IsDescending);
+
+            var combinedTotal = allDtos.Count;
+            var combinedPaged = allDtos
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToList();
+
+            return new GenericResponse<PagedResult<AttendanceListDto>>
+            {
+                Success = true,
+                Data = new PagedResult<AttendanceListDto>
+                {
+                    Items = combinedPaged,
+                    PageNumber = request.PageNumber,
+                    PageSize = request.PageSize,
+                    TotalCount = combinedTotal,
+                    TotalPages = (int)Math.Ceiling(combinedTotal / (double)request.PageSize)
+                }
+            };
+        }
+
         // Get total count before pagination
         var totalCount = await query.CountAsync(cancellationToken);
 

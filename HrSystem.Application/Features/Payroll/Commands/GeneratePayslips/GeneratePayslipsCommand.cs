@@ -392,9 +392,11 @@ public class GeneratePayslipsCommandHandler
             decimal halfDayDays = 0m;
 
             if (employee.BranchId.HasValue
-                && branchPolicyByBranchId.TryGetValue(employee.BranchId.Value, out var branchPolicy)
-                && attendanceByEmployeeId.TryGetValue(employee.Id, out var employeeAttendance))
+                && branchPolicyByBranchId.TryGetValue(employee.BranchId.Value, out var branchPolicy))
             {
+                attendanceByEmployeeId.TryGetValue(employee.Id, out var employeeAttendance);
+                employeeAttendance ??= new List<Domain.Entities.Attendance.Attendance>();
+
                 var attendanceDates = new HashSet<DateTime>();
 
                 foreach (var attendance in employeeAttendance)

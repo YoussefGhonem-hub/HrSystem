@@ -303,7 +303,7 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
                     Description = a.Description,
                     IsTaxable = a.IsTaxable,
                     IsSubjectToInsurance = a.IsSubjectToInsurance,
-                    Amount = a.Amount,
+                    Amount = a.Amount ?? 0m,
                     IsPercentage = a.IsPercentage,
                     PercentageValue = a.PercentageValue
                 });
@@ -321,7 +321,7 @@ public class CreateEmployeeFullCommandHandler : IRequestHandler<CreateEmployeeFu
                     NameEn = d.NameEn,
                     Description = d.Description,
                     IsRecurring = d.IsRecurring,
-                    Amount = d.Amount,
+                    Amount = d.Amount ?? 0m,
                     IsPercentage = d.IsPercentage,
                     PercentageValue = d.PercentageValue
                 });

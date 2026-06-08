@@ -48,6 +48,10 @@ public class CreateEmployeeFullCommandValidator : AbstractValidator<CreateEmploy
                 if (salaryRange is null)
                     return;
 
+                // Skip validation when the job title has no configured salary range
+                if (salaryRange.MinSalary == 0 && salaryRange.MaxSalary == 0)
+                    return;
+
                 if (payroll.BasicSalary < salaryRange.MinSalary || payroll.BasicSalary > salaryRange.MaxSalary)
                 {
                     validationContext.AddFailure(
@@ -230,10 +234,12 @@ public class CreateEmployeePayrollSectionValidator : AbstractValidator<CreateEmp
         });
 
         RuleForEach(x => x.Allowances)
-            .SetValidator(new PayrollAllowancePayloadValidator());
+            .SetValidator(new PayrollAllowancePayloadValidator())
+            .When(x => x.Allowances is not null);
 
         RuleForEach(x => x.Deductions)
-            .SetValidator(new PayrollDeductionPayloadValidator());
+            .SetValidator(new PayrollDeductionPayloadValidator())
+            .When(x => x.Deductions is not null);
     }
 }
 

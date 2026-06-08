@@ -73,7 +73,7 @@ public class PayrollAllowancePayloadValidator : AbstractValidator<PayrollAllowan
 
         RuleFor(x => x.Amount)
             .GreaterThanOrEqualTo(0m)
-            .When(x => !x.IsPercentage);
+            .When(x => !x.IsPercentage && x.Amount.HasValue);
 
         RuleFor(x => x.PercentageValue)
             .NotNull().WithMessage("Percentage value is required when allowance is percentage-based")
@@ -98,7 +98,7 @@ public class PayrollDeductionPayloadValidator : AbstractValidator<PayrollDeducti
 
         RuleFor(x => x.Amount)
             .GreaterThanOrEqualTo(0m)
-            .When(x => !x.IsPercentage);
+            .When(x => !x.IsPercentage && x.Amount.HasValue);
 
         RuleFor(x => x.PercentageValue)
             .NotNull().WithMessage("Percentage value is required when deduction is percentage-based")
