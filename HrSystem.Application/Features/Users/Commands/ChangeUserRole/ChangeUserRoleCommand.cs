@@ -19,11 +19,16 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
 {
     private readonly ApplicationDbContext _context;
     private readonly RoleManager<ApplicationRole> _roleManager;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public ChangeUserRoleCommandHandler(ApplicationDbContext context, RoleManager<ApplicationRole> roleManager)
+    public ChangeUserRoleCommandHandler(
+        ApplicationDbContext context,
+        RoleManager<ApplicationRole> roleManager,
+        UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _roleManager = roleManager;
+        _userManager = userManager;
     }
 
     public async Task<ErrorOr<GenericResponse<bool>>> Handle(ChangeUserRoleCommand request, CancellationToken cancellationToken)
@@ -86,6 +91,24 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Sync Identity roles so that GetRolesAsync (used in login/JWT generation) reflects
+        // the latest role assignments stored in UserBranchRoles.
+        var allBranchRoleNames = await _context.UserBranchRoles
+            .IgnoreQueryFilters()
+            .Where(ubr => ubr.UserId == request.UserId && ubr.RoleName != null)
+            .Select(ubr => ubr.RoleName!)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var currentIdentityRoles = await _userManager.GetRolesAsync(user);
+        var toRemove = currentIdentityRoles.Except(allBranchRoleNames, StringComparer.OrdinalIgnoreCase).ToList();
+        var toAdd = allBranchRoleNames.Except(currentIdentityRoles, StringComparer.OrdinalIgnoreCase).ToList();
+
+        if (toRemove.Count > 0)
+            await _userManager.RemoveFromRolesAsync(user, toRemove);
+        if (toAdd.Count > 0)
+            await _userManager.AddToRolesAsync(user, toAdd);
 
         return new GenericResponse<bool>
         {

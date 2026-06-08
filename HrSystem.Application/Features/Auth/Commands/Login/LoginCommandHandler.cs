@@ -47,9 +47,17 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ErrorOr<Generic
         if (!isPasswordValid)
             return Error.Unauthorized(description: "Invalid username or password");
 
-        // Get user roles
+        // Get user roles — merge Identity roles with UserBranchRoles so that
+        // role changes via ChangeUserRoleCommand (which only writes UserBranchRoles)
+        // are reflected in the JWT even for users whose Identity roles are stale.
         var rawRoles = await _userManager.GetRolesAsync(user);
+        var branchRoleNames = await _context.UserBranchRoles
+            .IgnoreQueryFilters()
+            .Where(ubr => ubr.UserId == user.Id && ubr.RoleName != null)
+            .Select(ubr => ubr.RoleName!)
+            .ToListAsync(cancellationToken);
         var roles = rawRoles
+            .Concat(branchRoleNames)
             .Select(RoleNames.Normalize)
             .Where(r => !string.IsNullOrWhiteSpace(r))
             .Distinct(StringComparer.OrdinalIgnoreCase)

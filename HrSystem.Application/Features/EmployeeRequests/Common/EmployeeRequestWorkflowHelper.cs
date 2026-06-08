@@ -54,9 +54,8 @@ internal static class EmployeeRequestWorkflowHelper
 
         if (manager.UserId.HasValue)
         {
-            // Fetch the user's role names into memory first, then compare in .NET.
-            // StringComparer.OrdinalIgnoreCase cannot be translated to SQL by EF Core.
-            var userRoleNames = await context.UserRoles
+            // Check Identity roles (AspNetUserRoles) — source of truth after CreateUserWithBranchRoles.
+            var identityRoleNames = await context.UserRoles
                 .Join(
                     context.Roles,
                     userRole => userRole.RoleId,
@@ -66,8 +65,16 @@ internal static class EmployeeRequestWorkflowHelper
                 .Select(x => x.Name!)
                 .ToListAsync(cancellationToken);
 
-            var hasHrRole = userRoleNames.Any(name =>
-                HrRoleNames.Contains(RoleNames.Normalize(name), StringComparer.OrdinalIgnoreCase));
+            // Also check UserBranchRoles — updated by ChangeUserRoleCommand.
+            var branchRoleNames = await context.UserBranchRoles
+                .IgnoreQueryFilters()
+                .Where(ubr => ubr.UserId == manager.UserId.Value && ubr.RoleName != null)
+                .Select(ubr => ubr.RoleName!)
+                .ToListAsync(cancellationToken);
+
+            var hasHrRole = identityRoleNames
+                .Concat(branchRoleNames)
+                .Any(name => HrRoleNames.Contains(RoleNames.Normalize(name), StringComparer.OrdinalIgnoreCase));
 
             if (hasHrRole)
                 return true;
