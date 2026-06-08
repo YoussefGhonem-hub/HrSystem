@@ -405,15 +405,15 @@ public static class AttendanceReportPdfExporter
                     cols.RelativeColumn();
             });
 
-            // Header row
-            foreach (var h in headers)
+            // Header row — must be a single call; all cells defined inside it
+            table.Header(header =>
             {
-                table.Header(header =>
+                foreach (var h in headers)
                 {
                     header.Cell().Background(HeaderColor).Padding(4)
                         .Text(h).Bold().FontSize(9).FontColor(Colors.White);
-                });
-            }
+                }
+            });
 
             // Data rows
             for (int i = 0; i < rows.Count; i++)

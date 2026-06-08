@@ -54,6 +54,12 @@ public record MyDashboardRequestsDto
 
     /// <summary>Lightweight statistics for cards/counters.</summary>
     public DashboardStatsDto Stats { get; init; } = null!;
+
+    /// <summary>
+    /// Department/team-level stats populated only when Role == "Manager".
+    /// Null for Employee and HR roles.
+    /// </summary>
+    public TeamStatsDto? TeamStats { get; init; }
 }
 
 public record DashboardStatsDto
@@ -62,6 +68,15 @@ public record DashboardStatsDto
     public int MyRequestsPending { get; init; }
     public int PendingApprovalTotal { get; init; }
     public int PendingApprovalPending { get; init; }
+}
+
+public record TeamStatsDto
+{
+    public int TotalTeamMembers { get; init; }
+    public int PresentToday { get; init; }
+    public int AbsentToday { get; init; }
+    public int OnLeaveToday { get; init; }
+    public int PendingApprovalRequests { get; init; }
 }
 
 #endregion
@@ -269,12 +284,19 @@ public class GetMyDashboardRequestsQueryHandler
             PendingApprovalPending = pendingApprovalTotalCount
         };
 
+        TeamStatsDto? teamStats = null;
+        if (isManager && employeeId.HasValue)
+        {
+            teamStats = await BuildTeamStats(employeeId.Value, pendingApprovalTotalCount, cancellationToken);
+        }
+
         var dto = new MyDashboardRequestsDto
         {
             Role = effectiveRole,
             MyRequests = myRequests,
             PendingApprovalRequests = pendingApproval,
-            Stats = stats
+            Stats = stats,
+            TeamStats = teamStats
         };
 
         return GenericResponse<MyDashboardRequestsDto>.SuccessResult(dto, "Dashboard loaded successfully.");
@@ -424,6 +446,48 @@ public class GetMyDashboardRequestsQueryHandler
 
         var dtos = entities.Select(MapToDto).ToList();
         return PagedResult<EmployeeRequestDto>.Create(dtos, totalCount, pageNumber, pageSize);
+    }
+
+    private async Task<TeamStatsDto> BuildTeamStats(
+        Guid managerEmployeeId,
+        int pendingApprovalCount,
+        CancellationToken ct)
+    {
+        var today = DateTime.UtcNow.Date;
+
+        // Employees that report directly to this manager
+        var directReportIds = await _context.Employees
+            .AsNoTracking()
+            .Where(e => e.DirectManagerId == managerEmployeeId)
+            .Select(e => e.Id)
+            .ToListAsync(ct);
+
+        var totalTeamMembers = directReportIds.Count;
+
+        if (totalTeamMembers == 0)
+            return new TeamStatsDto { PendingApprovalRequests = pendingApprovalCount };
+
+        var todayAttendance = await _context.Attendances
+            .AsNoTracking()
+            .Where(a => a.Date.Date == today && directReportIds.Contains(a.EmployeeId))
+            .Select(a => new { a.EmployeeId, a.StatusId })
+            .ToListAsync(ct);
+
+        var presentCount = todayAttendance.Count(a =>
+            a.StatusId == AttendanceStatusIds.Present || a.StatusId == AttendanceStatusIds.Late);
+        var onLeaveCount = todayAttendance.Count(a => a.StatusId == AttendanceStatusIds.OnLeave);
+        var employeesWithRecords = todayAttendance.Select(a => a.EmployeeId).Distinct().Count();
+        var absentCount = todayAttendance.Count(a => a.StatusId == AttendanceStatusIds.Absent)
+                          + Math.Max(0, totalTeamMembers - employeesWithRecords);
+
+        return new TeamStatsDto
+        {
+            TotalTeamMembers = totalTeamMembers,
+            PresentToday = presentCount,
+            AbsentToday = absentCount,
+            OnLeaveToday = onLeaveCount,
+            PendingApprovalRequests = pendingApprovalCount
+        };
     }
 
     private static EmployeeRequestDto MapToDto(Domain.Entities.Requests.EmployeeRequest r) => new()

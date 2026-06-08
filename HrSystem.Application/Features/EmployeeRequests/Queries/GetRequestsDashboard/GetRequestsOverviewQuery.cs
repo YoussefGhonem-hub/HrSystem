@@ -48,6 +48,14 @@ public record RequestListItemDto
     public string? EmployeeProfilePictureUrl { get; init; }
     public Guid? AttendanceCorrectionTypeId { get; init; }
     public string? AttendanceCorrectionTypeName { get; init; }
+
+    /// <summary>
+    /// Indicates which department currently holds the request for action.
+    /// "Manager" → awaiting direct manager approval.
+    /// "HR Department" → awaiting HR approval.
+    /// Null → request is no longer pending (approved/rejected/cancelled).
+    /// </summary>
+    public string? PendingAt { get; init; }
 }
 
 public class GetRequestsOverviewQueryHandler
@@ -67,6 +75,7 @@ public class GetRequestsOverviewQueryHandler
         var baseQuery = _context.EmployeeRequests
             .AsNoTracking()
             .Include(r => r.Employee)
+                .ThenInclude(e => e.DirectManager)
             .Include(r => r.RequestTypeRef)
             .Where(r => !r.IsDeleted);
 
@@ -131,7 +140,14 @@ public class GetRequestsOverviewQueryHandler
                     : string.Empty,
                 EmployeeProfilePictureUrl = r.Employee != null ? r.Employee.ProfilePictureUrl : null,
                 AttendanceCorrectionTypeId = correctionTypeId,
-                AttendanceCorrectionTypeName = correctionTypeName
+                AttendanceCorrectionTypeName = correctionTypeName,
+                PendingAt = r.Status == EmployeeRequestStatus.Pending
+                    ? (r.Employee?.DirectManager != null
+                        ? r.Employee.DirectManager.FullNameEn
+                        : "HR Department")
+                    : r.Status == EmployeeRequestStatus.ManagerApproved
+                        ? "HR Department"
+                        : null
             };
         }).ToList();
 

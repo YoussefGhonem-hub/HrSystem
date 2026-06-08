@@ -45,8 +45,25 @@ public class GetAttendanceDashboardQueryHandler : IRequestHandler<GetAttendanceD
         var todayQuery = BuildQuery(date);
         var totalPresent = await todayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Present, cancellationToken);
         var lateToday = await todayQuery.CountAsync(a => a.IsLate, cancellationToken);
-        var absentToday = await todayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Absent, cancellationToken);
         var onLeaveToday = await todayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.OnLeave, cancellationToken);
+
+        // Count employees with an explicit Absent record
+        var explicitAbsent = await todayQuery.CountAsync(a => a.StatusId == AttendanceStatusIds.Absent, cancellationToken);
+
+        // Count active employees who have NO attendance record at all today — they are effectively absent
+        var activeEmployeesQuery = _context.Employees
+            .Where(e => !e.IsDeleted && e.StatusId == EmployeeStatusIds.Active);
+        if (branchId.HasValue)
+            activeEmployeesQuery = activeEmployeesQuery.Where(e => e.BranchId == branchId);
+        var totalActive = await activeEmployeesQuery.CountAsync(cancellationToken);
+
+        var employeesWithRecordToday = await _context.Attendances
+            .Where(a => a.Date.Date == date && (!branchId.HasValue || a.Employee.BranchId == branchId))
+            .Select(a => a.EmployeeId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var absentToday = explicitAbsent + Math.Max(0, totalActive - employeesWithRecordToday);
 
         // --- Yesterday (for present & on-leave percentage change) ---
         var yesterdayQuery = BuildQuery(yesterday);

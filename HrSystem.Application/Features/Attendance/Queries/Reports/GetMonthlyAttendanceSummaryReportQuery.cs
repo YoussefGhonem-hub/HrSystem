@@ -74,6 +74,32 @@ public class GetMonthlyAttendanceSummaryReportQueryHandler
 
         var records = await query.ToListAsync(cancellationToken);
 
+        // Load approved leave request dates per employee to count leave days that
+        // may not have a corresponding OnLeave attendance record yet.
+        var employeeIdsInRecords = records.Select(a => a.EmployeeId).Distinct().ToList();
+        var approvedLeaveRequestDates = await _context.EmployeeRequests
+            .AsNoTracking()
+            .Include(r => r.RequestTypeRef)
+            .Where(r =>
+                employeeIdsInRecords.Contains(r.EmployeeId) &&
+                (r.Status == Domain.Enums.EmployeeRequestStatus.Approved || r.Status == Domain.Enums.EmployeeRequestStatus.Completed) &&
+                r.RequestTypeRef != null && r.RequestTypeRef.Code.ToLower() == "vacation" &&
+                r.StartDate.HasValue && r.EndDate.HasValue &&
+                r.StartDate.Value.Date <= toDate && r.EndDate.Value.Date >= fromDate)
+            .Select(r => new { r.EmployeeId, Start = r.StartDate!.Value.Date, End = r.EndDate!.Value.Date })
+            .ToListAsync(cancellationToken);
+
+        // Build set of (employeeId, date) pairs covered by approved leave requests
+        var leaveRequestDaySet = new HashSet<(Guid, DateTime)>();
+        foreach (var lr in approvedLeaveRequestDates)
+        {
+            for (var d = lr.Start > fromDate ? lr.Start : fromDate; d <= lr.End && d <= toDate; d = d.AddDays(1))
+            {
+                if (IsWorkingDay(d, schedule) && !holidays.Contains(d.Date))
+                    leaveRequestDaySet.Add((lr.EmployeeId, d));
+            }
+        }
+
         var grouped = records
             .GroupBy(a => new
             {
@@ -86,11 +112,23 @@ public class GetMonthlyAttendanceSummaryReportQueryHandler
             .Select(g =>
             {
                 var daysPresent = g.Count(a => a.StatusId == AttendanceStatusIds.Present || a.StatusId == AttendanceStatusIds.Late);
-                var daysAbsent = g.Count(a => a.StatusId == AttendanceStatusIds.Absent);
                 var daysLate = g.Count(a => a.IsLate);
                 var totalLateMin = g.Sum(a => a.LateMinutes.HasValue ? a.LateMinutes.Value.TotalMinutes : 0);
                 var overtimeHours = g.Sum(a => a.OvertimeHours.HasValue ? a.OvertimeHours.Value.TotalHours : 0);
-                var leaveDays = g.Count(a => a.StatusId == AttendanceStatusIds.OnLeave);
+
+                // Leave days: explicit OnLeave records + approved leave request days without a record
+                var daysWithOnLeaveRecord = g.Count(a => a.StatusId == AttendanceStatusIds.OnLeave);
+                var recordDates = g.Select(a => a.Date.Date).ToHashSet();
+                var leaveRequestDaysWithoutRecord = leaveRequestDaySet
+                    .Count(kv => kv.Item1 == g.Key.EmployeeId && !recordDates.Contains(kv.Item2));
+                var leaveDays = daysWithOnLeaveRecord + leaveRequestDaysWithoutRecord;
+
+                // Absent days: explicit Absent records + working days with no record and not on leave
+                var explicitAbsent = g.Count(a => a.StatusId == AttendanceStatusIds.Absent);
+                var accountedDays = daysPresent + daysWithOnLeaveRecord + explicitAbsent
+                    + g.Count(a => a.StatusId == AttendanceStatusIds.Holiday || a.StatusId == AttendanceStatusIds.Weekend);
+                var daysAbsent = explicitAbsent + Math.Max(0, totalWorkingDays - accountedDays - leaveRequestDaysWithoutRecord);
+
                 var attendancePct = totalWorkingDays > 0
                     ? Math.Round((double)daysPresent / totalWorkingDays * 100, 2)
                     : 0;
