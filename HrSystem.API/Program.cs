@@ -152,7 +152,13 @@ app.UseSwaggerUI(options =>
     options.ShowExtensions();
 });
 
-app.UseHttpsRedirection();
+// In Development the Angular dev server calls the plain-HTTP endpoint (http://localhost:5206).
+// Redirecting to HTTPS there breaks CORS preflight requests (browsers reject redirected
+// preflights), so only enforce HTTPS outside Development.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowAll");
 
