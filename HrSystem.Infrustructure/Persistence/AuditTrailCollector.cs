@@ -100,7 +100,7 @@ public static class AuditTrailCollector
 
         foreach (var entry in entries)
         {
-            var log = BuildLog(entry, now, userId, userName, ip);
+            var log = BuildLog(context, entry, now, userId, userName, ip);
             if (log != null)
                 logs.Add(log);
         }
@@ -110,6 +110,7 @@ public static class AuditTrailCollector
     }
 
     private static AuditLog? BuildLog(
+        DbContext context,
         EntityEntry<BaseEntity> entry,
         DateTimeOffset now,
         Guid? userId,
@@ -181,7 +182,7 @@ public static class AuditTrailCollector
             Module = module,
             EntityName = clrType.Name,
             EntityId = entity.Id,
-            EntityDisplay = Truncate(Describe(entity), 300),
+            EntityDisplay = Truncate(Describe(context, entity), 300),
             Action = action,
             ChangesJson = changes.Count > 0 ? JsonSerializer.Serialize(changes, JsonOptions) : null,
             ChangedFieldsCount = changes.Count,
@@ -226,14 +227,15 @@ public static class AuditTrailCollector
     }
 
     /// <summary>Best-effort human readable label for the audited record.</summary>
-    private static string Describe(BaseEntity entity)
+    private static string Describe(DbContext context, BaseEntity entity)
     {
         switch (entity)
         {
             case Employee e:
                 return $"{e.EmployeeCode} - {e.FullNameEn}".Trim(' ', '-');
             case Attendance a:
-                var who = a.Employee != null ? $"{a.Employee.EmployeeCode} - {a.Employee.FullNameEn}" : a.EmployeeId.ToString();
+                var employee = a.Employee ?? ResolveEmployee(context, a.EmployeeId);
+                var who = employee != null ? $"{employee.EmployeeCode} - {employee.FullNameEn}" : a.EmployeeId.ToString();
                 return $"{who} @ {a.Date:yyyy-MM-dd}";
             case EmployeeBiometric b:
                 return b.EmployeeId.ToString();
@@ -261,6 +263,27 @@ public static class AuditTrailCollector
                 return $"Payroll settings ({ps.CycleType})";
             default:
                 return entity.Id.ToString();
+        }
+    }
+
+    /// <summary>Finds the employee in the change tracker first, then (read-only) in the database.</summary>
+    private static Employee? ResolveEmployee(DbContext context, Guid employeeId)
+    {
+        try
+        {
+            var tracked = context.ChangeTracker.Entries<Employee>()
+                .Select(x => x.Entity)
+                .FirstOrDefault(x => x.Id == employeeId);
+            if (tracked != null) return tracked;
+
+            return context.Set<Employee>()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .FirstOrDefault(x => x.Id == employeeId);
+        }
+        catch
+        {
+            return null;
         }
     }
 
