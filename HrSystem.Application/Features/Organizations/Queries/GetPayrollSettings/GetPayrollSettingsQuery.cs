@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Payroll.Common;
 using HrSystem.Domain.Enums;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
@@ -91,6 +92,10 @@ public class GetPayrollSettingsQueryHandler
         };
     }
 
+    /// <summary>
+    /// Builds the upcoming pay period previews using the same calculator that payslip generation uses,
+    /// so what HR sees in settings is exactly what "Generate Payslips" will produce.
+    /// </summary>
     internal static List<PayPeriodPreviewDto> BuildPreviews(
         PayCycleType cycleType,
         int? cutoffStart,
@@ -98,68 +103,23 @@ public class GetPayrollSettingsQueryHandler
         DateOnly? anchor,
         int count = 6)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var previews = new List<PayPeriodPreviewDto>(count);
-
-        for (int i = 0; i < count; i++)
+        var settings = new Domain.Entities.Organization.OrganizationPayrollSettings
         {
-            DateOnly start, end;
+            CycleType = cycleType,
+            CustomCutoffStartDay = cutoffStart,
+            CustomCutoffEndDay = cutoffEnd,
+            AnchorDate = anchor
+        };
 
-            switch (cycleType)
+        return PayrollPeriodCalculator
+            .GetUpcomingPeriods(settings, DateTime.UtcNow.Date, count)
+            .Select((period, index) => new PayPeriodPreviewDto
             {
-                case PayCycleType.MonthlyCalendar:
-                {
-                    var refDate = today.AddMonths(i);
-                    start = new DateOnly(refDate.Year, refDate.Month, 1);
-                    end = start.AddMonths(1).AddDays(-1);
-                    break;
-                }
-
-                case PayCycleType.MonthlyCustomCutoff:
-                {
-                    int startDay = cutoffStart ?? 26;
-                    int endDay = cutoffEnd ?? 25;
-                    var refDate = today.AddMonths(i);
-                    start = new DateOnly(refDate.Year, refDate.Month, Math.Min(startDay, DateTime.DaysInMonth(refDate.Year, refDate.Month)));
-                    var endMonth = start.AddMonths(1);
-                    end = new DateOnly(endMonth.Year, endMonth.Month, Math.Min(endDay, DateTime.DaysInMonth(endMonth.Year, endMonth.Month)));
-                    break;
-                }
-
-                case PayCycleType.BiWeekly:
-                {
-                    var baseDate = anchor ?? new DateOnly(today.Year, 1, 1);
-                    // Find the first period start on or after today - i*14
-                    var periodStart = baseDate;
-                    while (periodStart.AddDays(14) <= today) periodStart = periodStart.AddDays(14);
-                    start = periodStart.AddDays(i * 14);
-                    end = start.AddDays(13);
-                    break;
-                }
-
-                case PayCycleType.Weekly:
-                {
-                    var baseDate = anchor ?? new DateOnly(today.Year, 1, 1);
-                    var periodStart = baseDate;
-                    while (periodStart.AddDays(7) <= today) periodStart = periodStart.AddDays(7);
-                    start = periodStart.AddDays(i * 7);
-                    end = start.AddDays(6);
-                    break;
-                }
-
-                default:
-                    goto case PayCycleType.MonthlyCalendar;
-            }
-
-            previews.Add(new PayPeriodPreviewDto
-            {
-                PeriodNumber = i + 1,
-                Label = $"{start:dd/MM/yyyy} → {end:dd/MM/yyyy}",
-                StartDate = start,
-                EndDate = end
-            });
-        }
-
-        return previews;
+                PeriodNumber = index + 1,
+                Label = $"{period.CycleName}: {period.RangeLabel}",
+                StartDate = DateOnly.FromDateTime(period.StartDate),
+                EndDate = DateOnly.FromDateTime(period.EndDate)
+            })
+            .ToList();
     }
 }

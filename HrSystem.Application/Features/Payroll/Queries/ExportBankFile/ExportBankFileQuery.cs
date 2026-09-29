@@ -67,17 +67,26 @@ public class ExportBankFileQueryHandler
             || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
         var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
 
-        var cycle = await _context.PayrollCycles
-            .FirstOrDefaultAsync(c => c.Month == request.Month && c.Year == request.Year, cancellationToken);
+        // A month may hold several cycles (weekly / bi-weekly pay periods); export all unpaid payslips of the month.
+        var cycles = await _context.PayrollCycles
+            .Where(c => c.Month == request.Month && c.Year == request.Year)
+            .OrderBy(c => c.PeriodStartDate)
+            .ToListAsync(cancellationToken);
 
-        if (cycle == null)
+        if (cycles.Count == 0)
             return Error.NotFound(description: $"No payroll cycle found for {request.Month}/{request.Year}.");
+
+        var cycleIds = cycles.Select(c => c.Id).ToList();
+        var cycleName = cycles.Count == 1
+            ? cycles[0].CycleName
+            : new DateTime(request.Year, request.Month, 1).ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        var cycle = new { CycleName = cycleName };
 
         var query = _context.Payslips
             .Include(p => p.Employee)
                 .ThenInclude(e => e.Salaries)
             .Where(p => !p.IsDeleted
-                && p.PayrollCycleId == cycle.Id
+                && cycleIds.Contains(p.PayrollCycleId)
                 && !p.IsPaid);
 
         if (branchId.HasValue)

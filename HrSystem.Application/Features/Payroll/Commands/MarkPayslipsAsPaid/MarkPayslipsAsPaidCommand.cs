@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Payroll.Common;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
@@ -41,25 +42,25 @@ public class MarkPayslipsAsPaidCommandHandler
         if (request.Year < 2000 || request.Year > 2100)
             return Error.Validation(description: "Invalid year.");
 
-        var periodStart = new DateTime(request.Year, request.Month, 1);
-        var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        if (periodStart > currentMonthStart)
-            return Error.Validation(description: "Future payroll periods cannot be marked as paid.");
-
         var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
             || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
         var branchId = isSuperOrOrgAdmin ? (Guid?)null : CurrentUser.BranchId;
 
-        var cycle = await _context.PayrollCycles
-            .FirstOrDefaultAsync(c => c.Month == request.Month && c.Year == request.Year, cancellationToken);
+        // A month may hold several cycles (weekly / bi-weekly pay periods); mark them all.
+        var cycles = await _context.PayrollCycles
+            .Where(c => c.Month == request.Month && c.Year == request.Year)
+            .OrderBy(c => c.PeriodStartDate)
+            .ToListAsync(cancellationToken);
 
-        if (cycle == null)
+        if (cycles.Count == 0)
             return Error.NotFound(description: $"No payroll cycle found for {request.Month}/{request.Year}.");
+
+        var cycleIds = cycles.Select(c => c.Id).ToList();
 
         var query = _context.Payslips
             .Include(p => p.Employee)
             .Include(p => p.PayslipDeductions)
-            .Where(p => !p.IsDeleted && p.PayrollCycleId == cycle.Id);
+            .Where(p => !p.IsDeleted && cycleIds.Contains(p.PayrollCycleId));
 
         if (branchId.HasValue)
             query = query.Where(p => p.Employee.BranchId == branchId.Value);
@@ -72,7 +73,7 @@ public class MarkPayslipsAsPaidCommandHandler
 
         var result = new MarkPayslipsAsPaidResultDto
         {
-            CycleName = cycle.CycleName
+            CycleName = string.Join(", ", cycles.Select(c => c.CycleName))
         };
 
         var payslipsToMark = payslips.Where(p => !p.IsPaid).ToList();
@@ -126,19 +127,23 @@ public class MarkPayslipsAsPaidCommandHandler
             result.TotalAmountPaid += payslip.NetSalary;
         }
 
-        // Update cycle status to Paid if all payslips in cycle are now paid
-        var allCyclePayslips = await _context.Payslips
-            .Where(p => !p.IsDeleted && p.PayrollCycleId == cycle.Id)
-            .ToListAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
 
-        if (allCyclePayslips.All(p => p.IsPaid))
+        // Update each cycle's status: Paid when every payslip is paid, otherwise Processed.
+        foreach (var cycle in cycles)
         {
-            cycle.StatusId = PayrollStatusIds.Paid;
-            cycle.PaymentDate = now;
-        }
-        else
-        {
-            cycle.StatusId = PayrollStatusIds.Processed;
+            var allPaid = !await _context.Payslips
+                .AnyAsync(p => !p.IsDeleted && p.PayrollCycleId == cycle.Id && !p.IsPaid, cancellationToken);
+
+            if (allPaid)
+            {
+                cycle.StatusId = PayrollStatusIds.Paid;
+                cycle.PaymentDate = now;
+            }
+            else
+            {
+                cycle.StatusId = PayrollStatusIds.Processed;
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);

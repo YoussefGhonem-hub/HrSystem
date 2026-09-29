@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Payroll.Common;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
@@ -53,8 +54,15 @@ public class GetPendingDisbursementsQueryHandler
         if (request.Month < 1 || request.Month > 12)
             return Error.Validation(description: "Month must be between 1 and 12.");
 
-        var periodStart = new DateTime(request.Year, request.Month, 1);
-        var periodEnd = periodStart.AddMonths(1).AddDays(-1);
+        if (request.Year < 2000 || request.Year > 2100)
+            return Error.Validation(description: "Invalid year.");
+
+        // Resolve the actual pay period(s) of the month from the organization's payroll settings.
+        var settings = await PayrollPeriodCalculator.LoadSettingsAsync(
+            _context, CurrentUser.OrganizationId ?? Guid.Empty, cancellationToken);
+        var periods = PayrollPeriodCalculator.GetPeriodsForMonth(settings, request.Month, request.Year);
+        var periodStart = periods.Min(p => p.StartDate);
+        var periodEnd = periods.Max(p => p.EndDate);
 
         // Apply branch scope for HR managers
         var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
@@ -79,7 +87,9 @@ public class GetPendingDisbursementsQueryHandler
                         && l.IsActive
                         && l.StartDate <= periodEnd
                         && l.RemainingAmount > 0
-                        && (!l.EndDate.HasValue || l.EndDate.Value >= periodStart)
+                        // Exclude loans whose last installment month is before the requested period.
+                        // Effective end = explicit EndDate, else StartDate + (InstallmentMonths - 1).
+                        && (l.EndDate ?? l.StartDate.AddMonths(l.InstallmentMonths > 0 ? l.InstallmentMonths - 1 : 0)) >= periodStart
                         && !disbursedLoanIds.Contains(l.Id));
 
         if (branchId.HasValue)

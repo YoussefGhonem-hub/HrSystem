@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Payroll.Common;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
@@ -47,18 +48,22 @@ public class DeletePayslipsCommandHandler
         if (!isHRManagerOrAdmin)
             return Error.Forbidden(description: "Only HR Managers and Admins can delete payslips.");
 
-        // Get payroll cycle
-        var cycle = await _context.PayrollCycles
-            .FirstOrDefaultAsync(c => c.Month == request.Month && c.Year == request.Year, cancellationToken);
+        // A month may hold several cycles (weekly / bi-weekly pay periods)
+        var cycles = await _context.PayrollCycles
+            .Where(c => c.Month == request.Month && c.Year == request.Year)
+            .OrderBy(c => c.PeriodStartDate)
+            .ToListAsync(cancellationToken);
 
-        if (cycle == null)
+        if (cycles.Count == 0)
             return Error.NotFound(description: "Payroll cycle not found for the specified month and year.");
 
-        // Build query for payslips to delete
+        var cycleIds = cycles.Select(c => c.Id).ToList();
+
+        // Build query for payslips to delete (paid payslips are never deleted)
         var payslipsQuery = _context.Payslips
             .Include(p => p.PayslipAllowances)
             .Include(p => p.PayslipDeductions)
-            .Where(p => p.PayrollCycleId == cycle.Id && !p.IsDeleted);
+            .Where(p => cycleIds.Contains(p.PayrollCycleId) && !p.IsDeleted);
 
         if (request.EmployeeId.HasValue)
         {
@@ -68,7 +73,7 @@ public class DeletePayslipsCommandHandler
         // Apply branch scope for branch-level HR managers
         var isSuperOrOrgAdmin = CurrentUser.Roles?.Contains(RoleNames.SuperAdmin) == true
             || CurrentUser.Roles?.Contains(RoleNames.OrganizationAdmin) == true;
-        
+
         if (!isSuperOrOrgAdmin && CurrentUser.BranchId.HasValue)
         {
             payslipsQuery = payslipsQuery.Where(p => p.BranchId == CurrentUser.BranchId.Value);
@@ -79,19 +84,19 @@ public class DeletePayslipsCommandHandler
         if (payslips.Count == 0)
             return Error.NotFound(description: "No payslips found to delete.");
 
-        var result = new DeletePayslipsResultDto
-        {
-            PayslipsDeleted = payslips.Count
-        };
-
-        // Soft delete payslips using the MarkAsDeleted helper
+        var result = new DeletePayslipsResultDto();
         var currentUserId = CurrentUser.Id ?? Guid.Empty;
-        
+
         foreach (var payslip in payslips)
         {
+            if (payslip.IsPaid)
+            {
+                result.Messages.Add($"Skipped payslip {payslip.PayslipNumber}: it is already paid.");
+                continue;
+            }
+
             payslip.MarkAsDeleted(currentUserId);
 
-            // Mark related entities as deleted
             foreach (var allowance in payslip.PayslipAllowances)
             {
                 allowance.IsDeleted = true;
@@ -102,18 +107,17 @@ public class DeletePayslipsCommandHandler
                 deduction.IsDeleted = true;
             }
 
+            result.PayslipsDeleted++;
             result.Messages.Add($"Deleted payslip {payslip.PayslipNumber}");
         }
 
-        // Update cycle totals
-        var deletedGrossSalary = payslips.Sum(p => p.GrossSalary);
-        var deletedNetSalary = payslips.Sum(p => p.NetSalary);
-        var deletedDeductions = payslips.Sum(p => p.TotalDeductions);
+        await _context.SaveChangesAsync(cancellationToken);
 
-        cycle.TotalGrossSalary -= deletedGrossSalary;
-        cycle.TotalNetSalary -= deletedNetSalary;
-        cycle.TotalDeductions -= deletedDeductions;
-        cycle.TotalTax -= deletedDeductions;
+        // Recompute cycle totals/status from the remaining payslips
+        foreach (var cycle in cycles)
+        {
+            await PayrollCycleTotals.RecalculateAsync(_context, cycle, cancellationToken);
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

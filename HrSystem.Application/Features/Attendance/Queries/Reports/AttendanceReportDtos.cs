@@ -26,6 +26,8 @@ public class DailyAttendanceReportDto
     public int LateCount { get; set; }
     public int EarlyLeaveCount { get; set; }
     public int OnLeaveCount { get; set; }
+    public int HolidayCount { get; set; }
+    public int WeekendCount { get; set; }
     public int WorkFromHomeCount { get; set; }
     public double AttendanceRate { get; set; }
     public List<DailyAttendanceRowDto> Rows { get; set; } = new();
@@ -33,6 +35,7 @@ public class DailyAttendanceReportDto
 
 public class DailyAttendanceRowDto
 {
+    public Guid EmployeeId { get; set; }
     public string EmployeeCode { get; set; } = string.Empty;
     public string EmployeeName { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
@@ -43,6 +46,10 @@ public class DailyAttendanceRowDto
     public int LateMinutes { get; set; }
     public int EarlyLeaveMinutes { get; set; }
     public double WorkedHours { get; set; }
+    public double OvertimeHours { get; set; }
+    public bool IsLate { get; set; }
+    public bool IsEarlyLeave { get; set; }
+    public string? Notes { get; set; }
 }
 
 // ─────────────────────────────────────────────

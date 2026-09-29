@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Attendance.Common;
 using HrSystem.Domain.Enums;
 using HrSystem.Shared.Common;
 using HrSystem.Shared.Constants;
@@ -69,7 +70,7 @@ public class ImportAttendanceExcelCommandHandler
         var employees = await _context.Employees
             .AsNoTracking()
             .Where(e => employeeCodes.Contains(e.EmployeeCode) && e.BranchId == request.BranchId && !e.IsDeleted)
-            .Select(e => new { e.Id, e.EmployeeCode, e.TenantId })
+            .Select(e => new { e.Id, e.EmployeeCode, e.TenantId, e.BranchId })
             .ToListAsync(cancellationToken);
 
         var employeeMap = employees.ToDictionary(e => e.EmployeeCode, e => e);
@@ -111,8 +112,7 @@ public class ImportAttendanceExcelCommandHandler
                 if (row.CheckInTime.HasValue) existing.CheckInTime = row.CheckInTime;
                 if (row.CheckOutTime.HasValue) existing.CheckOutTime = row.CheckOutTime;
 
-                if (existing.CheckInTime.HasValue && existing.CheckOutTime.HasValue)
-                    existing.WorkedHours = existing.CheckOutTime.Value - existing.CheckInTime.Value;
+                await AttendanceMetricsCalculator.ApplyAsync(_context, existing, emp.BranchId ?? request.BranchId, cancellationToken);
 
                 existing.CheckInMethod ??= AttendanceMethod.ExcelImport;
                 existing.CheckOutMethod ??= AttendanceMethod.ExcelImport;
@@ -136,8 +136,7 @@ public class ImportAttendanceExcelCommandHandler
                 Notes = "Imported from Excel"
             };
 
-            if (attendance.CheckInTime.HasValue && attendance.CheckOutTime.HasValue)
-                attendance.WorkedHours = attendance.CheckOutTime.Value - attendance.CheckInTime.Value;
+            await AttendanceMetricsCalculator.ApplyAsync(_context, attendance, emp.BranchId ?? request.BranchId, cancellationToken);
 
             attendance.MarkAsCreated(CurrentUser.Id ?? Guid.Empty);
             _context.Attendances.Add(attendance);

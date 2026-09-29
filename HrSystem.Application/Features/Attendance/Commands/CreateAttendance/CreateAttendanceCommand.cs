@@ -1,4 +1,5 @@
 using ErrorOr;
+using HrSystem.Application.Features.Attendance.Common;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendanceById;
 using HrSystem.Infrustructure.Persistence;
 using HrSystem.Shared.Common;
@@ -29,13 +30,6 @@ public class CreateAttendanceCommandHandler : IRequestHandler<CreateAttendanceCo
         CreateAttendanceCommand request,
         CancellationToken cancellationToken)
     {
-        // Calculate worked hours if both check-in and check-out are provided
-        TimeSpan? workedHours = null;
-        if (request.CheckInTime.HasValue && request.CheckOutTime.HasValue)
-        {
-            workedHours = request.CheckOutTime.Value - request.CheckInTime.Value;
-        }
-
         var attendance = new Domain.Entities.Attendance.Attendance
         {
             EmployeeId = request.EmployeeId,
@@ -46,10 +40,20 @@ public class CreateAttendanceCommandHandler : IRequestHandler<CreateAttendanceCo
             DeviceId = request.DeviceId,
             CheckInDeviceId = request.CheckInDeviceId,
             CheckOutDeviceId = request.CheckOutDeviceId,
-            WorkedHours = workedHours,
             Notes = request.Notes,
             TenantId = Guid.Empty
         };
+
+        // Derive WorkedHours, late / early-leave / overtime flags, HalfDayRule and status
+        // from the employee's branch shift rules (manual statuses are preserved).
+        var employeeBranchId = await _context.Employees
+            .AsNoTracking()
+            .Where(e => e.Id == request.EmployeeId)
+            .Select(e => e.BranchId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        await AttendanceMetricsCalculator.ApplyAsync(
+            _context, attendance, employeeBranchId, cancellationToken, preserveStatusId: request.StatusId);
 
         _context.Attendances.Add(attendance);
         await _context.SaveChangesAsync(cancellationToken);

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using ErrorOr;
+using HrSystem.Application.Features.Attendance.Common;
 using HrSystem.Application.Features.Attendance.Queries.GetAttendanceById;
 using AttendanceEntity = HrSystem.Domain.Entities.Attendance.Attendance;
 using HrSystem.Domain.Enums;
@@ -128,7 +129,7 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
             attendance.WorkedHours = attendance.CheckOutTime.Value - attendance.CheckInTime.Value;
         }
 
-        await ApplyAttendanceMetricsAsync(attendance, employee.BranchId, cancellationToken);
+        await AttendanceMetricsCalculator.ApplyAsync(_context, attendance, employee.BranchId, cancellationToken);
         if (attendance.StatusId == Guid.Empty)
         {
             attendance.StatusId = AttendanceStatusIds.Present;
@@ -184,147 +185,5 @@ public class VerifyBiometricAttendanceCommandHandler : IRequestHandler<VerifyBio
         var bytes = Encoding.UTF8.GetBytes(templateBase64.Trim());
         var hash = sha.ComputeHash(bytes);
         return Convert.ToHexString(hash);
-    }
-
-    private async Task ApplyAttendanceMetricsAsync(AttendanceEntity attendance, Guid? branchId, CancellationToken cancellationToken)
-    {
-        attendance.IsLate = false;
-        attendance.LateMinutes = null;
-        attendance.IsEarlyLeave = false;
-        attendance.EarlyLeaveMinutes = null;
-        attendance.IsOvertime = false;
-        attendance.OvertimeHours = null;
-
-        if (!branchId.HasValue || branchId.Value == Guid.Empty)
-        {
-            attendance.StatusId = AttendanceStatusIds.Present;
-            return;
-        }
-
-        var schedule = await _context.BranchWorkSchedules
-            .AsNoTracking()
-            .Where(s => s.BranchId == branchId.Value && s.IsActive && !s.IsDeleted)
-            .OrderByDescending(s => s.IsDefault)
-            .ThenBy(s => s.StartTime)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (schedule == null)
-        {
-            attendance.StatusId = AttendanceStatusIds.Present;
-            return;
-        }
-
-        var hasCompletePunch = attendance.CheckInTime.HasValue && attendance.CheckOutTime.HasValue;
-        var effectiveWorkedHours = attendance.WorkedHours ?? TimeSpan.Zero;
-
-        if (hasCompletePunch && schedule.IsBreakTimeDeducted && schedule.BreakDuration.HasValue)
-        {
-            var deducted = effectiveWorkedHours - schedule.BreakDuration.Value;
-            effectiveWorkedHours = deducted < TimeSpan.Zero ? TimeSpan.Zero : deducted;
-            attendance.WorkedHours = effectiveWorkedHours;
-        }
-
-        var checkInWindowClosed = false;
-        if (attendance.CheckInTime.HasValue && schedule.CheckInWindowMinutes.HasValue && schedule.CheckInWindowMinutes.Value > 0)
-        {
-            var checkInWindowEnd = schedule.StartTime.Add(TimeSpan.FromMinutes(schedule.CheckInWindowMinutes.Value));
-            checkInWindowClosed = attendance.CheckInTime.Value > checkInWindowEnd;
-        }
-
-        if (attendance.CheckInTime.HasValue)
-        {
-            var allowedCheckIn = ResolveLateCutoff(schedule.StartTime, schedule.GracePeriodLate);
-            if (attendance.CheckInTime.Value > allowedCheckIn)
-            {
-                attendance.IsLate = true;
-                attendance.LateMinutes = attendance.CheckInTime.Value - allowedCheckIn;
-            }
-        }
-
-        if (attendance.CheckOutTime.HasValue)
-        {
-            var allowedCheckOut = ResolveEarlyLeaveCutoff(schedule.EndTime, schedule.GracePeriodEarlyLeave);
-            if (attendance.CheckOutTime.Value < allowedCheckOut)
-            {
-                attendance.IsEarlyLeave = true;
-                attendance.EarlyLeaveMinutes = allowedCheckOut - attendance.CheckOutTime.Value;
-            }
-        }
-
-        if (checkInWindowClosed)
-        {
-            attendance.StatusId = AttendanceStatusIds.Absent;
-            attendance.HalfDayRule = "ABSENT";
-            return;
-        }
-
-        if (hasCompletePunch)
-        {
-            var workedHours = (decimal)effectiveWorkedHours.TotalHours;
-            var minimumFullDayHours = schedule.MinimumFullDayHours;
-            var minimumHalfDayHours = schedule.MinimumHalfDayHours;
-            var absentThresholdHours = schedule.AbsentThresholdHours;
-
-            if (workedHours >= minimumFullDayHours)
-            {
-                attendance.StatusId = AttendanceStatusIds.Present;
-                attendance.HalfDayRule = "FULL_DAY";
-            }
-            else if (workedHours >= minimumHalfDayHours)
-            {
-                attendance.StatusId = AttendanceStatusIds.Present;
-                attendance.HalfDayRule = "HALF_DAY";
-            }
-            else if (workedHours < absentThresholdHours)
-            {
-                attendance.StatusId = AttendanceStatusIds.Absent;
-                attendance.HalfDayRule = "ABSENT";
-            }
-            else
-            {
-                attendance.StatusId = AttendanceStatusIds.Absent;
-                attendance.HalfDayRule = "ABSENT";
-            }
-
-            if (schedule.IsOvertimeEnabled && workedHours > schedule.OvertimeStartsAfterHours)
-            {
-                attendance.IsOvertime = true;
-                attendance.OvertimeHours = TimeSpan.FromHours((double)(workedHours - schedule.OvertimeStartsAfterHours));
-            }
-        }
-        else
-        {
-            var hasAnyPunch = attendance.CheckInTime.HasValue || attendance.CheckOutTime.HasValue;
-            attendance.StatusId = hasAnyPunch ? AttendanceStatusIds.Present : AttendanceStatusIds.Absent;
-            attendance.HalfDayRule = hasAnyPunch ? "INCOMPLETE" : "ABSENT";
-        }
-    }
-
-    private static TimeSpan ResolveLateCutoff(TimeSpan shiftStartTime, TimeSpan? gracePeriodLate)
-    {
-        if (!gracePeriodLate.HasValue)
-        {
-            return shiftStartTime;
-        }
-
-        // Backward compatible: values like 00:15 are treated as offset from shift start.
-        // Values like 09:00 are treated as an absolute check-in cutoff time.
-        return gracePeriodLate.Value >= TimeSpan.FromHours(2)
-            ? gracePeriodLate.Value
-            : shiftStartTime + gracePeriodLate.Value;
-    }
-
-    private static TimeSpan ResolveEarlyLeaveCutoff(TimeSpan shiftEndTime, TimeSpan? gracePeriodEarlyLeave)
-    {
-        if (!gracePeriodEarlyLeave.HasValue)
-        {
-            return shiftEndTime;
-        }
-
-        // Backward compatible: values like 00:15 are treated as offset before shift end.
-        // Values like 13:00 are treated as an absolute minimum checkout time.
-        return gracePeriodEarlyLeave.Value >= TimeSpan.FromHours(2)
-            ? gracePeriodEarlyLeave.Value
-            : shiftEndTime - gracePeriodEarlyLeave.Value;
     }
 }

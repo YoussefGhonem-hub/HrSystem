@@ -23,7 +23,7 @@ public static class AttendanceReportExcelExporter
 
         // Summary row
         int row = 3;
-        ws.Cell(row, 1).Value = $"Total: {report.TotalEmployees}  |  Present: {report.PresentCount}  |  Absent: {report.AbsentCount}  |  Late: {report.LateCount}  |  Early Leave: {report.EarlyLeaveCount}  |  On Leave: {report.OnLeaveCount}  |  Attendance Rate: {report.AttendanceRate}%";
+        ws.Cell(row, 1).Value = $"Total: {report.TotalEmployees}  |  Present: {report.PresentCount}  |  Absent: {report.AbsentCount}  |  Late: {report.LateCount}  |  Early Leave: {report.EarlyLeaveCount}  |  On Leave: {report.OnLeaveCount}  |  Holiday: {report.HolidayCount}  |  Weekend: {report.WeekendCount}  |  Attendance Rate: {report.AttendanceRate}%";
         ws.Range(row, 1, row, 9).Merge().Style.Fill.BackgroundColor = SummaryBg;
         row += 2;
 

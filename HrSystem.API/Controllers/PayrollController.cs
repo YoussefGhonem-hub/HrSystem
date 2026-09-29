@@ -24,6 +24,7 @@ using HrSystem.Application.Features.Payroll.Queries.GetPayrollOverview;
 using HrSystem.Application.Features.Payroll.Queries.GetPayslipsWithStatistics;
 using HrSystem.Application.Features.Payroll.Queries.GetPayrollHistory;
 using HrSystem.Application.Features.Payroll.Queries.GetEmployeePaymentDetails;
+using HrSystem.Application.Features.Payroll.Queries.GetPayPeriods;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -51,6 +52,22 @@ public class PayrollController : APIBaseController
     public async Task<IActionResult> GeneratePayslips([FromBody] GeneratePayslipsCommand command)
     {
         var result = await _mediator.Send(command);
+
+        return result.Match(
+            response => Ok(response),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Returns the pay period(s) that make up the given month according to the organization's
+    /// payroll cycle settings (calendar month, custom cut-off, bi-weekly or weekly).
+    /// </summary>
+    [HttpGet("pay-periods")]
+    [Authorize(Roles = "HRManager,HRSpecialist,OrganizationAdmin,SuperAdmin")]
+    public async Task<IActionResult> GetPayPeriods([FromQuery] int month, [FromQuery] int year)
+    {
+        var result = await _mediator.Send(new GetPayPeriodsQuery(month, year));
 
         return result.Match(
             response => Ok(response),

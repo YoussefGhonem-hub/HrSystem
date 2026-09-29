@@ -82,6 +82,8 @@ public class PayslipDocument : IDocument
             column.Item().Text("PAYSLIP").FontSize(24).Bold().FontColor(Colors.White);
             column.Item().Text($"Period: {GetMonthName(_payslip.PayrollCycle.Month)} {_payslip.PayrollCycle.Year}")
                 .FontSize(14).FontColor(Colors.White);
+            column.Item().Text($"{_payslip.PayrollCycle.PeriodStartDate:dd/MM/yyyy} - {_payslip.PayrollCycle.PeriodEndDate:dd/MM/yyyy}")
+                .FontSize(11).FontColor(Colors.Grey.Lighten2);
             column.Item().Text($"Payslip Number: {_payslip.PayslipNumber}")
                 .FontSize(12).FontColor(Colors.Grey.Lighten2);
         });

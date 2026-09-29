@@ -73,7 +73,7 @@ public class GetMyLoanDetailsQueryHandler : IRequestHandler<GetMyLoanDetailsQuer
             InstallmentMonths = loanEntity.InstallmentMonths,
             IsActive = loanEntity.IsActive,
             StartDate = loanEntity.StartDate,
-            EndDate = loanEntity.EndDate ?? loanEntity.StartDate.AddMonths(loanEntity.InstallmentMonths),
+            EndDate = loanEntity.EndDate ?? loanEntity.StartDate.AddMonths(loanEntity.InstallmentMonths > 0 ? loanEntity.InstallmentMonths - 1 : 0),
             Notes = loanEntity.Notes,
             PaidPaymentPeriods = paidPeriods
         };

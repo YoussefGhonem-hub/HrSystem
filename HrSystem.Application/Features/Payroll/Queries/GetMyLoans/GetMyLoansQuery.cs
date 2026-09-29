@@ -58,7 +58,7 @@ public class GetMyLoansQueryHandler : IRequestHandler<GetMyLoansQuery, ErrorOr<G
                 MonthlyDeduction = l.MonthlyDeduction,
                 InstallmentMonths = l.InstallmentMonths,
                 StartDate = l.StartDate,
-                EndDate = l.EndDate ?? l.StartDate.AddMonths(l.InstallmentMonths),
+                EndDate = l.EndDate ?? l.StartDate.AddMonths(l.InstallmentMonths > 0 ? l.InstallmentMonths - 1 : 0),
                 IsActive = l.IsActive
             });
 

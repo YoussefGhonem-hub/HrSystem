@@ -4,6 +4,7 @@ using HrSystem.Infrustructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HrSystem.Infrustructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929091712_AddAuditLogs")]
+    partial class AddAuditLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2659,19 +2662,19 @@ namespace HrSystem.Infrustructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId")
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
+                    b.HasIndex("OrganizationId");
 
-                    b.ToTable("OrganizationPayrollSettings", (string)null);
+                    b.ToTable("OrganizationPayrollSettings");
                 });
 
             modelBuilder.Entity("HrSystem.Domain.Entities.Organization.SubscriptionPlan", b =>
@@ -3025,7 +3028,7 @@ namespace HrSystem.Infrustructure.Migrations
 
                     b.HasIndex("StatusId");
 
-                    b.HasIndex("TenantId", "Month", "Year", "PeriodStartDate")
+                    b.HasIndex("TenantId", "Month", "Year")
                         .IsUnique();
 
                     b.ToTable("PayrollCycles", "Payroll");
@@ -6451,7 +6454,7 @@ namespace HrSystem.Infrustructure.Migrations
                 {
                     b.HasOne("HrSystem.Domain.Entities.Organization.Organization", "Organization")
                         .WithMany()
-                        .HasForeignKey("TenantId")
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

@@ -15,6 +15,9 @@ public class PayslipListDto
     public int Month { get; set; }
     public int Year { get; set; }
     public string MonthName { get; set; } = string.Empty;
+    public string CycleName { get; set; } = string.Empty;
+    public DateTime PeriodStartDate { get; set; }
+    public DateTime PeriodEndDate { get; set; }
     public bool IsPaid { get; set; }
     public DateTime? PaidDate { get; set; }
     public string Status { get; set; } = string.Empty;

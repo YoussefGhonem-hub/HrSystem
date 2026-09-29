@@ -17,6 +17,7 @@ public class PayrollCycleConfiguration : IEntityTypeConfiguration<PayrollCycle>
         builder.Property(pc => pc.TotalTax).HasColumnType("decimal(18,2)");
         builder.Property(pc => pc.TotalInsurance).HasColumnType("decimal(18,2)");
 
-        builder.HasIndex(pc => new { pc.TenantId, pc.Month, pc.Year }).IsUnique();
+        // Weekly / bi-weekly pay cycles produce several cycles per month, each with its own period start.
+        builder.HasIndex(pc => new { pc.TenantId, pc.Month, pc.Year, pc.PeriodStartDate }).IsUnique();
     }
 }

@@ -64,7 +64,7 @@ public class GetLoanByIdQueryHandler : IRequestHandler<GetLoanByIdQuery, ErrorOr
             InstallmentMonths = loan.InstallmentMonths,
             StartDate = loan.StartDate,
             // Compute EndDate from StartDate + InstallmentMonths when not explicitly stored
-            EndDate = loan.EndDate ?? loan.StartDate.AddMonths(loan.InstallmentMonths),
+            EndDate = loan.EndDate ?? loan.StartDate.AddMonths(loan.InstallmentMonths > 0 ? loan.InstallmentMonths - 1 : 0),
             IsActive = loan.IsActive,
             Notes = loan.Notes,
             PaidPaymentPeriods = paidPeriods

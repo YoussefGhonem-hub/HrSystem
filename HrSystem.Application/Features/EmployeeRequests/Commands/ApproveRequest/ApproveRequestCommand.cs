@@ -1,5 +1,6 @@
 using ErrorOr;
 using HrSystem.Application.Features.EmployeeRequests.Commands.ApproveVacationRequest;
+using HrSystem.Application.Features.EmployeeRequests.Common;
 using HrSystem.Application.Features.EmployeeRequests.Dtos;
 using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Payroll;
@@ -76,20 +77,32 @@ public class ApproveRequestCommandHandler
         bool isDirectManager = currentEmployeeId.HasValue
             && employeeRequest.Employee.DirectManagerId == currentEmployeeId.Value;
 
+        // When the employee's direct manager is part of HR (HR role or HR department), the manager step
+        // and the HR step collapse into a single approval handled by any HR approver.
+        bool managerIsHrApprover = employeeRequest.Status == EmployeeRequestStatus.Pending
+            && isHR
+            && await EmployeeRequestWorkflowHelper.IsDirectManagerHrApproverAsync(
+                _context, employeeRequest.Employee.DirectManagerId, cancellationToken);
+
         if (employeeRequest.Status == EmployeeRequestStatus.Pending && isHR && employeeRequest.Employee.DirectManagerId == null)
         {
             // Employee has no direct manager → HR handles full approval directly
             level = ApprovalLevel.HR;
         }
-        else if (employeeRequest.Status == EmployeeRequestStatus.Pending && isDirectManager && isHR)
+        else if (employeeRequest.Status == EmployeeRequestStatus.Pending && isHR && (isDirectManager || managerIsHrApprover))
         {
-            // Direct manager is also an HR member → single approval covers both levels
+            // Direct manager is HR (or is the approver) → single approval covers both levels
             level = ApprovalLevel.HR;
         }
         else if (employeeRequest.Status == EmployeeRequestStatus.Pending && isHR && !RequiresManagerApproval(employeeRequest))
         {
             // Request type does not require manager approval (e.g. Personal/Loan) → HR handles directly
             level = ApprovalLevel.HR;
+        }
+        else if (employeeRequest.Status == EmployeeRequestStatus.Pending && isManager && !isHR && !isDirectManager)
+        {
+            // A department manager may only act on requests of their own direct reports
+            return Error.Forbidden(description: "Only the employee's direct manager or HR can approve this request.");
         }
         else if (employeeRequest.Status == EmployeeRequestStatus.Pending && (isManager || isHR))
         {
@@ -121,7 +134,9 @@ public class ApproveRequestCommandHandler
         }
         else
         {
-            return await HandleHRApproval(employeeRequest, requestTypeCode, request, currentUserId, currentEmployeeId, isDirectManager, cancellationToken);
+            // Fill the manager-level fields too when the single HR approval also covers the manager step.
+            var coversManagerStep = isDirectManager || managerIsHrApprover;
+            return await HandleHRApproval(employeeRequest, requestTypeCode, request, currentUserId, currentEmployeeId, coversManagerStep, cancellationToken);
         }
     }
 

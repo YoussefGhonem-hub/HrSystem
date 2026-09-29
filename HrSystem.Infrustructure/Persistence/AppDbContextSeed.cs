@@ -2288,6 +2288,7 @@ public static class AppDbContextSeed
 
                 var subRequests = new List<EmployeeRequest>();
                 var subVacationDetails = new List<VacationRequestDetail>();
+                var subOvertimeDetails = new List<OvertimeRequestDetail>();
 
                 foreach (var sub in subordinates)
                 {
@@ -2334,7 +2335,7 @@ public static class AppDbContextSeed
                         CreatedDate = ToOffset(-1)
                     };
                     subRequests.Add(pendingOvertime);
-                    overtimeDetails.Add(new OvertimeRequestDetail
+                    subOvertimeDetails.Add(new OvertimeRequestDetail
                     {
                         EmployeeRequestId = pendingOvertime.Id,
                         OvertimeTypeId = overtimeTypeId,
@@ -2351,7 +2352,7 @@ public static class AppDbContextSeed
                 {
                     await context.EmployeeRequests.AddRangeAsync(subRequests);
                     if (subVacationDetails.Count > 0) await context.VacationRequestDetails.AddRangeAsync(subVacationDetails);
-                    if (overtimeDetails.Count > 0) await context.OvertimeRequestDetails.AddRangeAsync(overtimeDetails);
+                    if (subOvertimeDetails.Count > 0) await context.OvertimeRequestDetails.AddRangeAsync(subOvertimeDetails);
                     await context.SaveChangesAsync();
                     Console.WriteLine($"Seeded {subRequests.Count} pending requests from DeptManager subordinates.");
                 }
@@ -3723,7 +3724,9 @@ public static class AppDbContextSeed
 
         foreach (var required in requiredRequestTypes)
         {
-            var exists = await context.RequestTypes.AnyAsync(rt => rt.Code == required.Code);
+            // Check both persisted rows and rows added above but not yet saved (fresh database).
+            var exists = context.RequestTypes.Local.Any(rt => rt.Code == required.Code)
+                || await context.RequestTypes.AnyAsync(rt => rt.Code == required.Code);
             if (exists)
             {
                 continue;

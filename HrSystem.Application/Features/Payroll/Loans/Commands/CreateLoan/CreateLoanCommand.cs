@@ -87,7 +87,7 @@ public class CreateLoanCommandHandler : IRequestHandler<CreateLoanCommand, Error
             MonthlyDeduction = created.MonthlyDeduction,
             InstallmentMonths = created.InstallmentMonths,
             StartDate = created.StartDate,
-            EndDate = created.EndDate ?? created.StartDate.AddMonths(created.InstallmentMonths),
+            EndDate = created.EndDate ?? created.StartDate.AddMonths(created.InstallmentMonths > 0 ? created.InstallmentMonths - 1 : 0),
             IsActive = created.IsActive,
             Notes = created.Notes
         };

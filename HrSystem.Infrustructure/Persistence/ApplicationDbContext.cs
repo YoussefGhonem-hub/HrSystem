@@ -1,6 +1,7 @@
 ﻿using HrSystem.Domain.Common;
 using HrSystem.Domain.Entities.Account;
 using HrSystem.Domain.Entities.Attendance;
+using HrSystem.Domain.Entities.Audit;
 using HrSystem.Domain.Entities.Leave;
 using HrSystem.Domain.Entities.Organization;
 using HrSystem.Domain.Entities.Payroll;
@@ -102,6 +103,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<HrSystem.Domain.Entities.Organization.InvoiceStatus> InvoiceStatuses => Set<HrSystem.Domain.Entities.Organization.InvoiceStatus>();
     public DbSet<HrSystem.Domain.Entities.Organization.OrganizationInvoiceItem> OrganizationInvoiceItems => Set<HrSystem.Domain.Entities.Organization.OrganizationInvoiceItem>();
     public DbSet<HrSystem.Domain.Entities.Organization.OrganizationPayrollSettings> OrganizationPayrollSettings => Set<HrSystem.Domain.Entities.Organization.OrganizationPayrollSettings>();
+
+    // Audit trail
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     // Employee Self-Service Requests
     public DbSet<EmployeeRequest> EmployeeRequests => Set<EmployeeRequest>();
@@ -262,6 +266,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         ApplyAuditing();
+        AuditTrailCollector.Collect(this);
         return await base.SaveChangesAsync(cancellationToken);
     }
 

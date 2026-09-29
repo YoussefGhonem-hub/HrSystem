@@ -41,6 +41,8 @@ public static class AttendanceReportPdfExporter
                             ["Late"] = report.LateCount.ToString(),
                             ["Early Leave"] = report.EarlyLeaveCount.ToString(),
                             ["On Leave"] = report.OnLeaveCount.ToString(),
+                            ["Holiday"] = report.HolidayCount.ToString(),
+                            ["Weekend"] = report.WeekendCount.ToString(),
                             ["Attendance Rate"] = $"{report.AttendanceRate}%"
                         }));
 

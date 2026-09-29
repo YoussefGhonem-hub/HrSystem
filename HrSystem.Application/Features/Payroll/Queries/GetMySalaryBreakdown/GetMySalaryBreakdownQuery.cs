@@ -203,7 +203,8 @@ public class GetMySalaryBreakdownQueryHandler : IRequestHandler<GetMySalaryBreak
             .Where(l => !l.IsDeleted && l.IsActive
                         && l.EmployeeId == employeeId.Value
                         && l.StartDate <= periodEnd
-                        && l.RemainingAmount > 0)
+                        && l.RemainingAmount > 0
+                        && (l.EndDate ?? l.StartDate.AddMonths(l.InstallmentMonths > 0 ? l.InstallmentMonths - 1 : 0)) >= periodStart)
             .ToListAsync(cancellationToken);
 
         foreach (var loan in activeLoans)
